@@ -1,0 +1,20 @@
+-- Compatibility migration for older Supabase banners tables.
+ALTER TABLE public.banners
+  ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'hero',
+  ADD COLUMN IF NOT EXISTS category_id text,
+  ADD COLUMN IF NOT EXISTS title text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS title_ar text,
+  ADD COLUMN IF NOT EXISTS subtitle text,
+  ADD COLUMN IF NOT EXISTS subtitle_ar text,
+  ADD COLUMN IF NOT EXISTS cta_label text,
+  ADD COLUMN IF NOT EXISTS cta_label_ar text,
+  ADD COLUMN IF NOT EXISTS href text NOT NULL DEFAULT '/',
+  ADD COLUMN IF NOT EXISTS image text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS mobile_image text,
+  ADD COLUMN IF NOT EXISTS badge text,
+  ADD COLUMN IF NOT EXISTS badge_ar text,
+  ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS starts_at timestamp,
+  ADD COLUMN IF NOT EXISTS ends_at timestamp,
+  ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now();

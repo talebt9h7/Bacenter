@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'website';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS source_note text;
