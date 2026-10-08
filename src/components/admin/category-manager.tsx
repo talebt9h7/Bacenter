@@ -1,18 +1,530 @@
 'use client';
+
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { Modal } from '@/components/admin/ui';
 import { useLanguage } from '@/components/language-provider';
 import { catalogT } from '@/lib/i18n';
 
-type Row = { id: string; name: string; nameAr: string; description: string; descriptionAr: string; image: string | null; active: boolean; sortOrder: number; productCount?: number };
-const api = async (url: string, options: RequestInit = {}) => { const r = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Request failed'); return d; };
-export function CategoryManager({ initial }: { initial: Row[] }) {
+type Row = {
+  id: string;
+  name: string;
+  nameAr: string;
+  description: string;
+  descriptionAr: string;
+  image: string | null;
+  active: boolean;
+  sortOrder: number;
+  productCount?: number;
+};
+
+const api = async (
+  url: string,
+  options: RequestInit = {}
+) => {
+  const r = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+
+  const d = await r.json().catch(() => ({}));
+
+  if (!r.ok) {
+    throw new Error(
+      d.error || 'Request failed'
+    );
+  }
+
+  return d;
+};
+
+export function CategoryManager({
+  initial,
+}: {
+  initial: Row[];
+}) {
   const { language } = useLanguage();
-  const tr = (label: keyof typeof import('@/lib/i18n').catalogTranslations) => catalogT(label, language);
-  const [rows, setRows] = useState(initial); const [editing, setEditing] = useState<Partial<Row> | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const save = async () => { if (!editing?.name) return; setBusy(true); setError(''); try { const data = await api('/api/admin/categories', { method: editing.id ? 'PUT' : 'POST', body: JSON.stringify(editing) }); setRows(prev => editing.id ? prev.map(x => x.id === data.category.id ? data.category : x) : [...prev, data.category]); setEditing(null); } catch (e) { setError(e instanceof Error ? e.message : 'Could not save category.'); } finally { setBusy(false); } };
-  const remove = async (row: Row) => { if (!confirm(`${tr('Delete')} ${row.name}?`)) return; try { await api('/api/admin/categories', { method: 'DELETE', body: JSON.stringify({ id: row.id }) }); setRows(prev => prev.filter(x => x.id !== row.id)); } catch (e) { alert(e instanceof Error ? e.message : 'Could not delete category.'); } };
-  const toggle = async (row: Row) => { try { const data = await api('/api/admin/categories', { method: 'PUT', body: JSON.stringify({ ...row, active: !row.active }) }); setRows(prev => prev.map(x => x.id === row.id ? data.category : x)); } catch (e) { alert(e instanceof Error ? e.message : 'Could not update category.'); } };
-  return <section className="admin-card"><div className="admin-card-heading"><div><h2>{tr('Product categories')}</h2><p className="admin-hint">{tr('These categories are stored in the database and can be assigned to products.')}</p></div><button className="admin-btn admin-btn-primary" onClick={() => setEditing({ name: '', nameAr: '', id: '', description: '', descriptionAr: '', image: '', active: true, sortOrder: rows.length * 10 })}><Plus size={15} /> {tr('Add category')}</button></div><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{tr('Name')}</th><th>{tr('Arabic name')}</th><th>{tr('Slug')}</th><th>{tr('Description')}</th><th>{tr('Status')}</th><th>{tr('Products')}</th><th /></tr></thead><tbody>{rows.map(row => <tr key={row.id}><td><strong>{row.name}</strong></td><td dir="rtl">{row.nameAr || '—'}</td><td><code>{row.id}</code></td><td>{row.description || '—'}</td><td><button className={`admin-badge ${row.active ? 'success' : 'muted'}`} onClick={() => void toggle(row)}>{row.active ? <><Eye size={13}/> {tr('Active')}</> : <><EyeOff size={13}/> {tr('Hidden')}</>}</button></td><td>{row.productCount ?? 0}</td><td className="num"><button className="admin-icon-btn" onClick={() => setEditing(row)}><Pencil size={15}/></button><button className="admin-icon-btn danger" onClick={() => void remove(row)}><Trash2 size={15}/></button></td></tr>)}</tbody></table></div>{editing && <Modal title={editing.id ? tr('Edit category') : tr('Add category')} onClose={() => setEditing(null)} wide><div className="admin-form-grid"><label className="admin-field"><span>{tr('Name')} — English</span><input value={editing.name ?? ''} onChange={e => setEditing({ ...editing, name: e.target.value, id: editing.id || undefined })}/></label><label className="admin-field"><span>اسم التصنيف — العربية</span><input dir="rtl" value={editing.nameAr ?? ''} onChange={e => setEditing({ ...editing, nameAr: e.target.value })} placeholder="مثال: حقائب ظهر"/></label><label className="admin-field"><span>{tr('Slug')}</span><input value={editing.id ?? ''} disabled={!!editing.id} onChange={e => setEditing({ ...editing, id: e.target.value })}/></label><label className="admin-field"><span>{tr('Description')} — English</span><textarea dir="ltr" value={editing.description ?? ''} onChange={e => setEditing({ ...editing, description: e.target.value })}/></label><label className="admin-field"><span>الوصف — العربية</span><textarea dir="rtl" value={editing.descriptionAr ?? ''} onChange={e => setEditing({ ...editing, descriptionAr: e.target.value })} placeholder="اكتب وصف التصنيف بالعربية..."/></label><label className="admin-field"><span>{tr('Image URL')}</span><input value={editing.image ?? ''} onChange={e => setEditing({ ...editing, image: e.target.value })}/></label><label className="admin-field"><span>{tr('Sort order')}</span><input type="number" value={editing.sortOrder ?? 0} onChange={e => setEditing({ ...editing, sortOrder: Number(e.target.value) })}/></label></div>{error && <p className="admin-error">{error}</p>}<div className="admin-modal-actions"><button className="admin-btn admin-btn-ghost" onClick={() => setEditing(null)}>{tr('Cancel')}</button><button className="admin-btn admin-btn-primary" disabled={busy} onClick={() => void save()}>{busy ? tr('Saving…') : tr('Save category')}</button></div></Modal>}</section>;
+
+  const tr = (
+    label: keyof typeof import('@/lib/i18n').catalogTranslations
+  ) => catalogT(label, language);
+
+  const [rows, setRows] =
+    useState(initial);
+
+  const [editing, setEditing] =
+    useState<Partial<Row> | null>(null);
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const save = async () => {
+    if (!editing?.name) return;
+
+    setBusy(true);
+    setError('');
+
+    try {
+      const data = await api(
+        '/api/admin/categories',
+        {
+          method: editing.id
+            ? 'PUT'
+            : 'POST',
+          body: JSON.stringify(
+            editing
+          ),
+        }
+      );
+
+      setRows((prev) =>
+        editing.id
+          ? prev.map((x) =>
+              x.id ===
+              data.category.id
+                ? data.category
+                : x
+            )
+          : [
+              ...prev,
+              data.category,
+            ]
+      );
+
+      setEditing(null);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Could not save category.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (
+    row: Row
+  ) => {
+    if (
+      !confirm(
+        `${tr('Delete')} ${row.name}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await api(
+        '/api/admin/categories',
+        {
+          method: 'DELETE',
+          body: JSON.stringify({
+            id: row.id,
+          }),
+        }
+      );
+
+      setRows((prev) =>
+        prev.filter(
+          (x) => x.id !== row.id
+        )
+      );
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : 'Could not delete category.'
+      );
+    }
+  };
+
+  const toggle = async (
+    row: Row
+  ) => {
+    try {
+      const data = await api(
+        '/api/admin/categories',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            ...row,
+            active: !row.active,
+          }),
+        }
+      );
+
+      setRows((prev) =>
+        prev.map((x) =>
+          x.id === row.id
+            ? data.category
+            : x
+        )
+      );
+    } catch (e) {
+      alert(
+        e instanceof Error
+          ? e.message
+          : 'Could not update category.'
+      );
+    }
+  };
+
+  return (
+    <section className="admin-card">
+      <div className="admin-card-heading">
+        <div>
+          <h2>
+            {tr('Product categories')}
+          </h2>
+
+          <p className="admin-hint">
+            {tr(
+              'These categories are stored in the database and can be assigned to products.'
+            )}
+          </p>
+        </div>
+
+        <button
+          className="admin-btn admin-btn-primary"
+          onClick={() =>
+            setEditing({
+              name: '',
+              nameAr: '',
+              id: '',
+              description: '',
+              descriptionAr: '',
+              image: '',
+              active: true,
+              sortOrder:
+                rows.length * 10,
+            })
+          }
+        >
+          <Plus size={15} />
+
+          {tr('Add category')}
+        </button>
+      </div>
+
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>
+                {tr('Name')}
+              </th>
+
+              <th>
+                {tr('Arabic name')}
+              </th>
+
+              <th>
+                {tr('Slug')}
+              </th>
+
+              <th>
+                {tr('Description')}
+              </th>
+
+              <th>
+                {tr('Status')}
+              </th>
+
+              <th>
+                {tr('Products')}
+              </th>
+
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <td>
+                  <strong>
+                    {row.name}
+                  </strong>
+                </td>
+
+                <td dir="rtl">
+                  {row.nameAr || '—'}
+                </td>
+
+                <td>
+                  <code>
+                    {row.id}
+                  </code>
+                </td>
+
+                <td>
+                  {row.description ||
+                    '—'}
+                </td>
+
+                <td>
+                  <button
+                    className={`admin-badge ${
+                      row.active
+                        ? 'success'
+                        : 'muted'
+                    }`}
+                    onClick={() =>
+                      void toggle(row)
+                    }
+                  >
+                    {row.active ? (
+                      <>
+                        <Eye size={13} />
+
+                        {tr('Active')}
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff
+                          size={13}
+                        />
+
+                        {tr('Hidden')}
+                      </>
+                    )}
+                  </button>
+                </td>
+
+                <td>
+                  {row.productCount ??
+                    0}
+                </td>
+
+                <td className="num">
+                  <button
+                    className="admin-icon-btn"
+                    onClick={() =>
+                      setEditing(row)
+                    }
+                  >
+                    <Pencil size={15} />
+                  </button>
+
+                  <button
+                    className="admin-icon-btn danger"
+                    onClick={() =>
+                      void remove(row)
+                    }
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <Modal
+          title={
+            editing.id
+              ? tr('Edit category')
+              : tr('Add category')
+          }
+          onClose={() =>
+            setEditing(null)
+          }
+          wide
+        >
+          <div className="admin-form-grid">
+            <label className="admin-field">
+              <span>
+                {tr('Name')} — English
+              </span>
+
+              <input
+                value={
+                  editing.name ?? ''
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    name: e.target.value,
+                    id:
+                      editing.id ||
+                      undefined,
+                  })
+                }
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>
+                {tr('Arabic name')}
+              </span>
+
+              <input
+                dir="rtl"
+                value={
+                  editing.nameAr ?? ''
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    nameAr:
+                      e.target.value,
+                  })
+                }
+                placeholder="مثال: حقائب ظهر"
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>
+                {tr('Slug')}
+              </span>
+
+              <input
+                value={
+                  editing.id ?? ''
+                }
+                disabled={!!editing.id}
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    id: e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>
+                {tr('Description')} —
+                English
+              </span>
+
+              <textarea
+                dir="ltr"
+                value={
+                  editing.description ??
+                  ''
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    description:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>
+                {tr('Arabic description')}
+              </span>
+
+              <textarea
+                dir="rtl"
+                value={
+                  editing.descriptionAr ??
+                  ''
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    descriptionAr:
+                      e.target.value,
+                  })
+                }
+                placeholder="اكتب وصف التصنيف بالعربية..."
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>
+                {tr('Image URL')}
+              </span>
+
+              <input
+                value={
+                  editing.image ?? ''
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    image: e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>
+                {tr('Sort order')}
+              </span>
+
+              <input
+                type="number"
+                value={
+                  editing.sortOrder ?? 0
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    sortOrder:
+                      Number(
+                        e.target.value
+                      ),
+                  })
+                }
+              />
+            </label>
+          </div>
+
+          {error && (
+            <p className="admin-error">
+              {error}
+            </p>
+          )}
+
+          <div className="admin-modal-actions">
+            <button
+              className="admin-btn admin-btn-ghost"
+              onClick={() =>
+                setEditing(null)
+              }
+            >
+              {tr('Cancel')}
+            </button>
+
+            <button
+              className="admin-btn admin-btn-primary"
+              disabled={busy}
+              onClick={() =>
+                void save()
+              }
+            >
+              {busy
+                ? tr('Saving…')
+                : tr(
+                    'Save category'
+                  )}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </section>
+  );
 }
