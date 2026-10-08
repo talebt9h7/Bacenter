@@ -149,6 +149,7 @@ export const productTranslations = {
   'Price (IQD)': { ar: 'السعر (د.ع)', en: 'Price (IQD)' },
   'USD equivalent': { ar: 'ما يعادل بالدولار', en: 'USD equivalent' },
   'Exchange rate': { ar: 'سعر الصرف', en: 'Exchange rate' },
+  'Current exchange rate': { ar: 'سعر الصرف الحالي', en: 'Current exchange rate' },
   'Purchase cost / unit (IQD)': { ar: 'تكلفة الشراء / الوحدة (د.ع)', en: 'Purchase cost / unit (IQD)' },
   'Capacity / size': { ar: 'السعة / الحجم', en: 'Capacity / size' },
   'Badge': { ar: 'شارة', en: 'Badge' },
