@@ -14,7 +14,7 @@ export type HomepageConfig = {
   copy: { trendingEyebrow: string; trendingEyebrowAr?: string; trendingTitle: string; trendingTitleAr?: string; trendingLink: string; trendingLinkAr?: string; trendingHref: string; categoryTitle: string; categoryTitleAr?: string; categoryDiscoverTitle: string; categoryDiscoverTitleAr?: string; categoryDiscoverLine2: string; categoryDiscoverLine2Ar?: string; categoryDiscoverLink: string; categoryDiscoverLinkAr?: string; categoryLinkPrefix: string; categoryLinkPrefixAr?: string; collectionsTitle: string; collectionsTitleAr?: string; collectionsLink: string; collectionsLinkAr?: string; collectionsHref: string; socialEyebrow: string; socialEyebrowAr?: string; socialTitle: string; socialTitleAr?: string; socialHandle: string };
   intents: { image: string; title: string; titleAr?: string; subtitle: string; subtitleAr?: string; href: string; active: boolean; sortOrder: number }[];
   categories: { id: string; name: string; nameAr?: string; active: boolean; sortOrder: number }[];
-  collections: { id: string; slug: string; title: string; titleAr?: string; description: string; descriptionAr?: string; image: string; href: string; active: boolean; sortOrder: number; productIds?: string[] }[];
+  collections: { id: string; slug: string; title: string; titleAr: string; description: string; descriptionAr: string; image: string; href: string; active: boolean; sortOrder: number; productIds?: string[] }[];
   social: { image: string; href: string; caption: string; captionAr?: string; active: boolean; sortOrder: number }[];
   videoStories: { youtubeId: string; title: string; cta: string; href: string; active: boolean; sortOrder: number }[];
   blocks: { key: string; label: string; enabled: boolean; sortOrder: number }[];
