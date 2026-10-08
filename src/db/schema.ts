@@ -207,6 +207,7 @@ export const banners = pgTable('banners', {
   image: text('image').notNull(),
   mobileImage: text('mobile_image'),
   badge: text('badge'),
+  badgeAr: text('badge_ar'),
   active: boolean('active').notNull().default(true),
   startsAt: timestamp('starts_at'),
   endsAt: timestamp('ends_at'),
