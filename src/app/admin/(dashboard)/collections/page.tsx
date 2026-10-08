@@ -15,5 +15,5 @@ export default async function AdminCollectionsPage() {
   if (!actor) redirect('/admin');
   const [settings, products] = await Promise.all([getSettings(), getAllProducts({ includeUnpublished: true })]);
   const productRows = products.map(product => ({ id: product.id, name: product.name, category: product.category, price: product.price }));
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{catalogT('Catalog', language)}</span><h1>{catalogT('Collections', language)}</h1><p>{catalogT('Manage collection landing pages and choose exactly which products belong to each collection.', language)}</p></div></div><CollectionsManager initial={settings.homepage.collections} products={productRows} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{catalogT('Catalog', language)}</span><h1>{catalogT('Collections', language)}</h1><p>{catalogT('Manage collection landing pages and choose exactly which products belong to each collection.', language)}</p></div></div><CollectionsManager initial={settings.homepage.collections.map(collection => ({ ...collection, titleAr: collection.titleAr ?? '', descriptionAr: collection.descriptionAr ?? '' }))} products={productRows} /></main>;
 }
