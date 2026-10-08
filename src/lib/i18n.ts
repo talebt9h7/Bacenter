@@ -197,6 +197,8 @@ export const productTranslations = {
   'Upload JPG, PNG or WebP. Images are optimised automatically.': { ar: 'ارفع JPG أو PNG أو WebP. سيتم تحسين الصور تلقائياً.', en: 'Upload JPG, PNG or WebP. Images are optimised automatically.' },
   'Or paste an image URL / path, e.g. /images/transit-workpack-black.jpg': { ar: 'أو الصق رابط / مسار الصورة، مثلاً /images/transit-workpack-black.jpg', en: 'Or paste an image URL / path, e.g. /images/transit-workpack-black.jpg' },
   'Add': { ar: 'إضافة', en: 'Add' },
+  'Changing the rate does not change this IQD sale price.': { ar: 'تغيير سعر الصرف لا يغيّر سعر البيع بالدينار العراقي.', en: 'Changing the rate does not change this IQD sale price.' },
+
 } as const;
 export function productT(label: keyof typeof productTranslations, language: AppLanguage) {
   return productTranslations[label]?.[language] ?? label;
