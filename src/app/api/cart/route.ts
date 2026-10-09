@@ -7,7 +7,6 @@ import {
   products,
 } from '@/db/schema';
 import { getSession } from '@/lib/session';
-import { ensureSeeded } from '@/lib/products';
 import { getSettings } from '@/lib/settings';
 import {
   primaryImage,
@@ -89,8 +88,6 @@ export async function readCart(
 
 export async function GET() {
   try {
-    await ensureSeeded();
-
     return NextResponse.json({
       items: await readCart(
         await getSession()
