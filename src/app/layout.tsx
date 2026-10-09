@@ -8,6 +8,7 @@ import './globals.css';
 import './reference-refinements.css';
 import './editorial.css';
 import './admin.css';
+import './typography.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);
