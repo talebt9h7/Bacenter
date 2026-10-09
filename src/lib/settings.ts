@@ -31,10 +31,10 @@ export type StoreSettings = {
   adminPasswordHash?: string;
 };
 export const defaultSettings: StoreSettings = {
-  storeName: 'UR', tagline: 'Considered carry goods for all the ways you move.', logoUrl: '/images/UR-logo.svg', logoAlt: 'Bellroy', faviconUrl: '/images/bellroy-logo.svg', seoIndex: true, seoFollow: true, canonicalBaseUrl: '', ogImage: '/images/bellroy-logo.svg', metaTitle: 'Bellroy | Considered Carry Goods', metaDescription: 'Considered carry goods for all the ways you move. Discover thoughtfully designed backpacks, wallets, bags, phone cases and accessories.', announcement: 'Free delivery across Iraq on orders over 150,000 IQD · Cash on delivery', announcementHref: '/info/shipping',
-  supportEmail: 'support@example.com', supportPhone: '07700000000', whatsapp: '9647700000000', instagram: 'https://www.instagram.com/bellroy/', youtube: 'https://www.youtube.com/bellroy', facebook: 'https://www.facebook.com/bellroy', address: 'Baghdad, Iraq', footerTagline: 'Designed to move you.\nMade to last.', copyrightText: 'A considered carry experience.',
+  storeName: 'UR', tagline: 'Your final touch | لمستك الأخيرة.', logoUrl: '/images/UR-logo.svg', logoAlt: 'UR', faviconUrl: '/images/UR-logo.svg', seoIndex: true, seoFollow: true, canonicalBaseUrl: '', ogImage: '/images/UR-logo.svg', metaTitle: 'UR Leather | لمستك الأخيرة', metaDescription: 'اكتشف منتجات UR Leather المصنوعة من الجلد الطبيعي، بتصاميم تجمع بين الأناقة والاستخدام اليومي.', announcement: 'Free delivery across Iraq on orders over 150,000 IQD · Cash on delivery', announcementHref: '/info/shipping',
+  supportEmail: '', supportPhone: '07700000000', whatsapp: '9647700000000', instagram: '', youtube: '', facebook: '', address: 'Iraq', footerTagline: 'Your final touch.\nلمستك الأخيرة.', copyrightText: 'UR Leather.',
   exchangeRate: 1320, freeShippingThreshold: 150000, codFee: 0, codEnabled: true, lowStockThreshold: 5,
-  orderPrefix: 'BR', checkoutNote: 'We deliver to all 18 governorates of Iraq. Pay in cash when your order arrives.',
+  orderPrefix: 'UR', checkoutNote: 'We deliver to all 18 governorates of Iraq. Pay in cash when your order arrives.',
   homeHeadline: 'We’re committed to moving you through the world with confidence.', homeHeadlineAr: 'نصمم منتجات تساعدك على التحرك بثقة في كل يوم.', homeSubheadline: 'So wherever you are, we’ll gear you up for...', homeSubheadlineAr: 'أينما كنت، جهّز نفسك بما يناسب رحلتك.',
   homeValues: [{ title: 'Better with age', text: 'Our gear is built to last and love – to day 1000 and beyond.' }, { title: 'Considered materials', text: 'Our primary fabrics are made from recycled sources like plastic bottles.' }, { title: 'Leather, crafted', text: 'We use leather from gold-rated LWG tanneries.' }],
   footer: {
@@ -89,7 +89,7 @@ export const defaultSettings: StoreSettings = {
       { id: 'classic', slug: 'classic', title: 'Classic', titleAr: 'كلاسيك', description: 'Timeless, reliable, just right', descriptionAr: 'Timeless, reliable, just right', image: '/images/collection-classic.jpg', href: '/collection/classic', active: true, sortOrder: 4 },
       { id: 'cinch', slug: 'cinch', title: 'Cinch', titleAr: 'سينش', description: 'Colorful, fun, everyday', descriptionAr: 'Colorful, fun, everyday', image: '/images/collection-cinch.jpg', href: '/collection/cinch', active: true, sortOrder: 5 },
     ],
-    social: [1, 2, 3, 4, 5].map(index => ({ image: `/images/social-${index}.jpg`, href: 'https://www.instagram.com/bellroy/', caption: 'Come along for the ride', captionAr: 'رافقنا في الرحلة', active: true, sortOrder: index - 1 })),
+    social: [1, 2, 3, 4, 5].map(index => ({ image: `/images/social-${index}.jpg`, href: '', caption: 'Come along for the ride', captionAr: 'رافقنا في الرحلة', active: true, sortOrder: index - 1 })),
     videoStories: [
       { youtubeId: 'GNDqj75YIkE', title: 'Cinch Cinch revolution', cta: 'Shop the collection', href: '/collection/cinch', active: true, sortOrder: 0 },
       { youtubeId: 'ZKAuKBXBuPM', title: '5 reasons: Transit Check-In', cta: 'Shop luggage', href: '/products/category/luggage', active: true, sortOrder: 1 },
