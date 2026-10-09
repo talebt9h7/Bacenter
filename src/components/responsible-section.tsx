@@ -5,7 +5,7 @@ import { ArrowRight, Pause, Play } from 'lucide-react';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
-const fallbackValues = [
+const fallbackValues: { title: string; description: string; titleAr?: string; descriptionAr?: string }[] = [
   { title: 'Better with age', description: 'Our gear is built to last and love – to day 1000 and beyond.' },
   { title: 'Considered materials', description: 'Our primary fabrics are made from recycled sources like plastic bottles.' },
   { title: 'Leather, crafted', description: 'We use leather from gold-rated LWG tanneries.' },
