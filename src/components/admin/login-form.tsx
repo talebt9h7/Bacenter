@@ -30,7 +30,7 @@ export function LoginForm({ hint }: { hint: string | null }) {
 
   return <main className="admin-login">
     <form className="admin-login-card" onSubmit={submit}>
-      <img src="/images/bellroy-logo.svg" alt="Bellroy" width="88" height="52" />
+      <img src="/images/UR-logo.svg" alt="UR" width="88" height="52" />
       <span className="admin-eyebrow"><ShieldCheck size={14} /> Store administration</span>
       <h1>Welcome back.</h1>
       <p>{mode === 'owner' ? 'Sign in as the store owner.' : 'Sign in with your team account.'}</p>
