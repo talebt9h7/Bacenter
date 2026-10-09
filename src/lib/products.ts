@@ -54,7 +54,6 @@ export async function getAllProducts({ includeUnpublished = false } = {}) {
   return includeUnpublished ? list : list.filter(product => product.published && product.colors.length > 0);
 }
 export async function getProductById(id: string, { includeUnpublished = false } = {}) {
-  await ensureSeeded();
   const rows = await db.select().from(products).where(eq(products.id, id)).limit(1);
   if (!rows.length) return null;
   const [product] = await attachVariants(rows);
