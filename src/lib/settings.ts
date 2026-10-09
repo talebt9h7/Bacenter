@@ -82,12 +82,12 @@ export const defaultSettings: StoreSettings = {
       { id: 'accessories', name: 'Accessories', nameAr: 'الإكسسوارات', active: true, sortOrder: 6 },
     ],
     collections: [
-      { id: 'transit', slug: 'transit', title: 'Transit', titleAr: 'ترانزيت', description: 'Stealthy, efficient, practical', image: '/images/collection-transit.jpg', href: '/collection/transit', active: true, sortOrder: 0 },
-      { id: 'lite', slug: 'lite', title: 'Lite', titleAr: 'لايت', description: 'Lightweight, easy, adaptable', image: '/images/collection-lite.jpg', href: '/collection/lite', active: true, sortOrder: 1 },
-      { id: 'tokyo', slug: 'tokyo', title: 'Tokyo', titleAr: 'طوكيو', description: 'Functional, minimal, modern', image: '/images/collection-tokyo.jpg', href: '/collection/tokyo', active: true, sortOrder: 2 },
-      { id: 'venture', slug: 'venture', title: 'Venture', titleAr: 'فنتشر', description: 'Adventure is in the details', image: '/images/collection-venture.jpg', href: '/collection/venture', active: true, sortOrder: 3 },
-      { id: 'classic', slug: 'classic', title: 'Classic', titleAr: 'كلاسيك', description: 'Timeless, reliable, just right', image: '/images/collection-classic.jpg', href: '/collection/classic', active: true, sortOrder: 4 },
-      { id: 'cinch', slug: 'cinch', title: 'Cinch', titleAr: 'سينش', description: 'Colorful, fun, everyday', image: '/images/collection-cinch.jpg', href: '/collection/cinch', active: true, sortOrder: 5 },
+      { id: 'transit', slug: 'transit', title: 'Transit', titleAr: 'ترانزيت', description: 'Stealthy, efficient, practical', descriptionAr: 'Stealthy, efficient, practical', image: '/images/collection-transit.jpg', href: '/collection/transit', active: true, sortOrder: 0 },
+      { id: 'lite', slug: 'lite', title: 'Lite', titleAr: 'لايت', description: 'Lightweight, easy, adaptable', descriptionAr: 'Lightweight, easy, adaptable', image: '/images/collection-lite.jpg', href: '/collection/lite', active: true, sortOrder: 1 },
+      { id: 'tokyo', slug: 'tokyo', title: 'Tokyo', titleAr: 'طوكيو', description: 'Functional, minimal, modern', descriptionAr: 'Functional, minimal, modern', image: '/images/collection-tokyo.jpg', href: '/collection/tokyo', active: true, sortOrder: 2 },
+      { id: 'venture', slug: 'venture', title: 'Venture', titleAr: 'فنتشر', description: 'Adventure is in the details', descriptionAr: 'Adventure is in the details', image: '/images/collection-venture.jpg', href: '/collection/venture', active: true, sortOrder: 3 },
+      { id: 'classic', slug: 'classic', title: 'Classic', titleAr: 'كلاسيك', description: 'Timeless, reliable, just right', descriptionAr: 'Timeless, reliable, just right', image: '/images/collection-classic.jpg', href: '/collection/classic', active: true, sortOrder: 4 },
+      { id: 'cinch', slug: 'cinch', title: 'Cinch', titleAr: 'سينش', description: 'Colorful, fun, everyday', descriptionAr: 'Colorful, fun, everyday', image: '/images/collection-cinch.jpg', href: '/collection/cinch', active: true, sortOrder: 5 },
     ],
     social: [1, 2, 3, 4, 5].map(index => ({ image: `/images/social-${index}.jpg`, href: 'https://www.instagram.com/bellroy/', caption: 'Come along for the ride', captionAr: 'رافقنا في الرحلة', active: true, sortOrder: index - 1 })),
     videoStories: [
