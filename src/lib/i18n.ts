@@ -199,6 +199,7 @@ export const productTranslations = {
   'Add': { ar: 'إضافة', en: 'Add' },
   'Changing the rate does not change this IQD sale price.': { ar: 'تغيير سعر الصرف لا يغيّر سعر البيع بالدينار العراقي.', en: 'Changing the rate does not change this IQD sale price.' },
 
+  'Purchase cost / unit (USD)': { ar: 'تكلفة الشراء / الوحدة (دولار)', en: 'Purchase cost / unit (USD)' },
 } as const;
 export function productT(label: keyof typeof productTranslations, language: AppLanguage) {
   return productTranslations[label]?.[language] ?? label;
