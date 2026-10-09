@@ -268,7 +268,7 @@ export const storefrontTranslations: Record<string, { ar: string; en: string }> 
   'Email address': { ar: 'البريد الإلكتروني', en: 'Email address' },
   'How can we help?': { ar: 'كيف يمكننا مساعدتك؟', en: 'How can we help?' },
   'Choose a topic': { ar: 'اختر موضوعاً', en: 'Choose a topic' },
-  'My demo order': { ar: 'طلبي التجريبي', en: 'My demo order' },
+  'My order': { ar: 'طلبي', en: 'My order' },
   'Product question': { ar: 'استفسار عن منتج', en: 'Product question' },
   'Shipping & returns': { ar: 'الشحن والاسترجاع', en: 'Shipping & returns' },
   'Corporate gifting': { ar: 'هدايا الشركات', en: 'Corporate gifting' },
