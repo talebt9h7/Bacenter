@@ -1,7 +1,7 @@
-import { asc, count, eq, inArray, sql } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { products, productVariants } from '@/db/schema';
-import { bagCategories, seedProducts } from './catalog';
+import { bagCategories } from './catalog';
 import type { Product, ProductColor } from './types';
 
 let schemaReady: Promise<void> | null = null;
@@ -38,20 +38,6 @@ async function ensureProductsSchema() {
   })();
   return schemaReady;
 }
-let seeding: Promise<void> | null = null;
-export async function ensureSeeded() {
-  if (!seeding) seeding = (async () => {
-    const [{ total }] = await db.select({ total: count() }).from(products);
-    if (total > 0) return;
-    await db.transaction(async tx => {
-      for (const [index, seed] of seedProducts.entries()) {
-        await tx.insert(products).values({ id: seed.id, name: seed.name, subtitle: seed.subtitle, description: seed.description, priceCents: Math.round(seed.price * 100), salePriceIqd: Math.round(seed.price * 1320), category: seed.category, capacity: seed.capacity ?? null, badge: seed.badge ?? null, features: seed.features, dimensions: seed.dimensions, tags: seed.tags, sortOrder: index }).onConflictDoNothing();
-        await tx.insert(productVariants).values(seed.colors.map((color, order) => ({ productId: seed.id, name: color.name, hex: color.hex, stock: color.stock, images: color.images, primaryIndex: 0, sortOrder: order })));
-      }
-    });
-  })().catch(error => { seeding = null; throw error; });
-  return seeding;
-}
 type ProductRow = typeof products.$inferSelect; type VariantRow = typeof productVariants.$inferSelect;
 function toColor(row: VariantRow): ProductColor { return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, hex: row.hex, stock: row.stock, images: row.images ?? [], primaryIndex: Math.min(row.primaryIndex, Math.max((row.images?.length ?? 1) - 1, 0)) }; }
 function toProduct(row: ProductRow, variants: VariantRow[]): Product {
@@ -63,7 +49,6 @@ async function attachVariants(rows: ProductRow[]) {
   return rows.map(row => toProduct(row, variants.filter(variant => variant.productId === row.id)));
 }
 export async function getAllProducts({ includeUnpublished = false } = {}) {
-  await ensureSeeded();
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.createdAt));
   const list = await attachVariants(rows);
   return includeUnpublished ? list : list.filter(product => product.published && product.colors.length > 0);
