@@ -15,7 +15,8 @@ export const pool =
   globalForDb.__arenaNextJsPostgresqlPool ??
   new Pool({
     connectionString: databaseUrl,
-    max: 10,
+    // Keep each serverless instance lightweight; the shared Supabase pooler has a 15-client session limit.
+    max: 1,
     min: 0,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
