@@ -8,7 +8,7 @@ import { batchT } from '@/lib/i18n';
 type Story={id:number;youtubeId:string;title:string;titleAr:string;cta:string;ctaAr:string;href:string;active:boolean;sortOrder:number};
 export function VideoStoriesManager({initial}:{initial:any}){
  const router=useRouter();const {language}=useLanguage();const t=(x:string)=>batchT(x,language);const [stories,setStories]=useState<Story[]>(()=>((initial?.videoStories??[]) as any[]).map((x:any,i)=>({id:Number(x.id||0),youtubeId:String(x.youtubeId??''),title:String(x.title??''),titleAr:String(x.titleAr??x.title??''),cta:String(x.cta??'Watch now'),ctaAr:String(x.ctaAr??'شاهد الآن'),href:String(x.href??'/'),active:x.active!==false,sortOrder:Number(x.sortOrder??i)})));const [editing,setEditing]=useState<number|null>(null);const [busy,setBusy]=useState(false);const {flash,success,fail}=useFlash();
- const reload=async()=>{const r=await api('/api/admin/video-stories');setStories(r.stories);router.refresh();};
+ const reload=async()=>{const r=await api<{stories:Story[]}>('/api/admin/video-stories');setStories(r.stories);router.refresh();};
  const save=async()=>{setBusy(true);try{for(const s of stories){if(s.id)await api('/api/admin/video-stories',{method:'PUT',json:s});else await api('/api/admin/video-stories',{method:'POST',json:s});}success(t('Video stories saved.'));await reload();}catch(e){fail(e)}finally{setBusy(false)}};
  const add=()=>{setStories(x=>[...x,{id:0,youtubeId:'',title:'',titleAr:'',cta:'Watch now',ctaAr:'شاهد الآن',href:'/',active:true,sortOrder:x.length}]);setEditing(stories.length)};
  const patch=(i:number,p:Partial<Story>)=>setStories(x=>x.map((s,j)=>j===i?{...s,...p}:s));
