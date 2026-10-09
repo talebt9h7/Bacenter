@@ -4,6 +4,7 @@ import { banners, contentPages, media, productVariants, settings } from '@/db/sc
 import { eq } from 'drizzle-orm';
 import { requireAdminSection } from '@/lib/admin-auth';
 
+// Deployment refresh: keep the media route rebuild explicit for the production deployment.
 export const dynamic = 'force-dynamic';
 const MAX_BYTES = 8 * 1024 * 1024;
 
