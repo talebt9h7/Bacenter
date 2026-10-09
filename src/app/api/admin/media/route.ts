@@ -8,9 +8,14 @@ export const dynamic = 'force-dynamic';
 const MAX_BYTES = 8 * 1024 * 1024;
 
 export async function GET() {
-  if (!(await requireAdminSection('storefront', 'view'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  const items = await db.select({ id: media.id, filename: media.filename, mimeType: media.mimeType, size: media.size, createdAt: media.createdAt }).from(media).orderBy(media.id);
-  return NextResponse.json({ items: items.reverse() });
+  try {
+    if (!(await requireAdminSection('storefront', 'view'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const items = await db.select({ id: media.id, filename: media.filename, mimeType: media.mimeType, size: media.size, createdAt: media.createdAt }).from(media).orderBy(media.id);
+    return NextResponse.json({ items: items.reverse() });
+  } catch (error) {
+    console.error('Media library GET failed', error);
+    return NextResponse.json({ error: 'Could not load the media library. Check the server logs for the underlying database error.' }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest) {
