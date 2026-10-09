@@ -6,9 +6,9 @@ import { batchT } from '@/lib/i18n';
 
 type Item = { id:number; filename:string; mimeType:string; size:number; createdAt:string };
 const fmtSize = (n:number) => n < 1024 ? `${n} B` : n < 1024*1024 ? `${(n/1024).toFixed(1)} KB` : `${(n/1024/1024).toFixed(1)} MB`;
-export function MediaLibrary({ initialItems }:{ initialItems:Item[] }) {
+export function MediaLibrary({ initialItems, initialError = '' }:{ initialItems:Item[]; initialError?:string }) {
   const { language } = useLanguage(); const t=(x:string)=>batchT(x,language);
-  const [items,setItems] = useState(initialItems); const [query,setQuery] = useState(''); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(''); const input=useRef<HTMLInputElement>(null);
+  const [items,setItems] = useState(initialItems); const [query,setQuery] = useState(''); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(initialError); const input=useRef<HTMLInputElement>(null);
   const visible=useMemo(()=>items.filter(x=>x.filename.toLowerCase().includes(query.trim().toLowerCase())),[items,query]);
   async function upload(files:FileList|null){ if(!files?.length)return; setBusy(true); setMessage(''); try { const form=new FormData(); Array.from(files).slice(0,12).forEach(f=>form.append('files',f)); const r=await fetch('/api/admin/media',{method:'POST',body:form}); const data=await r.json(); if(!r.ok) throw new Error(data.error||'Upload failed'); const fresh=await fetch('/api/admin/media').then(x=>x.json()); setItems(fresh.items); setMessage(`${data.urls.length} image${data.urls.length===1?'':'s'} uploaded.`); } catch(e){setMessage(e instanceof Error?e.message:'Upload failed.');} finally{setBusy(false); if(input.current) input.current.value='';} }
   async function remove(item:Item){ if(!confirm(`Delete “${item.filename}”? If it is used on the storefront, deletion will be blocked.`))return; setBusy(true); setMessage(''); try{const r=await fetch(`/api/admin/media?id=${item.id}`,{method:'DELETE'}); const data=await r.json(); if(!r.ok)throw new Error(data.error||'Delete failed'); setItems(x=>x.filter(i=>i.id!==item.id)); setMessage(t('Image deleted.'));}catch(e){setMessage(e instanceof Error?e.message:'Delete failed.');}finally{setBusy(false);} }
