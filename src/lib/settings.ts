@@ -34,9 +34,9 @@ export const defaultSettings: StoreSettings = {
   storeName: 'UR', tagline: 'Your final touch | لمستك الأخيرة.', logoUrl: '/images/UR-logo.svg', logoAlt: 'UR', faviconUrl: '/images/UR-logo.svg', seoIndex: true, seoFollow: true, canonicalBaseUrl: '', ogImage: '/images/UR-logo.svg', metaTitle: 'UR Leather | لمستك الأخيرة', metaDescription: 'اكتشف منتجات UR Leather المصنوعة من الجلد الطبيعي، بتصاميم تجمع بين الأناقة والاستخدام اليومي.', announcement: 'Free delivery across Iraq on orders over 150,000 IQD · Cash on delivery', announcementHref: '/info/shipping',
   supportEmail: '', supportPhone: '07700000000', whatsapp: '9647700000000', instagram: '', youtube: '', facebook: '', address: 'Iraq', footerTagline: 'Your final touch.\nلمستك الأخيرة.', copyrightText: 'UR Leather.',
   exchangeRate: 1320, freeShippingThreshold: 150000, codFee: 0, codEnabled: true, lowStockThreshold: 5,
-  orderPrefix: 'UR', checkoutNote: 'We deliver to all 18 governorates of Iraq. Pay in cash when your order arrives.',
-  homeHeadline: 'We’re committed to moving you through the world with confidence.', homeHeadlineAr: 'نصمم منتجات تساعدك على التحرك بثقة في كل يوم.', homeSubheadline: 'So wherever you are, we’ll gear you up for...', homeSubheadlineAr: 'أينما كنت، جهّز نفسك بما يناسب رحلتك.',
-  homeValues: [{ title: 'Better with age', text: 'Our gear is built to last and love – to day 1000 and beyond.' }, { title: 'Considered materials', text: 'Our primary fabrics are made from recycled sources like plastic bottles.' }, { title: 'Leather, crafted', text: 'We use leather from gold-rated LWG tanneries.' }],
+  orderPrefix: 'UR', checkoutNote: 'Delivery across Iraq. Pay in cash when your order arrives.',
+  homeHeadline: 'Natural leather. Timeless character.', homeHeadlineAr: 'نصمم منتجات تساعدك على التحرك بثقة في كل يوم.', homeSubheadline: 'Thoughtfully selected leather goods for everyday use.', homeSubheadlineAr: 'أينما كنت، جهّز نفسك بما يناسب رحلتك.',
+  homeValues: [{ title: 'Natural leather', text: 'Made from natural leather with a character that develops over time.' }, { title: 'Everyday design', text: 'Practical pieces designed to fit into your daily routine.' }, { title: 'Six-month warranty', text: 'Products include a six-month warranty from the date of purchase.' }],
   footer: {
     groups: [
       { title: 'Help', titleAr: 'المساعدة', links: [{ label: 'Customer care', href: '/info/contact' }, { label: 'Shipping & returns', href: '/info/shipping' }, { label: 'Extended warranties', href: '/info/warranty' }, { label: 'Cleaning & care', href: '/info/care' }, { label: 'Contact us', href: '/info/contact' }, { label: 'Terms & conditions', href: '/info/terms' }, { label: 'Privacy policy', href: '/info/privacy' }, { label: 'Cookie policy', href: '/info/cookies' }] },
@@ -47,11 +47,11 @@ export const defaultSettings: StoreSettings = {
     trustItems: [
       { icon: 'pin', text: 'Delivery across Iraq', textAr: 'توصيل إلى جميع أنحاء العراق', active: true, sortOrder: 0 },
       { icon: 'globe', text: 'Cash on delivery', textAr: 'الدفع عند الاستلام', active: true, sortOrder: 1 },
-      { icon: 'star', text: '4.9-star Google rating', textAr: 'تقييم 4.9 نجمة على Google', active: true, sortOrder: 2 },
-      { icon: 'badge', text: 'B Corp since 2015', textAr: 'مؤسسة B Corp منذ 2015', active: true, sortOrder: 3 },
+      { icon: 'star', text: 'Customer care', textAr: 'اهتمام بالعملاء', active: false, sortOrder: 2 },
+      { icon: 'badge', text: 'Product warranty', textAr: 'ضمان المنتجات', active: false, sortOrder: 3 },
     ],
     newsletter: { eyebrow: 'Get in first', eyebrowAr: 'كن أول من يعرف', title: 'Sign up for new releases and subscriber exclusives', titleAr: 'اشترك لمعرفة المنتجات الجديدة والعروض الحصرية', description: 'New releases, thoughtful stories and a few subscriber-only surprises.', descriptionAr: 'منتجات جديدة، قصص مختارة وبعض المفاجآت الحصرية للمشتركين.', image: '/images/newsletter.png', active: true },
-    demoDisclaimer: 'An independent website recreation for demonstration. Not affiliated with Bellroy. No real payments are collected.',
+    demoDisclaimer: '',
   },
   navigation: [
     { name: 'Featured', nameAr: 'مختارات', href: '/collection/bestsellers', links: [{ label: 'Bestsellers', href: '/collection/bestsellers' }, { label: 'New releases', href: '/collection/new-releases' }, { label: 'Students & graduates', href: '/collection/campus' }, { label: 'The Outlet', href: '/collection/outlet' }, { label: 'Value sets', href: '/collection/value-sets' }], image: 'highlight-laneway.jpg', caption: 'Good design. Great company.' },
