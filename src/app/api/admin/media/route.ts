@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
 import { db } from '@/db';
 import { banners, contentPages, media, productVariants, settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -41,12 +40,11 @@ export async function POST(request: NextRequest) {
     if (files.length > 12) return NextResponse.json({ error: 'Upload up to 12 images at a time.' }, { status: 400 });
     const urls: string[] = [];
     for (const file of files) {
-      if (!file.type.startsWith('image/')) return NextResponse.json({ error: `${file.name} is not an image.` }, { status: 400 });
+      const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']);
+      if (!allowedTypes.has(file.type)) return NextResponse.json({ error: `${file.name} is not a supported image. Please use JPG, PNG, WebP, AVIF or GIF.` }, { status: 400 });
       if (file.size > MAX_BYTES) return NextResponse.json({ error: `${file.name} is larger than 8 MB.` }, { status: 400 });
-      const source = Buffer.from(await file.arrayBuffer());
-      let data: Buffer; let mimeType: string;
-      try { data = await sharp(source, { animated: false }).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 86 }).toBuffer(); mimeType = 'image/webp'; }
-      catch { return NextResponse.json({ error: `${file.name} could not be processed. Please use JPG, PNG, WebP or AVIF.` }, { status: 400 }); }
+      const data = Buffer.from(await file.arrayBuffer());
+      const mimeType = file.type;
       const [row] = await db.insert(media).values({ filename: file.name.slice(0, 200), mimeType, size: data.length, data }).returning({ id: media.id });
       urls.push(`/api/media/${row.id}`);
     }
