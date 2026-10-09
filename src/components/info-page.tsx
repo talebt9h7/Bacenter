@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight, CheckCircle2, ChevronRight, LoaderCircle, MapPin } from 'lucide-react';
-import type { InfoContent } from '@/lib/info';
+import type { InfoPage as InfoContent } from '@/lib/info';
 import type { StoreLocation } from '@/lib/store-locations';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
