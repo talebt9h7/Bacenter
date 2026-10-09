@@ -3,14 +3,14 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { LanguageProvider } from '@/components/language-provider';
 import { LANGUAGE_COOKIE, normalizeLanguage } from '@/lib/i18n';
-import { getSettings } from '@/lib/settings';
+import { defaultSettings, getSettings } from '@/lib/settings';
 import './globals.css';
 import './reference-refinements.css';
 import './editorial.css';
 import './admin.css';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const s = await getSettings();
+  const s = await getSettings().catch(() => defaultSettings);
   return {
     title: { default: s.metaTitle, template: `%s | ${s.storeName}` },
     description: s.metaDescription,
