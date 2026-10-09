@@ -1,11 +1,19 @@
 import type { MetadataRoute } from 'next';
 import { getAllProducts } from '@/lib/products';
 import { getCategories } from '@/lib/categories';
-import { getSettings } from '@/lib/settings';
+import { defaultSettings, getSettings } from '@/lib/settings';
 import { infoPages } from '@/lib/info';
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [settings, products, categories] = await Promise.all([getSettings(), getAllProducts(), getCategories()]);
+  // Sitemap generation must not fail the entire production build if the database
+  // is temporarily unavailable or its schema has not finished migrating.
+  const [settings, products, categories] = await Promise.all([
+    getSettings().catch(() => defaultSettings),
+    getAllProducts().catch(() => []),
+    getCategories().catch(() => []),
+  ]);
   const base = (settings.canonicalBaseUrl || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
   const now = new Date();
   const urls: MetadataRoute.Sitemap = [{ url: `${base}/`, lastModified: now, changeFrequency: 'weekly', priority: 1 }];
