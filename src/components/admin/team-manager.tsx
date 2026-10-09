@@ -61,7 +61,10 @@ export function TeamManager({ initial, roles, sectionLabels, canManage }: Props)
     setEditing(e => {
       if (!e) return e;
       const p = { ...clonePermissions(e.permissions) };
-      p[section] = level === 'manage' ? { view:value, manage:value } : { view:value, manage: value ? p[section].manage : false };
+      const currentPermission = p[section] ?? { view:false, manage:false };
+      p[section] = level === 'manage'
+        ? { view:value, manage:value }
+        : { view:value, manage:value ? currentPermission.manage : false };
       return { ...e, permissions:p };
     });
   }
