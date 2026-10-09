@@ -16,7 +16,7 @@ export type HomepageConfig = {
   categories: { id: string; name: string; nameAr?: string; active: boolean; sortOrder: number }[];
   collections: { id: string; slug: string; title: string; titleAr: string; description: string; descriptionAr: string; image: string; href: string; active: boolean; sortOrder: number; productIds?: string[] }[];
   social: { image: string; href: string; caption: string; captionAr?: string; active: boolean; sortOrder: number }[];
-  videoStories: { youtubeId: string; title: string; cta: string; href: string; active: boolean; sortOrder: number }[];
+  videoStories: { youtubeId: string; title: string; titleAr?: string; cta: string; ctaAr?: string; href: string; active: boolean; sortOrder: number }[];
   blocks: { key: string; label: string; enabled: boolean; sortOrder: number }[];
 };
 
