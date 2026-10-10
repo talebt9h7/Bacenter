@@ -99,18 +99,29 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         </div>
         <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
 
-        <section className="product-at-a-glance" aria-label={language === 'ar' ? 'مميزات المنتج' : 'Product features'}>
-          <h2 className="text-2xl font-semibold tracking-wide mb-5">{language === 'ar' ? 'مميزات المنتج' : 'At a glance'}</h2>
-          <ul className="grid grid-cols-1 gap-y-5">
-            {product.features.map((feature, index) => {
-              const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
-              return <li key={feature} className="flex items-center gap-4 text-base leading-6 text-neutral-800">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center text-neutral-700" aria-hidden="true"><FeatureIcon size={27} strokeWidth={1.35} /></span>
-                <span className="min-w-0">{feature}</span>
-              </li>;
-            })}
-          </ul>
-        </section>
+        <details className="product-accordion product-features-accordion" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-xl font-medium text-neutral-700">{language === 'ar' ? 'المميزات' : 'Features'}</span>
+            <ChevronRight size={20} className="shrink-0 transition-transform duration-200 open:rotate-90 group-open:rotate-90 rtl:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="py-4 md:py-6">
+            <ul className="list-disc space-y-2 pl-6 text-base leading-7 text-neutral-700 sm:columns-2 sm:gap-x-8 sm:space-y-2">
+              {product.features.map(feature => <li key={feature} className="break-inside-avoid pr-2">{feature}</li>)}
+            </ul>
+            {product.features.length === 0 && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لا توجد مميزات مضافة لهذا المنتج حالياً.' : 'No features have been added for this product yet.'}</p>}
+          </div>
+        </details>
+        <details className="product-accordion">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-xl font-medium text-neutral-700">{language === 'ar' ? 'المواصفات' : 'Specifications'}</span>
+            <ChevronRight size={20} className="shrink-0 transition-transform duration-200 group-open:rotate-90 rtl:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="grid grid-cols-1 gap-6 py-4 md:grid-cols-2 md:py-6">
+            {product.capacity && <div><h3 className="mb-2 text-sm font-semibold">{language === 'ar' ? 'السعة' : 'Capacity'}</h3><p className="text-2xl font-light">{product.capacity}</p></div>}
+            {product.dimensions && <div><h3 className="mb-2 text-sm font-semibold">{language === 'ar' ? 'الأبعاد' : 'Dimensions'}</h3><p className="text-2xl font-light">{product.dimensions}</p></div>}
+            {!product.capacity && !product.dimensions && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لم تُضف مواصفات لهذا المنتج بعد.' : 'No specifications have been added for this product yet.'}</p>}
+          </div>
+        </details>
         <details className="product-accordion"><summary>{t('Dimensions & materials')}</summary><div><p>{product.dimensions}</p><p>{product.category === 'wallets' ? (language === 'ar' ? 'جلد طبيعي عالي الجودة مع بطانة من البوليستر المعاد تدويره.' : 'Premium, responsibly sourced leather, with a recycled polyester lining.') : (language === 'ar' ? 'خامات متينة مختارة بعناية للاستخدام اليومي.' : 'Durable, thoughtfully selected materials designed for everyday use.')}</p><Link href="/info/our-materials">{t('A closer look at our materials')}</Link></div></details>
         <details className="product-accordion"><summary>{t('Shipping & returns')}</summary><div>{language === 'ar' ? <>نوصل إلى جميع محافظات العراق مع الدفع عند الاستلام. يصل الطلب إلى بغداد عادة خلال 1–2 يوم عمل، وإلى باقي المحافظات خلال 2–5 أيام. الطلبات فوق {moneyIqd(freeShippingUsd * region.rate)} تحصل على توصيل مجاني. <Link href="/info/shipping">{t('Find out more.')}</Link></> : <>We deliver to all 18 governorates of Iraq with cash on delivery. Baghdad usually arrives in 1–2 business days, other governorates in 2–5. Orders over {moneyIqd(freeShippingUsd * region.rate)} ship free. <Link href="/info/shipping">{t('Find out more.')}</Link></>}</div></details>
         <details className="product-accordion"><summary>{t('Our warranty')}</summary><div><ShieldCheck size={21} style={{ marginBottom: 8 }} />{language === 'ar' ? <>نحن نضمن جودة منتجاتنا. منتجاتنا مشمولة ضد عيوب المواد والتصنيع. <Link href="/info/warranty">اقرأ عن ضماننا.</Link></> : <>We stand behind the quality of our carry goods. Our products are covered against defects in materials and workmanship. <Link href="/info/warranty">Read about our warranty.</Link></>}</div></details>
