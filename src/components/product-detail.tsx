@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, LoaderCircle, Minus, Plus, RotateCcw, ShieldCheck, Truck, ZoomIn } from 'lucide-react';
+import { ArrowRight, Banknote, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, RotateCcw, ShieldCheck, Truck, ZoomIn } from 'lucide-react';
 import { categories } from '@/lib/catalog';
 import { hoverImage, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
 import { useStore } from './store-provider';
@@ -99,7 +99,18 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         </div>
         <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
 
-        <details className="product-accordion" open><summary>{t('Design insights')}</summary><div><ul>{product.features.map(feature => <li key={feature}>{feature}</li>)}</ul></div></details>
+        <section className="product-at-a-glance" aria-label={language === 'ar' ? 'مميزات المنتج' : 'Product features'}>
+          <h2 className="text-lg font-medium tracking-wide mb-4">{language === 'ar' ? 'مميزات المنتج' : 'At a glance'}</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+            {product.features.map((feature, index) => {
+              const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
+              return <li key={feature} className="flex items-center gap-3 text-sm leading-6">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center text-neutral-700" aria-hidden="true"><FeatureIcon size={25} strokeWidth={1.35} /></span>
+                <span>{feature}</span>
+              </li>;
+            })}
+          </ul>
+        </section>
         <details className="product-accordion"><summary>{t('Dimensions & materials')}</summary><div><p>{product.dimensions}</p><p>{product.category === 'wallets' ? (language === 'ar' ? 'جلد طبيعي عالي الجودة مع بطانة من البوليستر المعاد تدويره.' : 'Premium, responsibly sourced leather, with a recycled polyester lining.') : (language === 'ar' ? 'خامات متينة مختارة بعناية للاستخدام اليومي.' : 'Durable, thoughtfully selected materials designed for everyday use.')}</p><Link href="/info/our-materials">{t('A closer look at our materials')}</Link></div></details>
         <details className="product-accordion"><summary>{t('Shipping & returns')}</summary><div>{language === 'ar' ? <>نوصل إلى جميع محافظات العراق مع الدفع عند الاستلام. يصل الطلب إلى بغداد عادة خلال 1–2 يوم عمل، وإلى باقي المحافظات خلال 2–5 أيام. الطلبات فوق {moneyIqd(freeShippingUsd * region.rate)} تحصل على توصيل مجاني. <Link href="/info/shipping">{t('Find out more.')}</Link></> : <>We deliver to all 18 governorates of Iraq with cash on delivery. Baghdad usually arrives in 1–2 business days, other governorates in 2–5. Orders over {moneyIqd(freeShippingUsd * region.rate)} ship free. <Link href="/info/shipping">{t('Find out more.')}</Link></>}</div></details>
         <details className="product-accordion"><summary>{t('Our warranty')}</summary><div><ShieldCheck size={21} style={{ marginBottom: 8 }} />{language === 'ar' ? <>نحن نضمن جودة منتجاتنا. منتجاتنا مشمولة ضد عيوب المواد والتصنيع. <Link href="/info/warranty">اقرأ عن ضماننا.</Link></> : <>We stand behind the quality of our carry goods. Our products are covered against defects in materials and workmanship. <Link href="/info/warranty">Read about our warranty.</Link></>}</div></details>
