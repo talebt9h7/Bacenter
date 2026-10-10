@@ -100,13 +100,13 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
 
         <section className="product-at-a-glance" aria-label={language === 'ar' ? 'مميزات المنتج' : 'Product features'}>
-          <h2 className="text-lg font-medium tracking-wide mb-4">{language === 'ar' ? 'مميزات المنتج' : 'At a glance'}</h2>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+          <h2 className="text-2xl font-semibold tracking-wide mb-5">{language === 'ar' ? 'مميزات المنتج' : 'At a glance'}</h2>
+          <ul className="grid grid-cols-1 gap-y-5">
             {product.features.map((feature, index) => {
               const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
-              return <li key={feature} className="flex items-center gap-3 text-sm leading-6">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center text-neutral-700" aria-hidden="true"><FeatureIcon size={25} strokeWidth={1.35} /></span>
-                <span>{feature}</span>
+              return <li key={feature} className="flex items-center gap-4 text-base leading-6 text-neutral-800">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center text-neutral-700" aria-hidden="true"><FeatureIcon size={27} strokeWidth={1.35} /></span>
+                <span className="min-w-0">{feature}</span>
               </li>;
             })}
           </ul>
