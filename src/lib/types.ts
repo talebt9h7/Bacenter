@@ -1,7 +1,7 @@
 export type ProductColor = { id: number; name: string; nameAr: string; hex: string; stock: number; images: string[]; primaryIndex: number };
 export type Product = {
   id: string; name: string; nameAr: string; subtitle: string; subtitleAr: string; description: string; descriptionAr: string; price: number; salePriceIqd: number; category: string;
-  capacity?: string | null; badge?: string | null; features: string[]; specifications: string[]; warranty: string; materials: string; storyImages: string[]; dimensions: string; tags: string[];
+  capacity?: string | null; badge?: string | null; features: string[]; specifications?: string[]; warranty?: string; materials?: string; storyImages?: string[]; dimensions: string; tags: string[];
   published: boolean; colors: ProductColor[];
 };
 export type CartLine = { id: number; variantId: number; productId: string; name: string; color: string; price: number; salePriceIqd: number; image: string; capacity: string | null; quantity: number; stock: number };
