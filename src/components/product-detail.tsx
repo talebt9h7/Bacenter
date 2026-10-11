@@ -36,20 +36,11 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
     const url = new URL(window.location.href); url.searchParams.set('color', displayColorName(item)); window.history.replaceState(null, '', url);
   }
   return <main className="product-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-    <nav className="breadcrumbs" aria-label={language === 'ar' ? 'مسار التنقل' : 'Breadcrumb'}>
-      <Link href="/">{t('Home')}</Link><ChevronRight size={10} /><Link href={`/products/category/${product.category}`}>{categoryName}</Link><ChevronRight size={10} /><span>{displayName}</span>
-    </nav>
     <div className="product-detail-layout">
       <div className="product-gallery">
         <div className="product-main-image">
           <img key={`${color.id}-${safeIndex}`} src={images[safeIndex]} alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
-          {images.length > 1 && <>
-            <button className="gallery-arrow gallery-arrow-left" aria-label={t('Previous photo')} onClick={() => setImageIndex((safeIndex - 1 + images.length) % images.length)}><ChevronLeft size={22} strokeWidth={1.4} /></button>
-            <button className="gallery-arrow gallery-arrow-right" aria-label={t('Next photo')} onClick={() => setImageIndex((safeIndex + 1) % images.length)}><ChevronRight size={22} strokeWidth={1.4} /></button>
-          </>}
-          <span className="gallery-counter">{safeIndex + 1} / {images.length}</span>
-          <button className="zoom-button" onClick={() => setZoom(true)} aria-label={t('Zoom product image')}><ZoomIn size={18} strokeWidth={1.4} /></button>
         </div>
         <div className="product-thumbnails" aria-label={`${displayColorName(color)} photos`}>
           {images.map((image, index) => <button key={`${color.id}-${image}-${index}`} className={safeIndex === index ? 'selected' : ''} onClick={() => setImageIndex(index)} aria-label={`${t('Show photo')} ${index + 1}`} aria-pressed={safeIndex === index}><img src={image} alt={`${displayColorName(color)} photo ${index + 1}`} /></button>)}
