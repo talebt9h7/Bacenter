@@ -53,11 +53,13 @@ async function attachVariants(rows: ProductRow[]) {
   return rows.map(row => toProduct(row, variants.filter(variant => variant.productId === row.id)));
 }
 export async function getAllProducts({ includeUnpublished = false } = {}) {
+  await ensureProductsSchema();
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.createdAt));
   const list = await attachVariants(rows);
   return includeUnpublished ? list : list.filter(product => product.published && product.colors.length > 0);
 }
 export async function getProductById(id: string, { includeUnpublished = false } = {}) {
+  await ensureProductsSchema();
   const rows = await db.select().from(products).where(eq(products.id, id)).limit(1);
   if (!rows.length) return null;
   const [product] = await attachVariants(rows);
