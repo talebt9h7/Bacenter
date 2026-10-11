@@ -130,3 +130,70 @@ body{font-family:Bellroy,Arial,Helvetica,sans-serif;font-weight:400}
   html[dir="rtl"] .navigation-left{left:auto;right:10px;}
   html[dir="rtl"] .navigation-actions{right:auto;left:10px;}
 }
+
+
+/* Product purchase actions: Bellroy-style full-width add-to-cart with WhatsApp below. */
+.product-page .buy-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100%;
+  gap: 12px;
+}
+.product-page .buy-actions .product-add-to-cart {
+  display: block !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  min-height: 56px;
+  padding: 1rem !important;
+  background-color: #cd4c20 !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: GTUltra, Bellroy, Arial, sans-serif;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  box-shadow: 0 27px 15px -17px rgba(0, 0, 0, .3), 0 2px 4px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  transition: background-color .2s, box-shadow .2s, transform .18s ease;
+}
+.product-page .buy-actions .product-add-to-cart:hover:not(:disabled) {
+  background-color: #b8421b !important;
+  box-shadow: 0 24px 14px -16px rgba(0, 0, 0, .28), 0 3px 7px rgba(0, 0, 0, .25);
+}
+.product-page .buy-actions .product-add-to-cart:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.product-page .buy-actions .whatsapp-inquiry-button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100% !important;
+  min-height: 52px;
+  padding: 14px 16px !important;
+  box-sizing: border-box;
+  border-radius: 4px !important;
+  text-align: center;
+}
+.product-page .buy-actions .whatsapp-inquiry-button .whatsapp-brand-icon {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+}
+@media (max-width: 767px) {
+  .product-page .buy-actions { gap: 10px; }
+  .product-page .buy-actions .product-add-to-cart {
+    min-height: 54px;
+    font-size: 15px !important;
+    letter-spacing: 1.8px;
+  }
+  .product-page .buy-actions .whatsapp-inquiry-button { min-height: 50px; }
+}
