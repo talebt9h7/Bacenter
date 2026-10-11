@@ -180,3 +180,40 @@ h4 { font-size: max(18px, 1.15em) !important; line-height: 1.3; }
   .at-a-glance-icon { width: 34px; height: 34px; flex-basis: 34px; }
   .at-a-glance-icon svg { width: 22px; height: 22px; }
 }
+
+
+/* Product detail: clearer material label and softly rounded square color swatches. */
+.material-label {
+  font-size: 16px !important;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.detail-swatch-wrap > button {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.detail-swatch-wrap > button img,
+.detail-swatch-wrap > button .swatch-color-fill {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.detail-swatches {
+  gap: 12px;
+}
+.detail-swatch-wrap > span {
+  font-size: 13px !important;
+  line-height: 1.4;
+}
+@media (max-width: 767px) {
+  .material-label { font-size: 16px !important; }
+  .detail-swatch-wrap > button {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  .detail-swatch-wrap > span { font-size: 12px !important; }
+}
