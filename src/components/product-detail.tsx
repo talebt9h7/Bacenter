@@ -57,9 +57,10 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
       </div>
 
       <div className="product-buy-box">
-        <span className="eyebrow">{language === 'ar' ? 'محفظة عملية بتصميم مدروس' : 'A slim all-rounder with classic good looks'}</span>
-        <h1>{displayName}</h1>
-        <div className="product-price">{moneyIqd(product.salePriceIqd)}</div>
+        <div className="product-heading">
+          <h1>{displayName}</h1>
+          <div className="product-price">{moneyIqd(product.salePriceIqd)}</div>
+        </div>
 
         {product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
 
@@ -82,7 +83,19 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
           </div>)}
         </div>
 
-        <p className="product-description">{displayDescription}</p>
+        {displayDescription && <p className="product-description">{displayDescription}</p>}
+        <section className="product-at-a-glance" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
+          <h2>{language === 'ar' ? 'نظرة سريعة' : 'At a glance'}</h2>
+          {product.features.length > 0 ? <ul>
+            {product.features.map((feature, index) => {
+              const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
+              return <li key={feature}>
+                <span className="at-a-glance-icon" aria-hidden="true"><FeatureIcon size={25} strokeWidth={1.4} /></span>
+                <span>{feature}</span>
+              </li>;
+            })}
+          </ul> : <p>{language === 'ar' ? 'أضف مميزات المنتج من لوحة الإدارة لعرضها هنا.' : 'Add product features in the admin panel to show them here.'}</p>}
+        </section>
         <div className="buy-actions">
           <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>ADD TO CART</>}</button>
           <a
