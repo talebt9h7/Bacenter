@@ -115,15 +115,20 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
             {product.features.length === 0 && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لا توجد مميزات مضافة لهذا المنتج حالياً.' : 'No features have been added for this product yet.'}</p>}
           </div>
         </details>
-        <details className="product-accordion">
+        <details className="product-accordion product-specifications-accordion">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 [&::-webkit-details-marker]:hidden">
             <span className="text-xl font-medium text-neutral-700">{language === 'ar' ? 'المواصفات' : 'Specifications'}</span>
             <ChevronRight size={20} className="shrink-0 transition-transform duration-200 group-open:rotate-90 rtl:rotate-180" aria-hidden="true" />
           </summary>
-          <div className="grid grid-cols-1 gap-6 py-4 md:grid-cols-2 md:py-6">
-            {product.capacity && <div><h3 className="mb-2 text-sm font-semibold">{language === 'ar' ? 'السعة' : 'Capacity'}</h3><p className="text-2xl font-light">{product.capacity}</p></div>}
-            {product.dimensions && <div><h3 className="mb-2 text-sm font-semibold">{language === 'ar' ? 'الأبعاد' : 'Dimensions'}</h3><p className="text-2xl font-light">{product.dimensions}</p></div>}
-            {!product.capacity && !product.dimensions && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لم تُضف مواصفات لهذا المنتج بعد.' : 'No specifications have been added for this product yet.'}</p>}
+          <div className="product-specifications-content">
+            {product.dimensions && <div className="product-dimensions-block">
+              <h3>{language === 'ar' ? 'الأبعاد الخارجية' : 'External Dimensions'}</h3>
+              <p className="product-dimensions-value">{product.dimensions}</p>
+              {product.dimensionsImage && <img className="product-dimensions-image" src={product.dimensionsImage} alt={language === 'ar' ? 'رسم يوضح أبعاد المنتج' : 'Product dimensions diagram'} loading="lazy" />}
+            </div>}
+            {product.capacity && <div className="product-specification-item"><h3>{language === 'ar' ? 'السعة' : 'Capacity'}</h3><p>{product.capacity}</p></div>}
+            {(product.specifications ?? []).map((spec, index) => { const separator = spec.indexOf(':'); const label = separator >= 0 ? spec.slice(0, separator).trim() : (language === 'ar' ? 'تفاصيل' : 'Detail'); const value = separator >= 0 ? spec.slice(separator + 1).trim() : spec; return <div className="product-specification-item" key={index}><h3>{label}</h3><p>{value}</p></div>; })}
+            {!product.dimensions && !product.capacity && !(product.specifications ?? []).length && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لم تُضف مواصفات لهذا المنتج بعد.' : 'No specifications have been added for this product yet.'}</p>}
           </div>
         </details>
         <details className="product-accordion"><summary>{language === 'ar' ? 'المواصفات' : 'Specifications'}</summary><div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">{product.dimensions && <div><h3 className="text-sm font-semibold">{language === 'ar' ? 'الأبعاد الخارجية' : 'External dimensions'}</h3><p className="text-xl">{product.dimensions}</p></div>}{(product.specifications ?? []).map((spec, index) => { const separator = spec.indexOf(':'); const label = separator >= 0 ? spec.slice(0, separator).trim() : (language === 'ar' ? 'تفاصيل' : 'Detail'); const value = separator >= 0 ? spec.slice(separator + 1).trim() : spec; return <div key={index}><h3 className="text-sm font-semibold">{label}</h3><p>{value}</p></div>; })}{!product.dimensions && !(product.specifications ?? []).length && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لم تُضف مواصفات لهذا المنتج بعد.' : 'No specifications have been added for this product yet.'}</p>}</div></details>
