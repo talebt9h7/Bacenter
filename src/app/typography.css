@@ -107,3 +107,76 @@ h4 { font-size: max(18px, 1.15em) !important; line-height: 1.3; }
 @media (max-width: 600px) {
   .hero h1, .hero h2 { font-size: clamp(26px, 6.5vw, 32px) !important; }
 }
+
+
+/* Bellroy-inspired product detail hierarchy and feature overview. */
+.product-heading {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: clamp(22px, 3vw, 44px);
+}
+.product-heading h1 { margin: 0; }
+.product-heading .product-price { margin: 0; font-size: clamp(20px, 1.8vw, 26px) !important; }
+.product-at-a-glance {
+  border-top: 1px solid #dedede;
+  padding-top: 18px;
+  margin-top: 20px;
+}
+.product-at-a-glance h2 {
+  font-size: clamp(22px, 2vw, 28px) !important;
+  line-height: 1.2;
+  margin: 0 0 16px;
+  font-weight: 650;
+}
+.product-at-a-glance > ul {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.product-at-a-glance > ul > li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  font-size: 14px !important;
+  line-height: 1.55;
+  color: #292929;
+}
+.at-a-glance-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  color: #333;
+}
+.product-features-accordion > summary,
+.product-accordion > summary {
+  border-bottom: 1px solid #dedede;
+}
+.product-accordion > summary {
+  font-size: 16px !important;
+  min-height: 48px;
+}
+.product-accordion > summary svg { transition: transform .2s ease; }
+.product-accordion[open] > summary svg { transform: rotate(90deg); }
+.product-features-accordion > summary svg { transition: transform .2s ease; }
+.product-features-accordion[open] > summary svg { transform: rotate(90deg); }
+@media (min-width: 1024px) {
+  .product-at-a-glance > ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .product-heading { margin-bottom: 22px; }
+  .product-at-a-glance { padding-top: 15px; margin-top: 16px; }
+  .product-at-a-glance > ul { gap: 14px; }
+  .product-at-a-glance > ul > li { font-size: 14px !important; gap: 12px; }
+  .at-a-glance-icon { width: 34px; height: 34px; flex-basis: 34px; }
+  .at-a-glance-icon svg { width: 22px; height: 22px; }
+}
