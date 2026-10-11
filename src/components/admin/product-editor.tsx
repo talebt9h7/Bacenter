@@ -8,14 +8,14 @@ import { useLanguage } from '@/components/language-provider';
 import { productT } from '@/lib/i18n';
 
 type EditorColor = { key: string; id?: number; name: string; nameAr: string; hex: string; stock: number; images: string[]; primaryIndex: number };
-type EditorState = { id: string; name: string; nameAr: string; subtitle: string; subtitleAr: string; description: string; descriptionAr: string; price: string; priceIqd: string; purchasePriceUsd: string; category: string; capacity: string; badge: string; features: string; specifications: string; warranty: string; materials: string; storyImages: string; dimensions: string; tags: string; published: boolean; colors: EditorColor[] };
+type EditorState = { id: string; name: string; nameAr: string; subtitle: string; subtitleAr: string; description: string; descriptionAr: string; price: string; priceIqd: string; purchasePriceUsd: string; category: string; capacity: string; badge: string; features: string; specifications: string; warranty: string; materials: string; storyImages: string; dimensions: string; dimensionsImage: string; tags: string; published: boolean; colors: EditorColor[] };
 
 let keyCounter = 0;
 const nextKey = () => `c${Date.now()}-${keyCounter++}`;
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 function toState(product: Product | null, exchangeRate: number): EditorState {
-  if (!product) return { id: '', name: '', nameAr: '', subtitle: '', subtitleAr: '', description: '', descriptionAr: '', price: '', priceIqd: '', purchasePriceUsd: '', category: 'backpacks', capacity: '', badge: '', features: '', specifications: '', warranty: '', materials: '', storyImages: '', dimensions: '', tags: '', published: true, colors: [{ key: nextKey(), name: 'Black', nameAr: 'أسود', hex: '#333333', stock: 0, images: [], primaryIndex: 0 }] };
-  return { id: product.id, name: product.name, nameAr: product.nameAr, subtitle: product.subtitle, subtitleAr: product.subtitleAr, description: product.description, descriptionAr: product.descriptionAr, price: String(product.price), priceIqd: String(product.salePriceIqd || Math.round(product.price * exchangeRate)), purchasePriceUsd: '', category: product.category, capacity: product.capacity ?? '', badge: product.badge ?? '', features: product.features.join('\n'), specifications: (product.specifications ?? []).join('\n'), warranty: product.warranty ?? '', materials: product.materials ?? '', storyImages: (product.storyImages ?? []).join('\n'), dimensions: product.dimensions, tags: product.tags.join(', '), published: product.published, colors: product.colors.map(color => ({ key: nextKey(), id: color.id, name: color.name, nameAr: color.nameAr, hex: color.hex, stock: color.stock, images: [...color.images], primaryIndex: color.primaryIndex })) };
+  if (!product) return { id: '', name: '', nameAr: '', subtitle: '', subtitleAr: '', description: '', descriptionAr: '', price: '', priceIqd: '', purchasePriceUsd: '', category: 'backpacks', capacity: '', badge: '', features: '', specifications: '', warranty: '', materials: '', storyImages: '', dimensions: '', dimensionsImage: '', tags: '', published: true, colors: [{ key: nextKey(), name: 'Black', nameAr: 'أسود', hex: '#333333', stock: 0, images: [], primaryIndex: 0 }] };
+  return { id: product.id, name: product.name, nameAr: product.nameAr, subtitle: product.subtitle, subtitleAr: product.subtitleAr, description: product.description, descriptionAr: product.descriptionAr, price: String(product.price), priceIqd: String(product.salePriceIqd || Math.round(product.price * exchangeRate)), purchasePriceUsd: '', category: product.category, capacity: product.capacity ?? '', badge: product.badge ?? '', features: product.features.join('\n'), specifications: (product.specifications ?? []).join('\n'), warranty: product.warranty ?? '', materials: product.materials ?? '', storyImages: (product.storyImages ?? []).join('\n'), dimensions: product.dimensions, dimensionsImage: product.dimensionsImage ?? '', tags: product.tags.join(', '), published: product.published, colors: product.colors.map(color => ({ key: nextKey(), id: color.id, name: color.name, nameAr: color.nameAr, hex: color.hex, stock: color.stock, images: [...color.images], primaryIndex: color.primaryIndex })) };
 }
 
 export function ProductEditor({ initial, initialColorId, exchangeRate, categories }: { initial: Product | null; initialColorId?: number; exchangeRate: number; categories: { id: string; name: string }[] }) {
@@ -31,6 +31,7 @@ export function ProductEditor({ initial, initialColorId, exchangeRate, categorie
   const [urlDraft, setUrlDraft] = useState('');
   const [previewIndex, setPreviewIndex] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
+  const dimensionsFileInput = useRef<HTMLInputElement>(null);
   const isNew = !initial;
   const active = state.colors.find(color => color.key === activeKey) ?? state.colors[0];
   const totalStock = useMemo(() => state.colors.reduce((sum, color) => sum + (Number(color.stock) || 0), 0), [state.colors]);
@@ -50,6 +51,24 @@ export function ProductEditor({ initial, initialColorId, exchangeRate, categorie
     catch (error) { setMessage({ text: error instanceof Error ? error.message : tr('Upload failed.'), error: true }); }
     finally { setUploading(false); if (fileInput.current) fileInput.current.value = ''; }
   }
+  async function uploadDimensionsImage(file: File | null) {
+    if (!file) return;
+    setUploading(true); setMessage(null);
+    try {
+      const form = new FormData(); form.append('files', file);
+      const response = await fetch('/api/admin/media', { method: 'POST', body: form });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      if (!data.urls?.[0]) throw new Error('Image upload failed.');
+      update({ dimensionsImage: data.urls[0] });
+      setMessage({ text: language === 'ar' ? 'تم رفع صورة الأبعاد. احفظ المنتج لتثبيتها.' : 'Dimensions image uploaded. Save the product to keep it.', error: false });
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : tr('Upload failed.'), error: true });
+    } finally {
+      setUploading(false);
+      if (dimensionsFileInput.current) dimensionsFileInput.current.value = '';
+    }
+  }
   function addUrl() { const value = urlDraft.trim(); if (!value) return; if (!/^\/(images|api\/media)\//.test(value) && !/^https?:\/\//.test(value)) { setMessage({ text: language === 'ar' ? 'استخدم رابط https:// كامل أو مساراً مثل /images/photo.jpg.' : 'Use a full https:// URL or a path such as /images/photo.jpg.', error: true }); return; } addImages([value]); setUrlDraft(''); }
   async function save() {
     setSaving(true); setMessage(null);
@@ -57,7 +76,7 @@ export function ProductEditor({ initial, initialColorId, exchangeRate, categorie
     const priceIqd = Number(state.priceIqd);
     if (!Number.isFinite(priceIqd) || priceIqd < 0) { setMessage({ text: language === 'ar' ? 'أدخل سعر البيع بالدينار العراقي.' : 'Enter the sale price in IQD.', error: true }); setSaving(false); return; }
     const priceUsd = priceIqd / exchangeRate;
-    const payload = { id: isNew ? slugify(state.id || state.name) : state.id, name: state.name, nameAr: state.nameAr || state.name, subtitle: state.subtitle, subtitleAr: state.subtitleAr || state.subtitle, description: state.description, descriptionAr: state.descriptionAr || state.description, price: priceUsd, salePriceIqd: Math.round(priceIqd), purchasePriceUsd: isNew && state.purchasePriceUsd.trim() ? Number(state.purchasePriceUsd) : null, exchangeRate, category: state.category, capacity: state.capacity || null, badge: state.badge || null, features: state.features.split('\n').map(line => line.trim()).filter(Boolean), specifications: state.specifications.split('\n').map(line => line.trim()).filter(Boolean), warranty: state.warranty, materials: state.materials, storyImages: state.storyImages.split('\n').map(line => line.trim()).filter(Boolean), dimensions: state.dimensions, tags: state.tags.split(',').map(tag => tag.trim()).filter(Boolean), published: state.published, colors: state.colors.map(color => ({ id: color.id, name: color.name, nameAr: color.nameAr, hex: color.hex, stock: Number(color.stock) || 0, images: color.images, primaryIndex: color.primaryIndex })) };
+    const payload = { id: isNew ? slugify(state.id || state.name) : state.id, name: state.name, nameAr: state.nameAr || state.name, subtitle: state.subtitle, subtitleAr: state.subtitleAr || state.subtitle, description: state.description, descriptionAr: state.descriptionAr || state.description, price: priceUsd, salePriceIqd: Math.round(priceIqd), purchasePriceUsd: isNew && state.purchasePriceUsd.trim() ? Number(state.purchasePriceUsd) : null, exchangeRate, category: state.category, capacity: state.capacity || null, badge: state.badge || null, features: state.features.split('\n').map(line => line.trim()).filter(Boolean), specifications: state.specifications.split('\n').map(line => line.trim()).filter(Boolean), warranty: state.warranty, materials: state.materials, storyImages: state.storyImages.split('\n').map(line => line.trim()).filter(Boolean), dimensions: state.dimensions, dimensionsImage: state.dimensionsImage, tags: state.tags.split(',').map(tag => tag.trim()).filter(Boolean), published: state.published, colors: state.colors.map(color => ({ id: color.id, name: color.name, nameAr: color.nameAr, hex: color.hex, stock: Number(color.stock) || 0, images: color.images, primaryIndex: color.primaryIndex })) };
     try {
       const response = await fetch(isNew ? '/api/admin/products' : `/api/admin/products/${state.id}`, { method: isNew ? 'POST' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
@@ -115,7 +134,19 @@ export function ProductEditor({ initial, initialColorId, exchangeRate, categorie
         
         
         <label className="admin-field span-2"><span>{tr('Design insights')} <small>(one per line)</small></span><textarea rows={5} value={state.features} onChange={event => update({ features: event.target.value })} /></label>
-        <label className="admin-field"><span>{tr('Dimensions')}</span><input value={state.dimensions} onChange={event => update({ dimensions: event.target.value })} placeholder="500 × 320 × 180 mm" /></label>
+        <label className="admin-field"><span>{language === 'ar' ? 'الأبعاد الخارجية — النص' : 'External dimensions — text'}</span><input value={state.dimensions} onChange={event => update({ dimensions: event.target.value })} placeholder="86 × 117 × 13 mm" /></label>
+        <div className="admin-field span-2">
+          <span>{language === 'ar' ? 'صورة الأبعاد (اختياري)' : 'Dimensions image (optional)'}</span>
+          <input ref={dimensionsFileInput} type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" hidden onChange={event => void uploadDimensionsImage(event.target.files?.[0] ?? null)} />
+          <div className="admin-dimensions-image-tools">
+            {state.dimensionsImage && <img src={state.dimensionsImage} alt="Dimensions preview" className="admin-dimensions-image-preview" />}
+            <div className="admin-photo-actions">
+              <button type="button" className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => dimensionsFileInput.current?.click()} disabled={uploading}>{uploading ? <LoaderCircle size={14} className="spin" /> : <ImagePlus size={14} />}{language === 'ar' ? (state.dimensionsImage ? 'تغيير صورة الأبعاد' : 'رفع صورة الأبعاد') : (state.dimensionsImage ? 'Replace dimensions image' : 'Upload dimensions image')}</button>
+              {state.dimensionsImage && <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" onClick={() => update({ dimensionsImage: '' })}>{language === 'ar' ? 'إزالة الصورة' : 'Remove image'}</button>}
+            </div>
+          </div>
+          <p className="admin-hint">{language === 'ar' ? 'تظهر الصورة أسفل قياسات الأبعاد في قسم المواصفات بصفحة المنتج.' : 'Shown below the dimension measurements in the product Specifications section.'}</p>
+        </div>
         <label className="admin-field span-2"><span>Specifications <small>(one per line, e.g. Weight: 80 g)</small></span><textarea rows={4} value={state.specifications} onChange={event => update({ specifications: event.target.value })} placeholder={"Dimensions: 117 × 86 × 13 mm\nWeight: 80 g\nCapacity: 12 cards"} /></label>
         <label className="admin-field span-2"><span>Warranty details</span><textarea rows={3} value={state.warranty} onChange={event => update({ warranty: event.target.value })} placeholder="Warranty period and coverage..." /></label>
         <label className="admin-field span-2"><span>Materials & composition</span><textarea rows={3} value={state.materials} onChange={event => update({ materials: event.target.value })} placeholder="Natural leather, lining, care instructions..." /></label>
