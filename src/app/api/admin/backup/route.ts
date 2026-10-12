@@ -8,8 +8,22 @@ function encode(v:unknown):unknown{if(Buffer.isBuffer(v))return{__type:'bytea',v
 export async function GET(){
  const actor=await getAdminActor(); if(!actor||actor.type!=='owner')return NextResponse.json({error:'Owner access required'},{status:403});
  const ts=await pool.query<{name:string}>(`select table_name as name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by table_name`);
- const tables:Record<string,unknown[]>={}; for(const t of ts.rows){const r=await pool.query(`select * from public.${quote(t.name)}`);tables[t.name]=r.rows.map(encode)}
- const backup={format:'bellroy-admin-backup',version:1,createdAt:new Date().toISOString(),tables};
- try{await db.insert(activityLog).values({action:'backup',entity:'database',details:`Backup created (${Object.keys(tables).length} tables)`})}catch{}
- return new NextResponse(JSON.stringify(backup),{headers:{'content-type':'application/json; charset=utf-8','content-disposition':`attachment; filename="bellroy-backup-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,'cache-control':'no-store'}})
+ // Streamed one table at a time: the whole database (images included) is never held in
+ // memory as a single string, and the download starts immediately. The file format is unchanged.
+ const encoder=new TextEncoder();
+ const stream=new ReadableStream<Uint8Array>({async start(controller){
+  try{
+   controller.enqueue(encoder.encode(`{"format":"store-admin-backup","version":1,"createdAt":${JSON.stringify(new Date().toISOString())},"tables":{`));
+   for(const [index,t] of ts.rows.entries()){
+    const r=await pool.query(`select * from public.${quote(t.name)}`);
+    controller.enqueue(encoder.encode(`${index?',':''}${JSON.stringify(t.name)}:[`));
+    for(const [i,row] of r.rows.entries())controller.enqueue(encoder.encode(`${i?',':''}${JSON.stringify(encode(row))}`));
+    controller.enqueue(encoder.encode(']'));
+   }
+   controller.enqueue(encoder.encode('}}'));
+   controller.close();
+   try{await db.insert(activityLog).values({action:'backup',entity:'database',details:`Backup created (${ts.rows.length} tables)`})}catch{}
+  }catch(error){controller.error(error)}
+ }});
+ return new NextResponse(stream,{headers:{'content-type':'application/json; charset=utf-8','content-disposition':`attachment; filename="store-backup-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,'cache-control':'no-store'}});
 }

@@ -10,7 +10,7 @@ type Context = { params: Promise<{ id: string }> };
 const clean = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 export async function PATCH(request: NextRequest, { params }: Context) {
-  if (!(await requireAdminSection('sales', 'view'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await requireAdminSection('sales', 'manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   try {
     const body = await request.json();

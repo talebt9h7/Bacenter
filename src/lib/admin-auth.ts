@@ -171,6 +171,11 @@ export async function requireAdminSection(section: AdminSection, level: Permissi
   return actor;
 }
 
+/** True when the actor may see a section (owners see everything). For hiding parts of a page. */
+export function canView(actor: AdminActor, section: AdminSection) {
+  return actor.type === 'owner' || !!actor.permissions[section]?.view;
+}
+
 export function permissionsForRole(role: string): AdminPermissions {
   return JSON.parse(JSON.stringify(ROLE_DEFAULTS[role] || {}));
 }

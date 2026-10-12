@@ -16,7 +16,7 @@ const groups = [
   { title: 'Configuration', links: [{ href: '/admin/shipping', label: 'Delivery · Iraq', icon: Truck }, { href: '/admin/settings', label: 'Settings', icon: Settings }, { href: '/admin/team', label: 'Team & Permissions', icon: UserCog }, { href: '/admin/activity', label: 'Activity Log', icon: FileText }, { href: '/admin/seo', label: 'SEO', icon: ShieldCheck }, { href: '/admin/redirects', label: 'URL Redirects', icon: ExternalLink }, { href: '/admin/backup', label: 'Backup & Restore', icon: ShieldCheck }] },
 ];
 const pathSections: Record<string, AdminSection> = {
-  '/admin/reports':'overview','/admin/orders':'sales','/admin/customers':'sales','/admin/coupons':'sales',
+  '/admin/reports':'finance','/admin/orders':'sales','/admin/customers':'sales','/admin/coupons':'sales',
   '/admin/products':'catalog','/admin/categories':'catalog','/admin/collections':'catalog','/admin/inventory':'catalog','/admin/purchases':'catalog',
   '/admin/homepage':'storefront','/admin/sections':'storefront','/admin/media':'storefront','/admin/navigation':'storefront','/admin/footer':'storefront','/admin/banners':'storefront','/admin/content':'storefront','/admin/videos':'storefront','/admin/messages':'storefront','/admin/stores':'storefront',
   '/admin/revenue':'finance','/admin/profit':'finance','/admin/finance':'finance','/admin/shipping':'configuration','/admin/settings':'configuration','/admin/team':'team','/admin/activity':'configuration','/admin/seo':'configuration','/admin/redirects':'configuration','/admin/backup':'configuration',

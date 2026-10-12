@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
   if (!/^[a-z0-9._-]{3,40}$/.test(username)) return NextResponse.json({ error: 'Username must be 3–40 characters and use letters, numbers, dot, dash or underscore.' }, { status: 400 });
   if (!name) return NextResponse.json({ error: 'Name is required.' }, { status: 400 });
   if (password.length < 8) return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
-  const permissions = cleanPermissions(body.permissions) || permissionsForRole(role);
+  // cleanPermissions returns {} (truthy) when nothing is sent, so fall back on emptiness,
+  // the same way the update route does; otherwise the user gets no access at all.
+  const cleaned = cleanPermissions(body.permissions);
+  const permissions = Object.keys(cleaned).length ? cleaned : permissionsForRole(role);
   try {
     const [row] = await db.insert(adminUsers).values({
       username, name, passwordHash: hashPassword(password), role, permissions,
