@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { invalidateCatalog } from '@/lib/cache-tags';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { inventoryBatches, inventoryMovements, productVariants, products, purchaseItems } from '@/db/schema';
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
         }
         return { rows: outputRows, createdVariants: outputRows.slice(cleanLines.length).map(item => item.variantId), batchNumber };
       });
+      invalidateCatalog();
       await logActivity('inventory.purchase', 'product', productId, `${result.rows.reduce((sum, row) => sum + 1, 0)} colors · batch ${result.batchNumber} · purchase $${purchasePriceUsd.toFixed(2)} USD @ ${exchangeRate.toLocaleString('en-US')} IQD`);
       return NextResponse.json(result);
     } catch (error) {
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) return NextResponse.json({ error: 'Invalid exchange rate.' }, { status: 400 });
     try {
       const result = await db.transaction(async tx => receiveInventoryBatch(tx, { variantId, quantity, purchaseCostUsdCents: Math.round(purchasePriceUsd * 100), purchaseExchangeRate: Math.round(exchangeRate), salePriceIqd: null, batchNumber, notes: typeof body.notes === 'string' ? body.notes : null }));
+      invalidateCatalog();
       await logActivity('inventory.purchase', 'variant', variantId, `+${quantity} · batch ${batchNumber} · purchase $${purchasePriceUsd.toFixed(2)} USD @ ${exchangeRate.toLocaleString('en-US')} IQD`);
       return NextResponse.json(result);
     } catch (error) {
@@ -81,7 +84,8 @@ export async function POST(request: NextRequest) {
   if (body.set !== undefined) { const target = Number(body.set); if (!Number.isInteger(target) || target < 0 || target > 1000000) return NextResponse.json({ error: 'Stock must be a whole number of 0 or more.' }, { status: 400 }); delta = target - variant.stock; }
   else { delta = Number(body.delta); if (!Number.isInteger(delta) || delta === 0 || Math.abs(delta) > 1000000) return NextResponse.json({ error: 'Enter a non-zero adjustment.' }, { status: 400 }); if (variant.stock + delta < 0) return NextResponse.json({ error: `Only ${variant.stock} in stock; can’t remove ${Math.abs(delta)}.` }, { status: 400 }); }
   if (delta === 0) return NextResponse.json({ stock: variant.stock });
-  const stock = await adjustStock(db, variantId, delta, reason);
+  const stock = await db.transaction(tx => adjustStock(tx, variantId, delta, reason));
+  invalidateCatalog();
   await logActivity('inventory.adjust', 'variant', variantId, `${delta > 0 ? '+' : ''}${delta} (${reason})`);
   return NextResponse.json({ stock });
 }
@@ -109,6 +113,7 @@ export async function DELETE(request: NextRequest) {
       await tx.delete(inventoryBatches).where(eq(inventoryBatches.id, batchId));
       return { batchId, stock: nextStock };
     });
+    invalidateCatalog();
     await logActivity('inventory.batch_delete', 'inventory_batch', batchId, `Deleted batch ${batchId}`);
     return NextResponse.json(result);
   } catch (error) {

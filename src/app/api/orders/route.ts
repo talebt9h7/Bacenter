@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { cartItems, coupons, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { cartItems, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
-import { consumeInventoryBatches, validateCoupon } from '@/lib/orders';
+import { claimCoupon, consumeInventoryBatches, validateCoupon } from '@/lib/orders';
+import { invalidateCatalog } from '@/lib/cache-tags';
+
+/** A checkout problem to show the shopper. Thrown inside the transaction so nothing is saved. */
+class CheckoutError extends Error {}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,9 +30,9 @@ export async function POST(request: NextRequest) {
     const sessionId = await getSession();
     const result = await db.transaction(async tx => {
       const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
-      if (!cart.length) return { error: 'Your bag is empty. Add something you love first.' };
+      if (!cart.length) throw new CheckoutError('Your bag is empty. Add something you love first.');
       const short = cart.find(line => line.quantity > line.stock);
-      if (short) return { error: `${short.name} in ${short.color} only has ${short.stock} left. Please adjust your bag.` };
+      if (short) throw new CheckoutError(`${short.name} in ${short.color} only has ${short.stock} left. Please adjust your bag.`);
       const rate = settings.exchangeRate;
       const reference = `${settings.orderPrefix || 'BR'}-${randomBytes(3).toString('hex').toUpperCase()}`;
       const items = [];
@@ -38,7 +42,14 @@ export async function POST(request: NextRequest) {
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
       let discount = 0; let freeShipping = subtotal >= settings.freeShippingThreshold; let appliedCoupon: string | null = null;
-      if (couponCode) { const check = await validateCoupon(couponCode, subtotal); if ('error' in check) return { error: check.error }; discount = check.discount; freeShipping = freeShipping || check.freeShipping; appliedCoupon = check.coupon.code; await tx.update(coupons).set({ usedCount: sql`${coupons.usedCount} + 1` }).where(eq(coupons.id, check.coupon.id)); }
+      if (couponCode) {
+        // Validated inside the transaction and claimed atomically. Throwing (not returning)
+        // rolls back the stock already taken above if the coupon turns out to be invalid.
+        const check = await validateCoupon(couponCode, subtotal, tx);
+        if ('error' in check) throw new CheckoutError(check.error ?? 'That coupon isn’t valid.');
+        if (!(await claimCoupon(tx, check.coupon.id))) throw new CheckoutError('That coupon has been fully redeemed.');
+        discount = check.discount; freeShipping = freeShipping || check.freeShipping; appliedCoupon = check.coupon.code;
+      }
       const shipping = freeShipping ? 0 : zone.rate;
       const codFee = settings.codFee;
       const total = Math.max(0, subtotal - discount) + shipping + codFee;
@@ -50,7 +61,10 @@ export async function POST(request: NextRequest) {
       await tx.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
       return { order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
     });
-    if ('error' in result) return NextResponse.json({ error: result.error }, { status: 409 });
+    invalidateCatalog();
     return NextResponse.json(result, { status: 201 });
-  } catch (error) { console.error('Checkout failed', error); return NextResponse.json({ error: 'We couldn’t complete your order. Please try again.' }, { status: 500 }); }
+  } catch (error) {
+    if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: 409 });
+    if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Some items just sold out. Please review your bag.' }, { status: 409 });
+    console.error('Checkout failed', error); return NextResponse.json({ error: 'We couldn’t complete your order. Please try again.' }, { status: 500 }); }
 }

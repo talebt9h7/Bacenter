@@ -8,19 +8,9 @@ import { ArrowRight, CircleDollarSign, ShoppingCart, Tag, Truck } from 'lucide-r
 import { db } from '@/db';
 import { orders } from '@/db/schema';
 import { iqd, when } from '@/lib/format';
+import { isRecognizedIn, ordersTouchingRange, reportRange } from '@/lib/report-period';
 
-const liveStatuses = ['delivered'];
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-function range(period?: string) {
-  const to = new Date(); to.setHours(23,59,59,999);
-  const from = new Date();
-  if (period === 'today') from.setHours(0,0,0,0);
-  else if (period === '7d') { from.setDate(from.getDate()-6); from.setHours(0,0,0,0); }
-  else if (period === '90d') { from.setDate(from.getDate()-89); from.setHours(0,0,0,0); }
-  else if (period === 'year') { from.setMonth(0,1); from.setHours(0,0,0,0); }
-  else { from.setDate(from.getDate()-29); from.setHours(0,0,0,0); }
-  return { from, to };
-}
 const productGrossRevenue = (o: typeof orders.$inferSelect) => Array.isArray(o.items) ? (o.items as {unitPrice?:number;quantity?:number}[]).reduce((s,i)=>s+num(i.unitPrice)*num(i.quantity),0) : 0;
 const productRevenue = (o: typeof orders.$inferSelect) => Math.max(0, productGrossRevenue(o) - num(o.discountCents));
 const label = (v: string) => v ? v.replace(/^./, x => x.toUpperCase()) : '—';
@@ -34,9 +24,9 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   const { period='30d' } = await searchParams;
   const lang = normalizeLanguage((await cookies()).get(LANGUAGE_COOKIE)?.value);
   const t=(en:string,ar:string)=>lang==='ar'?ar:en;
-  const { from, to } = range(period);
-  const rows = await db.select().from(orders).where(and(gte(orders.createdAt, from), lte(orders.createdAt, to))).orderBy(desc(orders.createdAt));
-  const live = rows.filter(o => liveStatuses.includes(o.status));
+  const { from, to } = reportRange(period);
+  const rows = await db.select().from(orders).where(ordersTouchingRange(from, to)).orderBy(desc(orders.createdAt));
+  const live = rows.filter(o => isRecognizedIn(o, from, to));
   const revenue = live.reduce((s,o) => s + productRevenue(o), 0);
   const discounts = live.reduce((s,o) => s + num(o.discountCents), 0);
   const delivery = live.reduce((s,o) => s + num(o.shippingCents), 0);

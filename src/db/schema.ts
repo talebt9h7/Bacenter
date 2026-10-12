@@ -160,6 +160,8 @@ export const orders = pgTable('orders', {
   courier: text('courier'),
   source: text('source').notNull().default('website'),
   sourceNote: text('source_note'),
+  // Set when the order reaches 'delivered'; revenue and profit are recognised on this date.
+  deliveredAt: timestamp('delivered_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [index('orders_status_idx').on(table.status), index('orders_phone_idx').on(table.phone)]);
@@ -362,3 +364,11 @@ export const urlRedirects = pgTable('url_redirects', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [index('url_redirects_active_idx').on(table.active)]);
+
+// Failed admin sign-in counters. Kept in the database (not process memory) so the limit
+// holds across every serverless instance.
+export const adminLoginAttempts = pgTable('admin_login_attempts', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull().default(0),
+  lockedUntil: timestamp('locked_until').notNull(),
+});

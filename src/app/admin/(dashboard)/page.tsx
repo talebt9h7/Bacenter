@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireAdminSection } from '@/lib/admin-auth';
+import { canView, requireAdminSection } from '@/lib/admin-auth';
 import Link from 'next/link';
 import { count, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -28,6 +28,7 @@ import { getSettings } from '@/lib/settings';
 import { primaryImage } from '@/lib/types';
 import { iqd, money, when } from '@/lib/format';
 import { orderProductProfit } from '@/lib/orders';
+import { baghdadDayKey, recognizedAt, startOfBaghdadToday } from '@/lib/report-period';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { DashboardClient } from '@/components/admin/dashboard-client';
 
@@ -41,12 +42,9 @@ export default async function AdminDashboard() {
   const settings = await getSettings();
   const products = await getAllProducts({ includeUnpublished: true });
 
-  const since = new Date();
-  since.setDate(since.getDate() - 13);
-  since.setHours(0, 0, 0, 0);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Calendar days in Baghdad time; revenue is placed on the delivery date.
+  const today = startOfBaghdadToday();
+  const since = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000);
 
   const [
     allLiveOrders,
@@ -64,6 +62,8 @@ export default async function AdminDashboard() {
         currency: orders.currency,
         status: orders.status,
         createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+        deliveredAt: orders.deliveredAt,
         governorate: orders.governorate,
         shippingCents: orders.shippingCents,
         discountCents: orders.discountCents,
@@ -207,7 +207,7 @@ export default async function AdminDashboard() {
 
   const todayOrders = liveOrders.filter(
     order =>
-      new Date(order.createdAt) >= today,
+      recognizedAt(order) >= today,
   );
 
   const todayStats = {
@@ -229,18 +229,9 @@ export default async function AdminDashboard() {
   >();
 
   for (const order of liveOrders) {
-    const key = new Date(
-      order.createdAt,
-    )
-      .toISOString()
-      .slice(0, 10);
+    const key = baghdadDayKey(recognizedAt(order));
 
-    if (
-      key <
-      since
-        .toISOString()
-        .slice(0, 10)
-    ) {
+    if (key < baghdadDayKey(since)) {
       continue;
     }
 
@@ -347,15 +338,11 @@ export default async function AdminDashboard() {
   const days = Array.from(
     { length: 14 },
     (_, index) => {
-      const date = new Date(since);
-
-      date.setDate(
-        since.getDate() + index,
+      const date = new Date(
+        since.getTime() + index * 24 * 60 * 60 * 1000,
       );
 
-      const key = date
-        .toISOString()
-        .slice(0, 10);
+      const key = baghdadDayKey(date);
 
       const row = daily.find(
         item => item.day === key,
@@ -367,6 +354,7 @@ export default async function AdminDashboard() {
           'en-GB',
           {
             weekday: 'short',
+            timeZone: 'Asia/Baghdad',
           },
         ),
         total: Number(
@@ -395,7 +383,7 @@ export default async function AdminDashboard() {
     code ??
     '—';
 
-  const stats = [
+  const allStats = [
     {
       label: 'Product revenue',
       value: iqd(
@@ -484,6 +472,8 @@ export default async function AdminDashboard() {
       href: '/admin/messages',
     },
   ];
+  // Profit is finance data; team members without finance access don't see it.
+  const stats = allStats.filter(card => card.label !== 'Net product profit' || canView(actor, 'finance'));
 
   return (
     <DashboardClient

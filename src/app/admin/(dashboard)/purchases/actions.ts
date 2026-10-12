@@ -2,7 +2,8 @@
 import { revalidatePath } from 'next/cache';
 import { db } from '@/db';
 import { inventoryBatches, inventoryMovements, productVariants, purchaseItems, purchases, suppliers } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { invalidateCatalog } from '@/lib/cache-tags';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { getSettings } from '@/lib/settings';
 
@@ -34,7 +35,7 @@ export async function createPurchase(formData: FormData) {
   const reference = String(formData.get('reference') || '').trim() || `PUR-${Date.now()}`;
   const purchaseDateRaw = String(formData.get('purchaseDate') || '');
   const notes = String(formData.get('notes') || '').trim() || null;
-  if (!variantId || quantity <= 0 || !Number.isFinite(purchaseCostUsd) || purchaseCostUsd < 0 || (salePriceIqd !== null && (!Number.isFinite(salePriceIqd) || salePriceIqd < 0))) throw new Error('Invalid purchase values');
+  if (!Number.isInteger(variantId) || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(purchaseCostUsd) || purchaseCostUsd < 0 || (salePriceIqd !== null && (!Number.isFinite(salePriceIqd) || salePriceIqd < 0))) throw new Error('Invalid purchase values');
   await db.transaction(async tx => {
     const [variant] = await tx.select({ id: productVariants.id, stock: productVariants.stock }).from(productVariants).where(eq(productVariants.id, variantId)).limit(1);
     if (!variant) throw new Error('Variant not found');
@@ -44,8 +45,8 @@ export async function createPurchase(formData: FormData) {
     const [purchase] = await tx.insert(purchases).values({ reference, supplierId: supplierIdRaw ? Number(supplierIdRaw) : null, totalCostIqd, purchaseDate: purchaseDateRaw ? new Date(purchaseDateRaw) : new Date(), notes }).returning({ id: purchases.id });
     const [batch] = await tx.insert(inventoryBatches).values({ variantId, batchNumber: reference, quantityReceived: quantity, quantityRemaining: quantity, purchaseCostIqd, purchaseCostUsdCents, purchaseExchangeRate: exchangeRate, salePriceCents: salePriceIqd === null ? null : Math.round((salePriceIqd / exchangeRate) * 100), salePriceIqd, receivedAt: purchaseDateRaw ? new Date(purchaseDateRaw) : new Date(), notes }).returning({ id: inventoryBatches.id });
     await tx.insert(purchaseItems).values({ purchaseId: purchase.id, variantId, quantity, purchaseCostIqd, purchaseCostUsdCents, purchaseExchangeRate: exchangeRate, salePriceCents: salePriceIqd === null ? null : Math.round((salePriceIqd / exchangeRate) * 100), salePriceIqd, batchId: batch.id, notes });
-    const stockAfter = variant.stock + quantity;
-    await tx.update(productVariants).set({ stock: stockAfter }).where(eq(productVariants.id, variantId));
+    // Atomic increment: an order placed at the same moment must not be overwritten.
+    const [{ stock: stockAfter }] = await tx.update(productVariants).set({ stock: sql`${productVariants.stock} + ${quantity}` }).where(eq(productVariants.id, variantId)).returning({ stock: productVariants.stock });
     if (salePriceIqd !== null) {
       const { products } = await import('@/db/schema');
       const { eq: eq2 } = await import('drizzle-orm');
@@ -54,6 +55,7 @@ export async function createPurchase(formData: FormData) {
     }
     await tx.insert(inventoryMovements).values({ variantId, delta: quantity, stockAfter, reason: 'purchase', reference });
   });
+  invalidateCatalog();
   revalidatePath('/admin/purchases');
   revalidatePath('/admin/inventory');
   revalidatePath('/admin/reports');

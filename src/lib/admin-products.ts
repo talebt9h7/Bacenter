@@ -1,10 +1,14 @@
 import { eq, inArray, notInArray, and } from 'drizzle-orm';
 import { db } from '@/db';
-import { inventoryBatches, products, productVariants } from '@/db/schema';
+import { products, productVariants } from '@/db/schema';
+import { adjustStock, receiveInventoryBatch } from './orders';
+import { invalidateCatalog } from './cache-tags';
 import { categories as legacyCategories } from './catalog';
 import { categories as categoryTable } from '@/db/schema';
 
-export type VariantInput = { id?: number; name: string; nameAr?: string; hex: string; stock: number; images: string[]; primaryIndex: number };
+// baseStock is the stock the editor loaded. Saving applies only the difference, so orders
+// placed while the editor was open are not overwritten.
+export type VariantInput = { id?: number; name: string; nameAr?: string; hex: string; stock: number; baseStock?: number; images: string[]; primaryIndex: number };
 export type ProductInput = { id: string; name: string; nameAr?: string; subtitle: string; subtitleAr?: string; description: string; descriptionAr?: string; price: number; salePriceIqd: number; purchasePriceUsd: number | null; exchangeRate: number; category: string; capacity: string | null; badge: string | null; features: string[]; specifications: string[]; warranty: string; materials: string; storyImages: string[]; dimensions: string; dimensionsImage: string; tags: string[]; published: boolean; colors: VariantInput[] };
 
 const isImage = (value: unknown): value is string => typeof value === 'string' && value.length < 2000 && (/^\/(images|api\/media)\//.test(value) || /^https?:\/\//.test(value));
@@ -48,7 +52,8 @@ export function validateProductInput(body: unknown): { data?: ProductInput; erro
     if (!Number.isInteger(stock) || stock < 0 || stock > 1000000) return { error: `Stock for “${colorName}” must be a whole number of 0 or more.` };
     const images = Array.isArray(color.images) ? color.images.filter(isImage).slice(0, 12) : [];
     const primaryIndex = Number.isInteger(color.primaryIndex) ? Math.min(Math.max(Number(color.primaryIndex), 0), Math.max(images.length - 1, 0)) : 0;
-    colors.push({ id: Number.isInteger(color.id) ? Number(color.id) : undefined, name: colorName, nameAr: colorNameAr, hex, stock, images, primaryIndex });
+    const baseStock = Number.isInteger(color.baseStock) && Number(color.baseStock) >= 0 ? Number(color.baseStock) : undefined;
+    colors.push({ id: Number.isInteger(color.id) ? Number(color.id) : undefined, name: colorName, nameAr: colorNameAr, hex, stock, baseStock, images, primaryIndex });
   }
   return { data: { id, name, nameAr, subtitle: typeof raw.subtitle === 'string' ? raw.subtitle.trim().slice(0, 200) : '', description: typeof raw.description === 'string' ? raw.description.trim().slice(0, 4000) : '', descriptionAr, price: Math.round((salePriceIqd / exchangeRate) * 100) / 100, salePriceIqd: Math.round(salePriceIqd), purchasePriceUsd: purchasePriceUsd === null ? null : Math.round(purchasePriceUsd * 100) / 100, exchangeRate, category, capacity: typeof raw.capacity === 'string' && raw.capacity.trim() ? raw.capacity.trim().slice(0, 40) : null, badge: typeof raw.badge === 'string' && raw.badge.trim() ? raw.badge.trim().slice(0, 40).toUpperCase() : null, features: cleanList(raw.features, 12), specifications: cleanList(raw.specifications, 30), warranty: typeof raw.warranty === 'string' ? raw.warranty.trim().slice(0, 2000) : '', materials: typeof raw.materials === 'string' ? raw.materials.trim().slice(0, 2000) : '', storyImages: Array.isArray(raw.storyImages) ? raw.storyImages.filter(isImage).slice(0, 20) : [], dimensions: typeof raw.dimensions === 'string' ? raw.dimensions.trim().slice(0, 120) : '', dimensionsImage: isImage(raw.dimensionsImage) ? raw.dimensionsImage : '', tags: cleanList(raw.tags, 20).map(tag => tag.toLowerCase().replace(/\s+/g, '-')), published: raw.published !== false, colors } };
 }
@@ -56,7 +61,7 @@ export function validateProductInput(body: unknown): { data?: ProductInput; erro
 export async function saveProduct(data: ProductInput, { create = false } = {}) {
   const [categoryRow] = await db.select({ id: categoryTable.id }).from(categoryTable).where(eq(categoryTable.id, data.category)).limit(1);
   if (!categoryRow && !legacyCategories.some(item => item.id === data.category && item.id !== 'all')) throw new Error('INVALID_CATEGORY');
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const values = { name: data.name, nameAr: data.nameAr || data.name, subtitle: data.subtitle, subtitleAr: data.subtitleAr || data.subtitle, description: data.description, descriptionAr: data.descriptionAr || data.description, priceCents: Math.round(data.price * 100), salePriceIqd: data.salePriceIqd, category: data.category, capacity: data.capacity, badge: data.badge, features: data.features, specifications: data.specifications, warranty: data.warranty, materials: data.materials, storyImages: data.storyImages, dimensions: data.dimensions, dimensionsImage: data.dimensionsImage, tags: data.tags, published: data.published, updatedAt: new Date() };
     if (create) {
       const [existing] = await tx.select({ id: products.id }).from(products).where(eq(products.id, data.id));
@@ -67,34 +72,42 @@ export async function saveProduct(data: ProductInput, { create = false } = {}) {
       const updated = await tx.update(products).set(values).where(eq(products.id, data.id)).returning({ id: products.id });
       if (!updated.length) throw new Error('NOT_FOUND');
     }
-    const existingVariants = await tx.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.productId, data.id));
-    const existingIds = new Set(existingVariants.map(variant => variant.id));
+    const existingVariants = await tx.select({ id: productVariants.id, stock: productVariants.stock }).from(productVariants).where(eq(productVariants.productId, data.id));
+    const existingStock = new Map(existingVariants.map(variant => [variant.id, variant.stock]));
     const keepIds: number[] = [];
     for (const [index, color] of data.colors.entries()) {
-      const record = { productId: data.id, name: color.name, nameAr: color.nameAr || color.name, hex: color.hex, stock: color.stock, images: color.images, primaryIndex: color.primaryIndex, sortOrder: index };
-      if (color.id && existingIds.has(color.id)) { await tx.update(productVariants).set(record).where(and(eq(productVariants.id, color.id), eq(productVariants.productId, data.id))); keepIds.push(color.id); }
-      else {
-        const [inserted] = await tx.insert(productVariants).values(record).returning({ id: productVariants.id });
-        keepIds.push(inserted.id);
-        if (create && color.stock > 0) {
-          if (data.purchasePriceUsd === null) throw new Error('PURCHASE_PRICE_REQUIRED');
-          await tx.insert(inventoryBatches).values({
-            variantId: inserted.id,
-            batchNumber: `INITIAL-${data.id}-${index + 1}`,
-            quantityReceived: color.stock,
-            quantityRemaining: color.stock,
-            purchaseCostIqd: Math.round(data.purchasePriceUsd * data.exchangeRate),
-            purchaseCostUsdCents: Math.round(data.purchasePriceUsd * 100),
-            purchaseExchangeRate: Math.round(data.exchangeRate),
-            salePriceCents: Math.round(data.price * 100),
-            salePriceIqd: data.salePriceIqd,
-            notes: 'Initial stock received when product was created',
-          });
-        }
+      // Stock is never written directly: it goes through the inventory ledger so purchase
+      // batches stay consistent with stock and every change is logged as a movement.
+      const record = { productId: data.id, name: color.name, nameAr: color.nameAr || color.name, hex: color.hex, images: color.images, primaryIndex: color.primaryIndex, sortOrder: index };
+      if (color.id && existingStock.has(color.id)) {
+        await tx.update(productVariants).set(record).where(and(eq(productVariants.id, color.id), eq(productVariants.productId, data.id)));
+        keepIds.push(color.id);
+        const delta = color.stock - (color.baseStock ?? existingStock.get(color.id)!);
+        if (delta !== 0) await adjustStock(tx, color.id, delta, 'Product editor');
+        continue;
+      }
+      const [inserted] = await tx.insert(productVariants).values({ ...record, stock: 0 }).returning({ id: productVariants.id });
+      keepIds.push(inserted.id);
+      if (color.stock <= 0) continue;
+      if (data.purchasePriceUsd !== null) {
+        await receiveInventoryBatch(tx, {
+          variantId: inserted.id,
+          quantity: color.stock,
+          purchaseCostUsdCents: Math.round(data.purchasePriceUsd * 100),
+          purchaseExchangeRate: Math.round(data.exchangeRate),
+          batchNumber: `INITIAL-${data.id}-${index + 1}`,
+          notes: create ? 'Initial stock received when product was created' : 'Stock added with a new color in the product editor',
+        });
+      } else if (create) {
+        throw new Error('PURCHASE_PRICE_REQUIRED');
+      } else {
+        await adjustStock(tx, inserted.id, color.stock, 'Product editor (new color, cost unknown)');
       }
     }
     if (keepIds.length) await tx.delete(productVariants).where(and(eq(productVariants.productId, data.id), notInArray(productVariants.id, keepIds)));
     return keepIds;
   });
+  invalidateCatalog();
+  return result;
 }
-export async function deleteProducts(ids: string[]) { if (ids.length) await db.delete(products).where(inArray(products.id, ids)); }
+export async function deleteProducts(ids: string[]) { if (ids.length) await db.delete(products).where(inArray(products.id, ids)); invalidateCatalog(); }

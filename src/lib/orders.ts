@@ -2,15 +2,18 @@ import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { activityLog, coupons, customers, inventoryBatches, inventoryMovements, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
 import { roundIqd } from './iraq';
+import { invalidateCatalog } from './cache-tags';
 import type { OrderStatus } from './iraq';
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function logActivity(action: string, entity: string, entityId?: string | number, details?: string) {
   await db.insert(activityLog).values({ action, entity, entityId: entityId === undefined ? null : String(entityId), details: details ?? null });
 }
-export async function validateCoupon(codeRaw: string, subtotal: number) {
+export async function validateCoupon(codeRaw: string, subtotal: number, executor: Tx | typeof db = db) {
   const code = codeRaw.trim().toUpperCase();
   if (!code) return { error: 'Enter a coupon code.' };
-  const [coupon] = await db.select().from(coupons).where(eq(coupons.code, code));
+  const [coupon] = await executor.select().from(coupons).where(eq(coupons.code, code));
   if (!coupon || !coupon.active) return { error: 'That coupon isn’t valid.' };
   if (coupon.expiresAt && coupon.expiresAt < new Date()) return { error: 'That coupon has expired.' };
   if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) return { error: 'That coupon has been fully redeemed.' };
@@ -18,13 +21,61 @@ export async function validateCoupon(codeRaw: string, subtotal: number) {
   const discount = coupon.type === 'percent' ? roundIqd(subtotal * Math.min(coupon.value, 100) / 100) : Math.min(coupon.value, subtotal);
   return { coupon, discount, freeShipping: coupon.freeShipping };
 }
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** Adjust stock and keep the legacy movement ledger in sync. */
+/**
+ * Counts one use of a coupon, but only while it still has uses left. Done as a single
+ * conditional UPDATE so two customers checking out at the same moment cannot both take
+ * the last use of a limited coupon.
+ */
+export async function claimCoupon(tx: Tx, couponId: number) {
+  const claimed = await tx.update(coupons).set({ usedCount: sql`${coupons.usedCount} + 1` })
+    .where(and(eq(coupons.id, couponId), sql`(${coupons.maxUses} IS NULL OR ${coupons.usedCount} < ${coupons.maxUses})`))
+    .returning({ id: coupons.id });
+  return claimed.length > 0;
+}
+
+/** Gives a coupon use back when its order is cancelled, returned or deleted. */
+async function releaseCoupon(tx: Tx, code: string | null) {
+  if (!code) return;
+  await tx.update(coupons).set({ usedCount: sql`GREATEST(${coupons.usedCount} - 1, 0)` }).where(eq(coupons.code, code));
+}
+
+/** Takes a coupon use again when a cancelled order is reinstated. */
+async function reclaimCoupon(tx: Tx, code: string | null) {
+  if (!code) return;
+  await tx.update(coupons).set({ usedCount: sql`${coupons.usedCount} + 1` }).where(eq(coupons.code, code));
+}
+
+/**
+ * Inventory rule: purchase batches can never hold more units than the variant has in
+ * stock. Units in stock beyond the batches are "unbatched" (their purchase cost is
+ * unknown). When stock goes down outside of a sale, unbatched units are removed first,
+ * then batches oldest-first, so the purchase-cost ledger keeps matching real stock.
+ */
+async function trimBatchesToStock(tx: Tx | typeof db, variantId: number, stock: number) {
+  const batches = await tx.select({ id: inventoryBatches.id, quantityRemaining: inventoryBatches.quantityRemaining }).from(inventoryBatches)
+    .where(and(eq(inventoryBatches.variantId, variantId), sql`${inventoryBatches.quantityRemaining} > 0`))
+    .orderBy(asc(inventoryBatches.receivedAt), asc(inventoryBatches.id)).for('update');
+  let excess = batches.reduce((sum, batch) => sum + batch.quantityRemaining, 0) - stock;
+  for (const batch of batches) {
+    if (excess <= 0) break;
+    const take = Math.min(excess, batch.quantityRemaining);
+    await tx.update(inventoryBatches).set({ quantityRemaining: batch.quantityRemaining - take }).where(eq(inventoryBatches.id, batch.id));
+    excess -= take;
+  }
+}
+
+/** Adjusts stock by `delta` (never below zero), keeps batches consistent and logs the movement. */
 export async function adjustStock(tx: Tx | typeof db, variantId: number, delta: number, reason: string, reference?: string) {
-  const [updated] = await tx.update(productVariants).set({ stock: sql`GREATEST(${productVariants.stock} + ${delta}, 0)` }).where(eq(productVariants.id, variantId)).returning({ stock: productVariants.stock });
-  if (updated) await tx.insert(inventoryMovements).values({ variantId, delta, stockAfter: updated.stock, reason, reference: reference ?? null });
-  return updated?.stock;
+  const [variant] = await tx.select({ stock: productVariants.stock }).from(productVariants).where(eq(productVariants.id, variantId)).for('update');
+  if (!variant) return undefined;
+  const target = Math.max(variant.stock + delta, 0);
+  const applied = target - variant.stock;
+  if (applied === 0) return variant.stock;
+  if (applied < 0) await trimBatchesToStock(tx, variantId, target);
+  const [updated] = await tx.update(productVariants).set({ stock: target }).where(eq(productVariants.id, variantId)).returning({ stock: productVariants.stock });
+  await tx.insert(inventoryMovements).values({ variantId, delta: applied, stockAfter: updated.stock, reason, reference: reference ?? null });
+  return updated.stock;
 }
 
 /** Receive a new purchase batch. Purchase cost is snapshotted; storefront sale price is managed at product level. */
@@ -59,8 +110,10 @@ export async function consumeInventoryBatches(tx: Tx | typeof db, variantId: num
     if (batch.purchaseCostIqd !== null) { totalCost += batch.purchaseCostIqd * take; knownCostUnits += take; }
     remaining -= take;
   }
-  // Existing stock created before batch tracking has no known purchase cost. Preserve that fact rather than inventing a cost.
-  if (remaining > 0) throw new Error('BATCH_STOCK_MISMATCH');
+  // Any units left over are unbatched stock (added without a purchase batch, e.g. before
+  // batch tracking or through a manual stock increase). They can be sold, but their
+  // purchase cost is unknown, so the line keeps purchaseCostCents = null rather than an
+  // invented cost. The stock check above guarantees these units exist.
   const [updated] = await tx.update(productVariants).set({ stock: sql`${productVariants.stock} - ${quantity}` }).where(eq(productVariants.id, variantId)).returning({ stock: productVariants.stock });
   await tx.insert(inventoryMovements).values({ variantId, delta: -quantity, stockAfter: updated.stock, reason, reference: reference ?? null });
   return { stock: updated.stock, allocations, purchaseCostCents: knownCostUnits === quantity ? Math.round(totalCost / quantity) : null, purchaseTotalCostCents: knownCostUnits === quantity ? totalCost : null };
@@ -132,13 +185,16 @@ export function orderProductProfit(items: ProfitItem[], discount: number) {
   return Math.round(items.reduce((sum, item) => sum + lineProductProfit(item, items, discount), 0));
 }
 export async function transitionOrder(orderId: number, next: OrderStatus, extra: { trackingNumber?: string | null; courier?: string | null; adminNote?: string | null; paymentStatus?: string } = {}) {
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     if (!order) throw new Error('NOT_FOUND');
     const previous = order.status;
     const wasCancelled = previous === 'cancelled' || previous === 'returned';
     const willCancel = next === 'cancelled' || next === 'returned';
-    if (!wasCancelled && willCancel) for (const item of order.items as OrderItem[]) await restoreInventoryBatches(tx, item, next === 'returned' ? 'Order returned' : 'Order cancelled', order.reference);
+    if (!wasCancelled && willCancel) {
+      for (const item of order.items as OrderItem[]) await restoreInventoryBatches(tx, item, next === 'returned' ? 'Order returned' : 'Order cancelled', order.reference);
+      await releaseCoupon(tx, order.couponCode);
+    }
     if (wasCancelled && !willCancel) {
       const nextItems: OrderItem[] = [];
       for (const item of order.items as OrderItem[]) {
@@ -160,6 +216,7 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
         nextItems.push({ ...item, batchAllocations: allocations });
       }
       await tx.update(orders).set({ items: nextItems }).where(eq(orders.id, orderId));
+      await reclaimCoupon(tx, order.couponCode);
     }
     const paymentStatus = extra.paymentStatus ?? (next === 'delivered' && order.paymentMethod === 'cod' ? 'paid' : willCancel ? (order.paymentStatus === 'paid' ? 'refunded' : 'unpaid') : order.paymentStatus);
     // Financial recognition starts only when the order is delivered. Pending/confirmed/processing/shipped
@@ -167,7 +224,9 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
     const recognizedProfit = next === 'delivered'
       ? orderProductProfit(order.items as OrderItem[], Number(order.discountCents || 0))
       : 0;
-    await tx.update(orders).set({ status: next, paymentStatus, profitIqd: recognizedProfit, trackingNumber: extra.trackingNumber === undefined ? order.trackingNumber : extra.trackingNumber, courier: extra.courier === undefined ? order.courier : extra.courier, adminNote: extra.adminNote === undefined ? order.adminNote : extra.adminNote, updatedAt: new Date() }).where(eq(orders.id, orderId));
+    // Keep the original delivery date when a delivered order is only being annotated.
+    const deliveredAt = next === 'delivered' ? (previous === 'delivered' && order.deliveredAt ? order.deliveredAt : new Date()) : null;
+    await tx.update(orders).set({ status: next, paymentStatus, profitIqd: recognizedProfit, deliveredAt, trackingNumber: extra.trackingNumber === undefined ? order.trackingNumber : extra.trackingNumber, courier: extra.courier === undefined ? order.courier : extra.courier, adminNote: extra.adminNote === undefined ? order.adminNote : extra.adminNote, updatedAt: new Date() }).where(eq(orders.id, orderId));
     if (order.customerId && !wasCancelled && willCancel) {
       const value = customerOrderValue(order.subtotalCents, order.discountCents);
       const [last] = await tx.select({ lastOrderAt: max(orders.createdAt) }).from(orders).where(and(eq(orders.customerId, order.customerId), sql`${orders.id} <> ${orderId}`, sql`${orders.status} NOT IN ('cancelled','returned')`));
@@ -179,6 +238,8 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
     await tx.insert(orderEvents).values({ orderId, type: next, message: `Order ${next}${extra.trackingNumber ? ` · ${extra.trackingNumber}` : ''}` });
     return orderId;
   });
+  invalidateCatalog();
+  return result;
 }
 
 export async function updateOrderDetails(orderId: number, input: {
@@ -186,7 +247,7 @@ export async function updateOrderDetails(orderId: number, input: {
   source?: string; sourceNote?: string | null; shippingCents: number; discountCents: number; paymentMethod: string; paymentStatus: string; customerNote?: string | null;
   items?: { variantId: number; quantity: number; unitPrice: number; profitIqd?: number }[];
 }) {
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     if (!order) throw new Error('NOT_FOUND');
     const [zone] = await tx.select().from(shippingZones).where(eq(shippingZones.code, input.governorate));
@@ -220,8 +281,16 @@ export async function updateOrderDetails(orderId: number, input: {
     const orderProfitIqd = order.status === 'delivered' ? orderProductProfit(nextItems, safeDiscount) : 0;
     const oldCustomerId = order.customerId;
     const phoneChanged = input.phone !== order.phone;
+    // Cancelled/returned orders were already taken out of the customer's order count and
+    // spend when they were cancelled, so editing them must not change those totals again.
+    const countsTowardCustomer = order.status !== 'cancelled' && order.status !== 'returned';
     let customerId = oldCustomerId;
-    if (phoneChanged) {
+    if (!countsTowardCustomer) {
+      if (phoneChanged) {
+        const [existing] = await tx.select({ id: customers.id }).from(customers).where(eq(customers.phone, input.phone));
+        customerId = existing?.id ?? (await tx.insert(customers).values({ phone: input.phone, name: input.name, email: input.email || null, governorate: zone.code, updatedAt: new Date(), ordersCount: 0, totalSpent: 0 }).returning({ id: customers.id }))[0].id;
+      }
+    } else if (phoneChanged) {
       if (oldCustomerId) await tx.update(customers).set({ ordersCount: sql`GREATEST(${customers.ordersCount} - 1, 0)`, totalSpent: sql`GREATEST(${customers.totalSpent} - ${customerOrderValue(order.subtotalCents, order.discountCents)}, 0)` }).where(eq(customers.id, oldCustomerId));
       const [existing] = await tx.select().from(customers).where(eq(customers.phone, input.phone));
       if (existing) {
@@ -238,23 +307,31 @@ export async function updateOrderDetails(orderId: number, input: {
     await tx.insert(orderEvents).values({ orderId, type: 'edited', message: 'Order details updated' });
     return orderId;
   });
+  invalidateCatalog();
+  return result;
 }
 
 export async function deleteOrder(orderId: number) {
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     if (!order) throw new Error('NOT_FOUND');
     if (order.status === 'delivered') throw new Error('CANNOT_DELETE_DELIVERED');
     const wasCancelled = order.status === 'cancelled' || order.status === 'returned';
-    if (!wasCancelled) for (const item of order.items as OrderItem[]) await restoreInventoryBatches(tx, item, 'Order deleted', order.reference);
+    if (!wasCancelled) {
+      for (const item of order.items as OrderItem[]) await restoreInventoryBatches(tx, item, 'Order deleted', order.reference);
+      await releaseCoupon(tx, order.couponCode);
+    }
     if (order.customerId) {
-      await tx.update(customers).set({ ordersCount: sql`GREATEST(${customers.ordersCount} - 1, 0)`, totalSpent: sql`GREATEST(${customers.totalSpent} - ${customerOrderValue(order.subtotalCents, order.discountCents)}, 0)` }).where(eq(customers.id, order.customerId));
-      const [last] = await tx.select({ lastOrderAt: max(orders.createdAt) }).from(orders).where(and(eq(orders.customerId, order.customerId), sql`${orders.id} <> ${orderId}`));
+      // A cancelled/returned order was already removed from the customer's totals.
+      if (!wasCancelled) await tx.update(customers).set({ ordersCount: sql`GREATEST(${customers.ordersCount} - 1, 0)`, totalSpent: sql`GREATEST(${customers.totalSpent} - ${customerOrderValue(order.subtotalCents, order.discountCents)}, 0)` }).where(eq(customers.id, order.customerId));
+      const [last] = await tx.select({ lastOrderAt: max(orders.createdAt) }).from(orders).where(and(eq(orders.customerId, order.customerId), sql`${orders.id} <> ${orderId}`, sql`${orders.status} NOT IN ('cancelled','returned')`));
       await tx.update(customers).set({ updatedAt: new Date(), lastOrderAt: last?.lastOrderAt ?? null }).where(eq(customers.id, order.customerId));
     }
     await tx.delete(orders).where(eq(orders.id, orderId));
     return orderId;
   });
+  invalidateCatalog();
+  return result;
 }
 
 export async function orderWithEvents(id: number) {
