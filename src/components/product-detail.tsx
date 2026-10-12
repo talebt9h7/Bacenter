@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Banknote, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, RotateCcw, ShieldCheck, Truck, ZoomIn } from 'lucide-react';
+import { ArrowRight, Banknote, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, ShieldCheck, ZoomIn } from 'lucide-react';
 import { categories } from '@/lib/catalog';
 import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
 import { useStore } from './store-provider';
