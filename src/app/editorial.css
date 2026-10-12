@@ -44,3 +44,27 @@
 @keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.skeleton-block{animation:none}}
 @media(max-width:767px){.product-page-loading .skeleton-thumb{width:63px;height:63px}}
+/* Product page: overview, highlights, specifications and lifestyle photos (driven by product details) */
+.product-overview{padding:30px 0 8px;display:grid;gap:22px}
+.product-headline{font-size:22px;line-height:1.35;font-weight:400;letter-spacing:-.2px;color:#2b2e27;text-wrap:balance}
+.product-highlights{list-style:none;margin:0;padding:0;display:grid;gap:18px}
+.product-highlights li{display:flex;align-items:center;gap:18px;font-size:13px;color:#3d4137}
+.product-highlights svg{flex-shrink:0;color:#3d4137}
+.product-feature-list{margin:0;padding-inline-start:18px;display:grid;gap:6px}
+.product-spec-list{margin:0;display:grid;gap:14px}
+.product-spec-list>div{display:grid;gap:2px}
+.product-spec-list dt{font-size:11px;color:#3d4137;font-weight:600}
+.product-spec-list dd{margin:0;font-variant-numeric:tabular-nums}
+.product-specifications-content{display:grid;gap:18px;padding-bottom:20px}
+.product-story{display:block;background:#f0f1ec;padding:36px 24px 30px;margin-bottom:60px;text-align:center}
+.product-story>h2{font-size:26px;font-weight:400;margin:0 0 24px;letter-spacing:-.3px}
+.product-story-items{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+.product-story-items figure{margin:0;flex:0 0 min(78vw,400px);scroll-snap-align:center;display:grid;gap:12px;align-content:start}
+.product-story-items img{width:100%;aspect-ratio:1;object-fit:cover;mix-blend-mode:multiply}
+.product-story-items figcaption{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#4a4e44}
+/* Two photos side by side with a divider, e.g. "Day 1" and "Day 1000" */
+.product-story-compare .product-story-items{overflow:visible;justify-content:center;gap:0;background:#e6e7e0;padding:40px 0}
+.product-story-compare .product-story-items figure{flex:1 1 0;max-width:420px;padding:0 18px}
+.product-story-compare .product-story-items figure+figure{border-inline-start:1px solid #4a4e44}
+.product-story-compare .product-story-items img{aspect-ratio:1;object-fit:contain}
+@media(max-width:767px){.product-headline{font-size:20px}.product-story{padding:28px 16px 24px}.product-story>h2{font-size:22px}.product-story-compare .product-story-items{padding:28px 0}.product-story-compare .product-story-items figure{padding:0 10px}}

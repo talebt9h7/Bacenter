@@ -52,3 +52,6 @@ CREATE TABLE IF NOT EXISTS public.admin_login_attempts (
   count integer NOT NULL DEFAULT 0,
   locked_until timestamp NOT NULL
 );
+
+-- 5. Structured bilingual product-page content (headline, highlights, specs, warranty…).
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS details jsonb NOT NULL DEFAULT '{}'::jsonb;

@@ -9,6 +9,10 @@ import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
 import { ProductCard } from './product-card';
 import { Modal, ModalHeading } from './modal';
+import { formatDimensions, formatWarranty, formatWeight, pick, pickList, type HighlightIcon } from '@/lib/product-details';
+import { BadgeCheck, Coins, CreditCard as CardIcon, Droplets, Feather, Gift, Hand, KeyRound, Laptop, Lock, Magnet, Nfc, RulerDimensionLine, Smartphone, Zap } from 'lucide-react';
+
+const HIGHLIGHT_ICON_COMPONENTS: Record<HighlightIcon, typeof CardIcon> = { cards: CardIcon, cash: Banknote, coins: Coins, rfid: Nfc, slim: Feather, size: RulerDimensionLine, leather: Layers, handmade: Hand, magnet: Magnet, lock: Lock, key: KeyRound, phone: Smartphone, laptop: Laptop, water: Droplets, weight: Feather, warranty: BadgeCheck, gift: Gift, quick: Zap };
 
 export function ProductDetail({ product, related, initialColor }: { product: Product; related: Product[]; initialColor?: string }) {
   const { language } = useLanguage();
@@ -27,6 +31,22 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
     const t = (label: string) => storeT(label, language);
   const images = color.images.length ? color.images : [PLACEHOLDER_IMAGE];
   const safeIndex = Math.min(imageIndex, images.length - 1);
+  // Product-page content from the admin editor, in the shopper's language (falls back to the other language).
+  const details = product.details;
+  const headline = pick(language, details.headline, details.headlineAr);
+  const features = pickList(language, details.features, details.featuresAr);
+  const dimensions = formatDimensions(details, language);
+  const weight = formatWeight(details, language);
+  const specRows = [
+    ...(dimensions ? [{ label: language === 'ar' ? 'الأبعاد الخارجية (الطول × العرض × السمك)' : 'External dimensions (L × W × D)', value: dimensions }] : []),
+    ...(weight ? [{ label: language === 'ar' ? 'الوزن' : 'Weight', value: weight }] : []),
+    ...(product.capacity ? [{ label: language === 'ar' ? 'السعة' : 'Capacity', value: product.capacity }] : []),
+    ...details.specs.map(row => ({ label: pick(language, row.label, row.labelAr), value: pick(language, row.value, row.valueAr) })),
+  ];
+  const warrantyPeriod = formatWarranty(details.warrantyMonths, language);
+  const warrantyText = pick(language, details.warranty, details.warrantyAr);
+  const materials = pick(language, details.materials, details.materialsAr);
+  const story = details.story;
   const categoryName = categories.find(item => item.id === product.category)?.name || 'Products';
   const soldOut = color.stock <= 0; const lowStock = color.stock > 0 && color.stock <= 5;
   const maxQuantity = Math.max(1, Math.min(10, color.stock));
@@ -130,55 +150,45 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
             <span>{language === 'ar' ? 'استفسر عبر الواتساب' : 'Ask via WhatsApp'}</span>
           </a>
         </div>
-        <section className="product-at-a-glance" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
-          <h2>{language === 'ar' ? 'نظرة سريعة' : 'At a glance'}</h2>
-          {product.features.length > 0 ? <ul>
-            {product.features.map((feature, index) => {
-              const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
-              return <li key={feature}>
-                <span className="at-a-glance-icon" aria-hidden="true"><FeatureIcon size={25} strokeWidth={1.4} /></span>
-                <span>{feature}</span>
-              </li>;
-            })}
-          </ul> : <p>{language === 'ar' ? 'أضف مميزات المنتج من لوحة الإدارة لعرضها هنا.' : 'Add product features in the admin panel to show them here.'}</p>}
-        </section>
+        {/* Where the order ships from and how fast (store-wide, not per product). */}
         <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
+        {(headline || details.highlights.length > 0) && <section className="product-overview" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
+          {headline && <h2 className="product-headline">{headline}</h2>}
+          {details.highlights.length > 0 && <ul className="product-highlights">
+            {details.highlights.map((item, index) => { const Icon = HIGHLIGHT_ICON_COMPONENTS[item.icon]; return <li key={index}><Icon size={26} strokeWidth={1.3} aria-hidden="true" /><span>{pick(language, item.text, item.textAr)}</span></li>; })}
+          </ul>}
+        </section>}
 
-        <details className="product-accordion product-features-accordion" open>
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 [&::-webkit-details-marker]:hidden">
-            <span className="text-xl font-medium text-neutral-700">{language === 'ar' ? 'المميزات' : 'Features'}</span>
-            <ChevronRight size={20} className="shrink-0 transition-transform duration-200 open:rotate-90 group-open:rotate-90 rtl:rotate-180" aria-hidden="true" />
-          </summary>
-          <div className="py-4 md:py-6">
-            <ul className="list-disc space-y-2 pl-6 text-base leading-7 text-neutral-700 sm:columns-2 sm:gap-x-8 sm:space-y-2">
-              {product.features.map(feature => <li key={feature} className="break-inside-avoid pr-2">{feature}</li>)}
-            </ul>
-            {product.features.length === 0 && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لا توجد مميزات مضافة لهذا المنتج حالياً.' : 'No features have been added for this product yet.'}</p>}
-          </div>
-        </details>
-        <details className="product-accordion product-specifications-accordion">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 [&::-webkit-details-marker]:hidden">
-            <span className="text-xl font-medium text-neutral-700">{language === 'ar' ? 'المواصفات' : 'Specifications'}</span>
-            <ChevronRight size={20} className="shrink-0 transition-transform duration-200 group-open:rotate-90 rtl:rotate-180" aria-hidden="true" />
-          </summary>
+        {features.length > 0 && <details className="product-accordion product-features-accordion" open>
+          <summary>{language === 'ar' ? 'المميزات' : 'Features'}</summary>
+          <div><ul className="product-feature-list">{features.map((feature, index) => <li key={index}>{feature}</li>)}</ul></div>
+        </details>}
+        {specRows.length > 0 && <details className="product-accordion product-specifications-accordion">
+          <summary>{language === 'ar' ? 'المواصفات' : 'Specifications'}</summary>
           <div className="product-specifications-content">
-            {product.dimensions && <div className="product-dimensions-block">
-              <h3>{language === 'ar' ? 'الأبعاد الخارجية' : 'External Dimensions'}</h3>
-              <p className="product-dimensions-value">{product.dimensions}</p>
-              {product.dimensionsImage && <img className="product-dimensions-image" src={mediaSrc(product.dimensionsImage, 1280)} alt={language === 'ar' ? 'رسم يوضح أبعاد المنتج' : 'Product dimensions diagram'} loading="lazy" />}
-            </div>}
-            {product.capacity && <div className="product-specification-item"><h3>{language === 'ar' ? 'السعة' : 'Capacity'}</h3><p>{product.capacity}</p></div>}
-            {(product.specifications ?? []).map((spec, index) => { const separator = spec.indexOf(':'); const label = separator >= 0 ? spec.slice(0, separator).trim() : (language === 'ar' ? 'تفاصيل' : 'Detail'); const value = separator >= 0 ? spec.slice(separator + 1).trim() : spec; return <div className="product-specification-item" key={index}><h3>{label}</h3><p>{value}</p></div>; })}
-            {!product.dimensions && !product.capacity && !(product.specifications ?? []).length && <p className="text-sm text-neutral-500">{language === 'ar' ? 'لم تُضف مواصفات لهذا المنتج بعد.' : 'No specifications have been added for this product yet.'}</p>}
+            <dl className="product-spec-list">{specRows.map((row, index) => <div key={index}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl>
+            {details.dimensionsImage && <img className="product-dimensions-image" src={mediaSrc(details.dimensionsImage, 1280)} alt={language === 'ar' ? 'رسم يوضح أبعاد المنتج' : 'Product dimensions diagram'} loading="lazy" />}
           </div>
-        </details>
-        <details className="product-accordion"><summary>{language === 'ar' ? 'المواد والمكونات' : 'Materials & composition'}</summary><div className="py-4"><p>{product.materials || (language === 'ar' ? 'لم تُضف تفاصيل المواد لهذا المنتج بعد.' : 'No materials information has been added yet.')}</p><Link href="/info/our-materials">{t('A closer look at our materials')}</Link></div></details>
+        </details>}
+        {(warrantyPeriod || warrantyText) && <details className="product-accordion">
+          <summary>{warrantyPeriod ? (language === 'ar' ? `ضمان ${warrantyPeriod}` : `${warrantyPeriod} warranty`) : (language === 'ar' ? 'الضمان' : 'Warranty')}</summary>
+          <div>{warrantyText && <p>{warrantyText}</p>}<Link href="/info/warranty">{language === 'ar' ? 'اقرأ سياسة الضمان' : 'Read our warranty policy'}</Link></div>
+        </details>}
+        {materials && <details className="product-accordion">
+          <summary>{language === 'ar' ? 'المواد والمكونات' : 'Materials & composition'}</summary>
+          <div><p>{materials}</p><Link href="/info/our-materials">{t('A closer look at our materials')}</Link></div>
+        </details>}
         <details className="product-accordion"><summary>{t('Shipping & returns')}</summary><div>{language === 'ar' ? <>نوصل إلى جميع محافظات العراق مع الدفع عند الاستلام. يصل الطلب إلى بغداد عادة خلال 1–2 يوم عمل، وإلى باقي المحافظات خلال 2–5 أيام. الطلبات فوق {moneyIqd(freeShippingUsd * region.rate)} تحصل على توصيل مجاني. <Link href="/info/shipping">{t('Find out more.')}</Link></> : <>We deliver to all 18 governorates of Iraq with cash on delivery. Baghdad usually arrives in 1–2 business days, other governorates in 2–5. Orders over {moneyIqd(freeShippingUsd * region.rate)} ship free. <Link href="/info/shipping">{t('Find out more.')}</Link></>}</div></details>
-        <details className="product-accordion"><summary>{language === 'ar' ? 'الضمان' : 'Warranty'}</summary><div className="py-4"><ShieldCheck size={21} style={{ marginBottom: 8 }} /><p>{product.warranty || (language === 'ar' ? 'تفاصيل الضمان غير مضافة لهذا المنتج.' : 'Warranty details have not been added for this product yet.')}</p><Link href="/info/warranty">{language === 'ar' ? 'اقرأ سياسة الضمان' : 'Read our warranty policy'}</Link></div></details>
       </div>
     </div>
 
-    <section className="product-story" aria-label={language === 'ar' ? 'صور المنتج أثناء الاستخدام' : 'See it out and about'}><div><span className="eyebrow">{language === 'ar' ? 'تفاصيل من الحياة اليومية' : 'See it out and about'}</span><h2>{language === 'ar' ? 'مصمم ليرافقك كل يوم' : 'Made to go with you'}</h2></div><div className="flex w-full gap-4 overflow-x-auto snap-x snap-mandatory pb-2">{(product.storyImages?.length ? product.storyImages : [hoverImage(color)]).map((image, index) => <div key={image + index} className="relative aspect-square w-[78vw] max-w-[400px] shrink-0 snap-center overflow-hidden bg-neutral-100 sm:w-[42vw]"><img src={mediaSrc(image, 960)} alt={`${displayName} lifestyle photo ${index + 1}`} loading="lazy" className="h-full w-full object-cover" /></div>)}</div><h3 className="text-xs uppercase tracking-[0.2em] text-neutral-500">{language === 'ar' ? 'انضم إلى المجتمع' : 'Join the community'}</h3><div className="flex flex-wrap gap-5 text-sm"><a className="text-orange-700 underline underline-offset-4" href="https://www.instagram.com/" target="_blank" rel="noreferrer">Instagram →</a><a className="text-orange-700 underline underline-offset-4" href="https://www.tiktok.com/" target="_blank" rel="noreferrer">TikTok →</a><a className="text-orange-700 underline underline-offset-4" href="https://www.facebook.com/" target="_blank" rel="noreferrer">Facebook →</a></div></section>{related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
+    {story.length > 0 && <section className={`product-story ${story.length === 2 ? 'product-story-compare' : ''}`} aria-label={language === 'ar' ? 'المنتج أثناء الاستخدام' : 'See it out and about'}>
+      <h2>{language === 'ar' ? 'شوفه بالاستخدام اليومي' : 'See it out and about'}</h2>
+      <div className="product-story-items">{story.map((item, index) => <figure key={item.image + index}>
+        {pick(language, item.caption, item.captionAr) && <figcaption>{pick(language, item.caption, item.captionAr)}</figcaption>}
+        <img src={mediaSrc(item.image, 960)} alt={`${displayName} — ${pick(language, item.caption, item.captionAr) || (language === 'ar' ? `صورة ${index + 1}` : `photo ${index + 1}`)}`} loading="lazy" />
+      </figure>)}</div>
+    </section>}{related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
     {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={mediaSrc(images[safeIndex], 1600)} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
     {product.colors.length > 0 && <link rel="prefetch" href={mediaSrc(primaryImage(color), 1280)} />}
   </main>;

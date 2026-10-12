@@ -6,11 +6,12 @@ import { products, productVariants } from '@/db/schema';
 import { bagCategories } from './catalog';
 import type { Product, ProductColor } from './types';
 import { CATALOG_TAG } from './cache-tags';
+import { detailsFromRow } from './product-details';
 
 type ProductRow = typeof products.$inferSelect; type VariantRow = typeof productVariants.$inferSelect;
 function toColor(row: VariantRow): ProductColor { return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, hex: row.hex, stock: row.stock, images: row.images ?? [], primaryIndex: Math.min(row.primaryIndex, Math.max((row.images?.length ?? 1) - 1, 0)) }; }
 function toProduct(row: ProductRow, variants: VariantRow[]): Product {
-  return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, subtitle: row.subtitle, subtitleAr: row.subtitleAr || row.subtitle, description: row.description, descriptionAr: row.descriptionAr || row.description, price: row.priceCents / 100, salePriceIqd: row.salePriceIqd || Math.round((row.priceCents / 100) * 1320), category: row.category, capacity: row.capacity, badge: row.badge, features: row.features ?? [], specifications: row.specifications ?? [], warranty: row.warranty ?? '', materials: row.materials ?? '', storyImages: row.storyImages ?? [], dimensions: row.dimensions, dimensionsImage: row.dimensionsImage ?? '', tags: row.tags ?? [], published: row.published, colors: variants.map(toColor) };
+  return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, subtitle: row.subtitle, subtitleAr: row.subtitleAr || row.subtitle, description: row.description, descriptionAr: row.descriptionAr || row.description, price: row.priceCents / 100, salePriceIqd: row.salePriceIqd || Math.round((row.priceCents / 100) * 1320), category: row.category, capacity: row.capacity, badge: row.badge, features: row.features ?? [], specifications: row.specifications ?? [], warranty: row.warranty ?? '', materials: row.materials ?? '', storyImages: row.storyImages ?? [], dimensions: row.dimensions, dimensionsImage: row.dimensionsImage ?? '', tags: row.tags ?? [], published: row.published, colors: variants.map(toColor), details: detailsFromRow(row) };
 }
 async function attachVariants(rows: ProductRow[]) {
   if (!rows.length) return [];

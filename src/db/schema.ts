@@ -36,6 +36,8 @@ export const products = pgTable('products', {
   storyImages: jsonb('story_images').$type<string[]>().notNull().default([]),
   dimensions: text('dimensions').notNull().default(''),
   dimensionsImage: text('dimensions_image').notNull().default(''),
+  // Structured bilingual product-page content; see src/lib/product-details.ts.
+  details: jsonb('details').notNull().default({}),
   tags: jsonb('tags').$type<string[]>().notNull().default([]),
   published: boolean('published').notNull().default(true),
   sortOrder: integer('sort_order').notNull().default(0),
