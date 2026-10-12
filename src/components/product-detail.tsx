@@ -75,18 +75,6 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         </div>
 
         {displayDescription && <p className="product-description">{displayDescription}</p>}
-        <section className="product-at-a-glance" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
-          <h2>{language === 'ar' ? 'نظرة سريعة' : 'At a glance'}</h2>
-          {product.features.length > 0 ? <ul>
-            {product.features.map((feature, index) => {
-              const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
-              return <li key={feature}>
-                <span className="at-a-glance-icon" aria-hidden="true"><FeatureIcon size={25} strokeWidth={1.4} /></span>
-                <span>{feature}</span>
-              </li>;
-            })}
-          </ul> : <p>{language === 'ar' ? 'أضف مميزات المنتج من لوحة الإدارة لعرضها هنا.' : 'Add product features in the admin panel to show them here.'}</p>}
-        </section>
         <div className="buy-actions">
           <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>ADD TO CART</>}</button>
           <a
@@ -101,6 +89,18 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
             <span>{language === 'ar' ? 'استفسر عبر الواتساب' : 'Ask via WhatsApp'}</span>
           </a>
         </div>
+        <section className="product-at-a-glance" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
+          <h2>{language === 'ar' ? 'نظرة سريعة' : 'At a glance'}</h2>
+          {product.features.length > 0 ? <ul>
+            {product.features.map((feature, index) => {
+              const FeatureIcon = [CreditCard, Banknote, ShieldCheck, Layers, LockKeyhole][index % 5];
+              return <li key={feature}>
+                <span className="at-a-glance-icon" aria-hidden="true"><FeatureIcon size={25} strokeWidth={1.4} /></span>
+                <span>{feature}</span>
+              </li>;
+            })}
+          </ul> : <p>{language === 'ar' ? 'أضف مميزات المنتج من لوحة الإدارة لعرضها هنا.' : 'Add product features in the admin panel to show them here.'}</p>}
+        </section>
         <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
 
         <details className="product-accordion product-features-accordion" open>
