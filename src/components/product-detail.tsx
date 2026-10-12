@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, RotateCcw, ShieldCheck, Truck, ZoomIn } from 'lucide-react';
 import { categories } from '@/lib/catalog';
 import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
@@ -13,7 +13,9 @@ import { Modal, ModalHeading } from './modal';
 export function ProductDetail({ product, related, initialColor }: { product: Product; related: Product[]; initialColor?: string }) {
   const { language } = useLanguage();
   const displayColorName = (item: ProductColor) => language === 'ar' ? (item.nameAr || item.name) : item.name;
-  const startColor = product.colors.find(item => displayColorName(item).toLowerCase() === initialColor?.toLowerCase()) || product.colors.find(item => item.stock > 0) || product.colors[0];
+  // ?color= may hold the English or the Arabic colour name (links are built in either language).
+  const wanted = initialColor?.trim().toLowerCase();
+  const startColor = product.colors.find(item => wanted && (item.name.toLowerCase() === wanted || (item.nameAr || '').toLowerCase() === wanted)) || product.colors.find(item => item.stock > 0) || product.colors[0];
   const [color, setColor] = useState<ProductColor>(startColor);
   const [quantity, setQuantity] = useState(1);
   const [imageIndex, setImageIndex] = useState(startColor.primaryIndex);
@@ -28,22 +30,61 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
   const categoryName = categories.find(item => item.id === product.category)?.name || 'Products';
   const soldOut = color.stock <= 0; const lowStock = color.stock > 0 && color.stock <= 5;
   const maxQuantity = Math.max(1, Math.min(10, color.stock));
-  // Each color owns its own main image. Switching color jumps to that color's selected main photo.
-  function chooseColor(item: ProductColor) {
-    setColor(item);
-    setImageIndex(item.primaryIndex);
-    setQuantity(current => Math.min(current, Math.max(1, Math.min(10, item.stock))));
-    const url = new URL(window.location.href); url.searchParams.set('color', displayColorName(item)); window.history.replaceState(null, '', url);
+  // The gallery position is shared by all colours: on photo 3 of one colour, switching colour
+  // shows photo 3 of the other (or its last photo if it has fewer). The URL keeps the colour
+  // and the photo as ?color=…#slide-N (zero-based), so a shared link opens on the same view.
+  function syncUrl(nextColor: ProductColor, index: number) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('color', nextColor.name);
+    url.hash = `slide-${index}`;
+    window.history.replaceState(window.history.state, '', url);
   }
+  function showImage(index: number, count = images.length) {
+    const next = (index + count) % count;
+    setImageIndex(next);
+    syncUrl(color, next);
+  }
+  function chooseColor(item: ProductColor) {
+    const next = Math.min(safeIndex, Math.max(item.images.length - 1, 0));
+    setColor(item);
+    setImageIndex(next);
+    setQuantity(current => Math.min(current, Math.max(1, Math.min(10, item.stock))));
+    syncUrl(item, next);
+  }
+  // Open on the photo named in the link (#slide-N). Read after mount because the server never sees the hash.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const match = window.location.hash.match(/^#slide-(\d+)$/);
+      if (match) setImageIndex(Math.min(Number(match[1]), Math.max(startColor.images.length - 1, 0)));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [startColor]);
+  // Swipe between photos on touch screens.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  function onTouchStart(event: React.TouchEvent) { const t0 = event.touches[0]; touchStart.current = { x: t0.clientX, y: t0.clientY }; }
+  function onTouchEnd(event: React.TouchEvent) {
+    const start = touchStart.current; touchStart.current = null;
+    if (!start || images.length < 2) return;
+    const t1 = event.changedTouches[0]; const dx = t1.clientX - start.x; const dy = t1.clientY - start.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) showImage(safeIndex + (dx < 0 ? 1 : -1));
+  }
+  // Same-position photo of every other colour, fetched ahead so switching colour is instant.
+  const neighbourImages = product.colors.filter(item => item.id !== color.id && item.images.length).map(item => item.images[Math.min(safeIndex, item.images.length - 1)]);
   return <main className="product-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <div className="product-detail-layout">
       <div className="product-gallery">
-        <div className="product-main-image">
+        <div className="product-main-image" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
           <img key={`${color.id}-${safeIndex}`} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
+          {images.length > 1 && <>
+            <button type="button" className="gallery-arrow gallery-arrow-left" onClick={() => showImage(safeIndex - 1)} aria-label={language === 'ar' ? 'الصورة السابقة' : 'Previous photo'}><ChevronLeft size={20} /></button>
+            <button type="button" className="gallery-arrow gallery-arrow-right" onClick={() => showImage(safeIndex + 1)} aria-label={language === 'ar' ? 'الصورة التالية' : 'Next photo'}><ChevronRight size={20} /></button>
+            <span className="gallery-counter" aria-live="polite">{safeIndex + 1} / {images.length}</span>
+          </>}
         </div>
+        {neighbourImages.map(image => <link key={image} rel="prefetch" as="image" href={mediaSrc(image, 1280)} />)}
         <div className="product-thumbnails" aria-label={`${displayColorName(color)} photos`}>
-          {images.map((image, index) => <button key={`${color.id}-${image}-${index}`} className={safeIndex === index ? 'selected' : ''} onClick={() => setImageIndex(index)} aria-label={`${t('Show photo')} ${index + 1}`} aria-pressed={safeIndex === index}><img src={mediaSrc(image, 160)} alt={`${displayColorName(color)} photo ${index + 1}`} /></button>)}
+          {images.map((image, index) => <button key={`${color.id}-${image}-${index}`} className={safeIndex === index ? 'selected' : ''} onClick={() => showImage(index)} aria-label={`${t('Show photo')} ${index + 1}`} aria-pressed={safeIndex === index}><img src={mediaSrc(image, 160)} alt={`${displayColorName(color)} photo ${index + 1}`} /></button>)}
         </div>
       </div>
 
