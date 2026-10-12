@@ -145,3 +145,16 @@ html[lang="ar"] body,
 html[lang="ar"] body * {
   font-family: "Noto Sans Arabic", sans-serif !important;
 }
+
+
+/* Product-card color swatches: increase the controls by 1.5x. */
+.product-swatches > button {
+  width: 19.5px !important;
+  height: 19.5px !important;
+}
+@media (max-width: 767px) {
+  .product-swatches > button {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
