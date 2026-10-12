@@ -128,10 +128,10 @@ html[dir="rtl"] input,html[dir="rtl"] textarea,html[dir="rtl"] select{text-align
 .buy-actions .product-add-to-cart{width:100%;min-height:48px;height:48px;border-radius:3px;background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 5px 10px rgba(0,0,0,.16);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
 .buy-actions .product-add-to-cart:hover{background:var(--orange-hover);border-color:var(--orange-hover);transform:translateY(-1px);box-shadow:0 6px 12px rgba(0,0,0,.18);}
 .buy-actions .product-add-to-cart:active{transform:translateY(0);box-shadow:0 3px 7px rgba(0,0,0,.14);}
-.buy-actions .whatsapp-inquiry-button{width:100%;min-height:48px;height:48px;border-radius:3px;border:1px solid #25D366;background:#25D366;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.10);font-size:11px;font-weight:600;letter-spacing:.1px;text-transform:none;gap:8px;}
-.buy-actions .whatsapp-inquiry-button:hover{background:#20bd5a;border-color:#20bd5a;box-shadow:0 4px 9px rgba(0,0,0,.13);}
+.buy-actions .whatsapp-inquiry-button{width:100%;min-height:48px;height:48px;border-radius:3px;border:1px solid var(--orange);background:var(--orange);color:#fff;box-shadow:0 5px 10px rgba(0,0,0,.16);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;gap:8px;}
+.buy-actions .whatsapp-inquiry-button:hover{background:var(--orange-hover);border-color:var(--orange-hover);transform:translateY(-1px);box-shadow:0 6px 12px rgba(0,0,0,.18);}
 .buy-actions .whatsapp-brand-icon{width:18px;height:18px;flex:0 0 18px;color:#fff;}
-@media(max-width:767px){.buy-actions{gap:9px;margin-top:14px}.buy-actions .product-add-to-cart,.buy-actions .whatsapp-inquiry-button{height:48px;min-height:48px}.buy-actions .product-add-to-cart{font-size:11px;letter-spacing:1.8px}}
+@media(max-width:767px){.buy-actions{gap:9px;margin-top:14px}.buy-actions .product-add-to-cart,.buy-actions .whatsapp-inquiry-button{height:48px;min-height:48px}.buy-actions .product-add-to-cart,.buy-actions .whatsapp-inquiry-button{font-size:11px;letter-spacing:1.8px}}
 
 /* UR readability pass: storefront text is intentionally larger and easier to read. */
 body{font-size:16px}
