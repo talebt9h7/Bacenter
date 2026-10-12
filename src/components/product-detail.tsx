@@ -76,7 +76,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
 
         {displayDescription && <p className="product-description">{displayDescription}</p>}
         <div className="buy-actions">
-          <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>ADD TO CART</>}</button>
+          <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
           <a
             className="button whatsapp-inquiry-button"
             href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أريد الاستفسار عن ${displayName} - لون ${displayColorName(color)}` : `Hello, I would like to ask about ${displayName} - ${displayColorName(color)}.`)}`}
