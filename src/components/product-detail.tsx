@@ -117,7 +117,6 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         {product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
 
         <div className="material-label">{language === 'ar' ? 'المادة واللون' : 'Material & color'}</div>
-        <div className="color-label"><span>{displayColorName(color)}</span>{soldOut ? <em className="stock-note sold-out">{t('Sold out')}</em> : lowStock ? <em className="stock-note low">{t('Only')} {color.stock} {language === 'ar' ? 'متبقي' : 'left'}</em> : <em className="stock-note">{t('In stock')}</em>}</div>
         <div className="detail-swatches" aria-label={t('Choose a color')}>
           {product.colors.map(item => <div className="detail-swatch-wrap" key={item.id}>
             <button
@@ -135,7 +134,6 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
           </div>)}
         </div>
 
-        {displayDescription && <p className="product-description">{displayDescription}</p>}
         <div className="buy-actions">
           <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
           <a
@@ -150,6 +148,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
             <span>{language === 'ar' ? 'استفسر عبر الواتساب' : 'Ask via WhatsApp'}</span>
           </a>
         </div>
+        {displayDescription && <p className="product-description">{displayDescription}</p>}
         {/* Where the order ships from and how fast (store-wide, not per product). */}
         <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
         {(headline || details.highlights.length > 0) && <section className="product-overview" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
