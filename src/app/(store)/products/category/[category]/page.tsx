@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category } = await params;
   const [categories, settings] = await Promise.all([getCategories(), getSettings()]);
   const managed = categories.find(c => c.id === category);
-  const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore Bellroy';
+  const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore the collection';
   const description = descriptions[category];
   const base = settings.canonicalBaseUrl?.replace(/\/$/, '');
   const url = base ? `${base}/products/category/${encodeURIComponent(category)}` : undefined;
@@ -35,6 +35,6 @@ export default async function CategoryPage({ params }: Props) {
   if (!descriptions[category]) notFound();
   const categoryBanner = (await getActiveBanners('category', category))[0];
   const managed = categories.find(c => c.id === category);
-  const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore Bellroy';
+  const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore the collection';
   return <CatalogView products={await getProductsFor(category)} category={category} title={title} titleAr={category === 'bags' ? 'الحقائب والأمتعة' : category === 'all' ? 'اختيارات مدروسة لكل تنقلاتك' : (managed?.nameAr || title)} description={descriptions[category]} descriptionAr={managed?.descriptionAr || descriptions[category]} categoryBanner={categoryBanner ? { title: categoryBanner.title, subtitle: categoryBanner.subtitle, image: categoryBanner.image, mobileImage: categoryBanner.mobileImage, ctaLabel: categoryBanner.ctaLabel, href: categoryBanner.href, badge: categoryBanner.badge } : null} />;
 }

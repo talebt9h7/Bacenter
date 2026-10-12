@@ -41,7 +41,9 @@ function EditOrderModal({ order, catalog, onClose }: { order: OrderRow; catalog:
 export function OrdersTable({ rows, catalog }: { rows: OrderRow[]; catalog: CatalogRow[] }) {
   const { language } = useLanguage(); const tr = (label: keyof typeof import('@/lib/i18n').orderTranslations) => orderT(label, language);
   const [localRows, setLocalRows] = useState(rows);
-  useEffect(() => setLocalRows(rows), [rows]);
+  // Reset to fresh server rows after a refresh (adjusting state during render, not in an effect).
+  const [sourceRows, setSourceRows] = useState(rows);
+  if (sourceRows !== rows) { setSourceRows(rows); setLocalRows(rows); }
   const [manualOpen, setManualOpen] = useState(false), [editOrder, setEditOrder] = useState<OrderRow | null>(null);
   useEffect(() => { const handler=(event:Event)=>{ const order=(event as CustomEvent<OrderRow>).detail; if(order?.id) setLocalRows(current=>current.map(item=>item.id===order.id?order:item)); }; window.addEventListener('admin-order-updated',handler); return ()=>window.removeEventListener('admin-order-updated',handler); }, []);
   const [query, setQuery] = useState(''), [status, setStatus] = useState('all'), [busyId, setBusyId] = useState<number | null>(null);

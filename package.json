@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "ba-center-store",
   "private": true,
   "scripts": {
     "dev": "next dev",

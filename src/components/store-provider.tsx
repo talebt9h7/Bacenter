@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLocalStorageValue, writeLocalStorage } from '@/lib/use-local-storage';
 import type { CartLine } from '@/lib/types';
 import type { NavigationGroup, FooterConfig } from '@/lib/settings';
 import { roundIqd } from '@/lib/iraq';
@@ -20,27 +21,26 @@ type Store = {
   money: (price: number) => string; moneyIqd: (priceIqd: number) => string; notify: (message: string, error?: boolean) => void; settings: PublicSettings; freeShippingUsd: number;
 };
 const Context = createContext<Store | null>(null);
+const REGION_KEY = 'bellroy-region';
 export function StoreProvider({ children, settings }: { children: ReactNode; settings: PublicSettings }) {
-  const regions = baseRegions.map(region => region.currency === 'IQD' ? { ...region, rate: settings.exchangeRate } : region);
+  const regions = useMemo(() => baseRegions.map(region => region.currency === 'IQD' ? { ...region, rate: settings.exchangeRate } : region), [settings.exchangeRate]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [regionName, setRegionName] = useState(regions[0].name);
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
+  // Storage key kept from the original template so returning visitors keep their region.
+  const regionName = useLocalStorageValue(REGION_KEY);
   const region = regions.find(item => item.name === regionName) ?? regions[0];
   const notify = useCallback((message: string, error = false) => setToast({ message, error }), []);
-  const refreshCart = useCallback(async () => {
-    try { const response = await fetch('/api/cart'); if (response.ok) { const data = await response.json(); setCart(data.items); } }
-    catch { /* A connection error is shown on the next cart action. */ }
-    finally { setLoaded(true); }
-  }, []);
-  useEffect(() => {
-    void refreshCart();
-    try { const saved = localStorage.getItem('bellroy-region'); if (saved && baseRegions.some(r => r.name === saved)) setRegionName(saved); } catch {}
-  }, [refreshCart]);
+  const refreshCart = useCallback(() => fetch('/api/cart')
+    .then(response => response.ok ? response.json() : null)
+    .then(data => { if (data) setCart(data.items); })
+    .catch(() => { /* A connection error is shown on the next cart action. */ })
+    .finally(() => setLoaded(true)), []);
+  useEffect(() => { void refreshCart(); }, [refreshCart]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(null), 4500); return () => clearTimeout(timer); }, [toast]);
-  function setRegion(next: Region) { setRegionName(next.name); try { localStorage.setItem('bellroy-region', next.name); } catch {} }
+  function setRegion(next: Region) { writeLocalStorage(REGION_KEY, next.name); }
   async function addToCart(variantId: number, quantity = 1) {
     if (busy) return false;
     setBusy(true);

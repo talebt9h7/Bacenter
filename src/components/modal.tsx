@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 export function Modal({ children, onClose, title, className = '' }: { children: ReactNode; onClose: () => void; title: string; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
-  close.current = onClose;
+  useEffect(() => { close.current = onClose; });
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     const previous = document.activeElement as HTMLElement | null;

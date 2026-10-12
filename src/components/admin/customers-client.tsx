@@ -40,6 +40,8 @@ export function CustomersClient({ rows, zones, initialQuery, initialSegment }: P
   const t = T[language];
   const [q, setQ] = useState(initialQuery);
   const [segment, setSegment] = useState(initialSegment || 'all');
+  // Captured once per mount: "inactive" is relative to when the page was opened.
+  const [now] = useState(() => Date.now());
   const segmentOptions = useMemo(() => [
     ['all',t.all],['wallets',t.boughtWallets],['bags',t.boughtBags],['accessories',t.boughtAccessories],['repeat',t.repeat],['inactive',t.inactive]
   ] as const, [t]);
@@ -51,7 +53,7 @@ export function CustomersClient({ rows, zones, initialQuery, initialSegment }: P
     const query = q.trim().toLowerCase();
     const matchQ = !query || `${row.name} ${row.phone} ${row.email ?? ''}`.toLowerCase().includes(query);
     const cats = row.categories;
-    const matchSegment = segment==='wallets' ? cats.includes('wallets') : segment==='bags' ? cats.some(c=>['backpacks','crossbody-bags','tote-bags','work-bags','luggage'].includes(c)) : segment==='accessories' ? cats.includes('accessories') : segment==='repeat' ? row.ordersCount>=2 : segment==='inactive' ? (row.lastOrderAt ? Date.now()-new Date(row.lastOrderAt).getTime() >= 90*24*60*60*1000 : false) : true;
+    const matchSegment = segment==='wallets' ? cats.includes('wallets') : segment==='bags' ? cats.some(c=>['backpacks','crossbody-bags','tote-bags','work-bags','luggage'].includes(c)) : segment==='accessories' ? cats.includes('accessories') : segment==='repeat' ? row.ordersCount>=2 : segment==='inactive' ? (row.lastOrderAt ? now-new Date(row.lastOrderAt).getTime() >= 90*24*60*60*1000 : false) : true;
     return matchQ && matchSegment;
   });
   const counts = {

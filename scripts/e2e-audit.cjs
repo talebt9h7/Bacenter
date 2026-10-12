@@ -1,0 +1,236 @@
+/*
+ * End-to-end checks for stock, money and permissions. Creates data, so run it ONLY
+ * against a local or throwaway database, never production:
+ *
+ *   TEST_BASE_URL=http://localhost:3001 DATABASE_URL=postgresql://...local... \
+ *   ADMIN_PASSWORD=... node scripts/e2e-audit.cjs
+ */
+const assert = require('node:assert/strict');
+const { Client } = require('pg');
+
+const base = process.env.TEST_BASE_URL || 'http://localhost:3000';
+const dbUrl = process.env.DATABASE_URL || '';
+if (/supabase|amazonaws|neon\.tech/.test(dbUrl)) throw new Error('Refusing to run against a hosted database.');
+const ownerPassword = process.env.ADMIN_PASSWORD;
+if (!ownerPassword) throw new Error('Set ADMIN_PASSWORD to the owner password of the test server.');
+
+const db = new Client({ connectionString: dbUrl });
+const results = [];
+async function check(name, fn) {
+  try { await fn(); results.push(['PASS', name]); console.log('PASS', name); }
+  catch (error) { results.push(['FAIL', name, error.message]); console.log('FAIL', name, '\n   ', error.message); }
+}
+const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
+const json = r => r.json().catch(() => ({}));
+
+async function session(cookie = '') {
+  const jar = { cookie };
+  async function call(path, { method = 'GET', body, form } = {}) {
+    const headers = { cookie: jar.cookie };
+    if (body !== undefined) headers['content-type'] = 'application/json';
+    const response = await fetch(base + path, { method, headers, body: form ?? (body === undefined ? undefined : JSON.stringify(body)), redirect: 'manual' });
+    const set = response.headers.getSetCookie?.() ?? [];
+    for (const c of set) { const pair = c.split(';')[0]; const [k] = pair.split('='); jar.cookie = [...jar.cookie.split('; ').filter(x => x && !x.startsWith(`${k}=`)), pair].join('; '); }
+    return response;
+  }
+  return { call, jar };
+}
+async function owner() { const s = await session(); const r = await s.call('/api/admin/login', { method: 'POST', body: { password: ownerPassword } }); assert.equal(r.status, 200, 'owner login'); return s; }
+const stockOf = async variantId => (await one('select stock from product_variants where id=$1', [variantId])).stock;
+const batchSum = async variantId => Number((await one('select coalesce(sum(quantity_remaining),0) s from inventory_batches where variant_id=$1', [variantId])).s);
+const address = { name: 'Test Buyer', phone: '07701234567', governorate: 'baghdad', city: 'Karrada', address: 'Street 12, house 4' };
+
+async function shopperOrder(variantId, quantity, extra = {}) {
+  const s = await session();
+  const add = await s.call('/api/cart', { method: 'POST', body: { variantId, quantity } });
+  assert.ok(add.ok, `add to cart ${add.status} ${JSON.stringify(await json(add.clone()))}`);
+  const r = await s.call('/api/orders', { method: 'POST', body: { ...address, ...extra } });
+  return { status: r.status, data: await json(r) };
+}
+
+(async () => {
+  await db.connect();
+  const admin = await owner();
+  const variant = await one(`select v.id, v.product_id from product_variants v join products p on p.id=v.product_id where p.published and v.stock >= 10 order by v.id limit 1`);
+  assert.ok(variant, 'needs a published product with stock >= 10 (run the seed first)');
+
+  await check('Product page reflects a sale immediately (cache invalidated on order)', async () => {
+    const before = await stockOf(variant.id);
+    const pageBefore = await (await fetch(`${base}/products/${variant.product_id}`)).text();
+    const shows = (html, n) => new RegExp(`stock\\\\?":${n}[,}]`).test(html);
+    assert.ok(shows(pageBefore, before), 'page shows current stock');
+    const order = await shopperOrder(variant.id, 1);
+    assert.equal(order.status, 201, JSON.stringify(order.data));
+    const pageAfter = await (await fetch(`${base}/products/${variant.product_id}`)).text();
+    assert.ok(shows(pageAfter, before - 1), 'page shows stock after sale');
+  });
+
+  await check('Invalid coupon rolls back the whole checkout (stock not lost)', async () => {
+    await admin.call('/api/admin/coupons', { method: 'POST', body: { code: 'BIGMIN', type: 'percent', value: 10, minSubtotal: 999999999, active: true } });
+    const stock = await stockOf(variant.id), batches = await batchSum(variant.id);
+    const order = await shopperOrder(variant.id, 2, { coupon: 'BIGMIN' });
+    assert.equal(order.status, 409, JSON.stringify(order.data));
+    assert.equal(await stockOf(variant.id), stock, 'stock unchanged');
+    assert.equal(await batchSum(variant.id), batches, 'batches unchanged');
+  });
+
+  await check('Single-use coupon cannot be used twice by simultaneous checkouts', async () => {
+    await admin.call('/api/admin/coupons', { method: 'POST', body: { code: 'ONCE10', type: 'percent', value: 10, maxUses: 1, active: true } });
+    const stock = await stockOf(variant.id);
+    const [a, b] = await Promise.all([shopperOrder(variant.id, 1, { coupon: 'ONCE10' }), shopperOrder(variant.id, 1, { coupon: 'ONCE10' })]);
+    const ok = [a, b].filter(x => x.status === 201).length;
+    assert.equal(ok, 1, `exactly one order should succeed, got ${a.status}/${b.status}`);
+    assert.equal((await one(`select used_count from coupons where code='ONCE10'`)).used_count, 1);
+    assert.equal(await stockOf(variant.id), stock - 1, 'only the successful order took stock');
+  });
+
+  await check('Stock added without a purchase batch can still be sold', async () => {
+    // Bring the variant down to a few batched units, then add unbatched ones (a cart line is capped at 10).
+    await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, set: 4, reason: 'Count correction' } });
+    const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 3, reason: 'Found in storage' } });
+    assert.ok(r.ok, `adjust ${r.status}`);
+    assert.equal(await batchSum(variant.id), 4, 'manual increase adds no batch');
+    const stock = await stockOf(variant.id);
+    // Sell everything: batches run out and the last units are unbatched.
+    const order = await shopperOrder(variant.id, stock);
+    assert.equal(order.status, 201, JSON.stringify(order.data));
+    assert.equal(await stockOf(variant.id), 0);
+    assert.equal(await batchSum(variant.id), 0);
+    const last = await one(`select items from orders where reference=$1`, [order.data.order.reference]);
+    assert.equal(last.items[0].purchaseCostCents, null, 'mixed known/unknown cost is reported as unknown');
+  });
+
+  await check('Manual stock decrease keeps batches <= stock', async () => {
+    const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 12, purchasePriceUsd: 5, exchangeRate: 1300, reason: 'Purchase received' } });
+    assert.ok(r.ok, `receive ${r.status}`);
+    const down = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, set: 7, reason: 'Damaged' } });
+    assert.ok(down.ok);
+    assert.equal(await stockOf(variant.id), 7);
+    assert.ok(await batchSum(variant.id) <= 7, 'batches trimmed');
+  });
+
+  await check('Saving the product editor does not overwrite sales made while it was open', async () => {
+    const product = (await json(await admin.call(`/api/admin/products/${variant.product_id}`))).product;
+    const loaded = product.colors.find(c => c.id === variant.id).stock;
+    const order = await shopperOrder(variant.id, 2);
+    assert.equal(order.status, 201);
+    const payload = { ...product, salePriceIqd: product.salePriceIqd, purchasePriceUsd: null, exchangeRate: 1300, colors: product.colors.map(c => ({ ...c, baseStock: c.stock, stock: c.id === variant.id ? loaded + 5 : c.stock })) };
+    const save = await admin.call(`/api/admin/products/${variant.product_id}`, { method: 'PUT', body: payload });
+    assert.ok(save.ok, `save ${save.status} ${JSON.stringify(await json(save))}`);
+    assert.equal(await stockOf(variant.id), loaded - 2 + 5, 'editor change applied on top of the sale');
+  });
+
+  await check('Delivered order: profit = discounted revenue − purchase cost, delivery excluded; delivered_at set', async () => {
+    const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 10, purchasePriceUsd: 10, exchangeRate: 1000, reason: 'Purchase received' } });
+    assert.ok(r.ok);
+    // Sell 4 units with a fixed 4,000 IQD discount through a fresh coupon.
+    await admin.call('/api/admin/coupons', { method: 'POST', body: { code: 'FIX4000', type: 'fixed', value: 4000, active: true } });
+    await db.query('update product_variants set stock = (select coalesce(sum(quantity_remaining),0) from inventory_batches where variant_id=$1) where id=$1', [variant.id]);
+    await db.query(`update inventory_batches set quantity_remaining = 0 where variant_id=$1 and purchase_cost_iqd <> 10000`, [variant.id]);
+    await db.query('update product_variants set stock = (select coalesce(sum(quantity_remaining),0) from inventory_batches where variant_id=$1) where id=$1', [variant.id]);
+    const order = await shopperOrder(variant.id, 4, { coupon: 'FIX4000' });
+    assert.equal(order.status, 201, JSON.stringify(order.data));
+    const row = await one('select * from orders where reference=$1', [order.data.order.reference]);
+    const unit = row.items[0].unitPrice;
+    for (const status of ['confirmed', 'processing', 'shipped', 'delivered']) {
+      const t = await admin.call(`/api/admin/orders/${row.id}`, { method: 'PATCH', body: { status } });
+      assert.ok(t.ok, `${status} ${t.status}`);
+    }
+    const done = await one('select * from orders where id=$1', [row.id]);
+    assert.equal(done.profit_iqd, unit * 4 - 4000 - 10000 * 4, 'profit');
+    assert.ok(done.delivered_at, 'delivered_at recorded');
+    assert.equal(done.payment_status, 'paid');
+  });
+
+  await check('Returning a delivered order restores stock, frees the coupon and fixes customer totals once', async () => {
+    const row = await one(`select * from orders where coupon_code='FIX4000' order by id desc limit 1`);
+    const stock = await stockOf(variant.id);
+    const customer = await one('select * from customers where id=$1', [row.customer_id]);
+    const used = (await one(`select used_count from coupons where code='FIX4000'`)).used_count;
+    const t = await admin.call(`/api/admin/orders/${row.id}`, { method: 'PATCH', body: { status: 'returned' } });
+    assert.ok(t.ok);
+    assert.equal(await stockOf(variant.id), stock + 4);
+    assert.equal((await one(`select used_count from coupons where code='FIX4000'`)).used_count, used - 1);
+    const after = await one('select * from customers where id=$1', [row.customer_id]);
+    assert.equal(after.orders_count, customer.orders_count - 1);
+    const del = await admin.call(`/api/admin/orders/${row.id}`, { method: 'DELETE' });
+    assert.ok(del.ok, `delete ${del.status}`);
+    const final = await one('select * from customers where id=$1', [row.customer_id]);
+    assert.equal(final.orders_count, after.orders_count, 'deleting a returned order must not count it again');
+    assert.equal(final.total_spent, after.total_spent);
+    assert.equal(await stockOf(variant.id), stock + 4, 'deleting a returned order must not restore stock twice');
+  });
+
+  await check('Revenue "today" uses Baghdad days and the delivery date', async () => {
+    // An order placed 40 days ago but delivered at 00:30 Baghdad time today belongs to today.
+    const order = await shopperOrder(variant.id, 1);
+    assert.equal(order.status, 201);
+    const row = await one('select * from orders where reference=$1', [order.data.order.reference]);
+    const now = new Date();
+    const baghdadMidnightUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - 3 * 3600e3 + (now.getUTCHours() >= 21 ? 24 * 3600e3 : 0));
+    const deliveredAt = new Date(baghdadMidnightUtc.getTime() + 30 * 60e3);
+    await db.query(`update orders set status='delivered', created_at=now() - interval '40 days', delivered_at=$2, updated_at=now() where id=$1`, [row.id, deliveredAt]);
+    const html = await (await admin.call('/admin/revenue?period=today')).text();
+    assert.ok(html.includes(row.reference), 'order listed in today’s revenue');
+  });
+
+  await check('View-only and non-finance team members are blocked from money changes and reports', async () => {
+    for (const [username, role] of [['acc.test', 'accountant'], ['sales.test', 'sales']]) {
+      await admin.call('/api/admin/team', { method: 'POST', body: { username, name: role, password: 'password123', role } });
+    }
+    const acc = await session(); assert.equal((await acc.call('/api/admin/login', { method: 'POST', body: { username: 'acc.test', password: 'password123' } })).status, 200);
+    assert.equal((await acc.call('/api/admin/orders/manual', { method: 'POST', body: {} })).status, 403, 'accountant cannot create orders');
+    assert.equal((await acc.call('/api/admin/customers/1', { method: 'PATCH', body: {} })).status, 403, 'accountant cannot edit customers');
+    assert.equal((await acc.call('/api/admin/reports/export?period=30d')).status, 200, 'accountant can export');
+    const sales = await session(); assert.equal((await sales.call('/api/admin/login', { method: 'POST', body: { username: 'sales.test', password: 'password123' } })).status, 200);
+    assert.equal((await sales.call('/api/admin/reports/export?period=30d')).status, 403, 'sales cannot export profit');
+    const reports = await sales.call('/admin/reports');
+    assert.ok(reports.status === 307 || reports.status === 303 || reports.status === 302 || (await reports.text()).includes('NEXT_REDIRECT') || !(await reports.clone().text()).includes('Product profit'), 'sales cannot open reports');
+  });
+
+  await check('Sign-in is throttled after repeated failures', async () => {
+    const s = await session();
+    let last;
+    for (let i = 0; i < 9; i++) last = await s.call('/api/admin/login', { method: 'POST', body: { username: 'nobody.here', password: 'wrong-password' } });
+    assert.equal(last.status, 429);
+    assert.ok(await one(`select * from admin_login_attempts where key='user:nobody.here'`), 'stored in the database');
+  });
+
+  await check('Media endpoint serves resized WebP with CDN cache headers', async () => {
+    const media = await one('select id, size from media order by size desc limit 1');
+    const original = await fetch(`${base}/api/media/${media.id}`);
+    const small = await fetch(`${base}/api/media/${media.id}?w=300`);
+    assert.equal(small.headers.get('content-type'), 'image/webp');
+    assert.match(small.headers.get('cache-control'), /s-maxage=31536000/);
+    const [a, b] = [(await original.arrayBuffer()).byteLength, (await small.arrayBuffer()).byteLength];
+    assert.ok(b * 5 < a, `resized ${b} vs original ${a}`);
+  });
+
+  await check('Backup download is valid JSON and contains every table', async () => {
+    const r = await admin.call('/api/admin/backup');
+    assert.equal(r.status, 200);
+    const backup = await r.json();
+    assert.equal(backup.format, 'store-admin-backup');
+    assert.ok(Array.isArray(backup.tables.orders) && Array.isArray(backup.tables.media));
+  });
+
+  await check('Every admin page renders for the owner', async () => {
+    const pages = ['orders', 'customers', 'products', 'inventory', 'purchases', 'categories', 'collections', 'coupons', 'shipping', 'banners', 'homepage', 'sections', 'navigation', 'footer', 'content', 'media', 'videos', 'stores', 'seo', 'redirects', 'messages', 'finance', 'revenue', 'profit', 'reports', 'reports?section=profit', 'reports?section=inventory', 'team', 'activity', 'backup', 'settings'];
+    const failures = [];
+    for (const page of ['', ...pages]) { const r = await admin.call(page ? `/admin/${page}` : '/admin'); if (r.status !== 200) failures.push(`${page}:${r.status}`); }
+    assert.deepEqual(failures, []);
+  });
+
+  await check('Storefront pages render', async () => {
+    const failures = [];
+    for (const page of ['/', '/products/category/all', `/products/${variant.product_id}`, '/search?q=leather', '/checkout', '/info/shipping', '/collection/bestsellers', '/sitemap.xml', '/robots.txt']) {
+      const r = await fetch(base + page); if (r.status !== 200) failures.push(`${page}:${r.status}`);
+    }
+    assert.deepEqual(failures, []);
+  });
+
+  await db.end();
+  const failed = results.filter(r => r[0] === 'FAIL');
+  console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
+  process.exit(failed.length ? 1 : 0);
+})().catch(error => { console.error(error); process.exit(1); });

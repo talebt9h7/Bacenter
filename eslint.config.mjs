@@ -5,4 +5,10 @@ export default defineConfig([
   // Keep the starter on the flat config export that actually runs under the pinned ESLint/Next toolchain.
   ...nextCoreWebVitals,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  {
+    // Images are plain <img> on purpose: uploaded photos are resized by /api/media/[id]?w=
+    // (see mediaSrc in src/lib/types.ts) and cached on the CDN, so next/image would only add
+    // a second, billed optimisation step.
+    rules: { "@next/next/no-img-element": "off" },
+  },
 ]);
