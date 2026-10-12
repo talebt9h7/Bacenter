@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
 import { db } from '@/db';
 import { banners, contentPages, media, productVariants, settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -44,6 +43,7 @@ const OPTIMISABLE = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avi
 async function optimiseUpload(original: Buffer, type: string) {
   if (!OPTIMISABLE.has(type)) return { data: original, mimeType: type };
   try {
+    const sharp = (await import('sharp')).default;
     const image = sharp(original, { failOn: 'none' }).rotate();
     const { width = 0 } = await image.metadata();
     if (original.length <= 400 * 1024 && width <= 2000) return { data: original, mimeType: type };

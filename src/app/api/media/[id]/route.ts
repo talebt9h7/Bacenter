@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
-import sharp from 'sharp';
 import { db } from '@/db';
 import { media } from '@/db/schema';
 import { MEDIA_WIDTHS } from '@/lib/types';
@@ -33,6 +32,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const width = requestedWidth(request);
   if (width && RESIZABLE.has(row.mimeType)) {
     try {
+      // Loaded lazily: if the image library can't load on the server, originals are still served.
+      const sharp = (await import('sharp')).default;
       const resized = await sharp(row.data, { failOn: 'none' })
         .rotate()
         .resize({ width, withoutEnlargement: true })
