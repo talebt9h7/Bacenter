@@ -137,8 +137,8 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         <div className="buy-actions">
           <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
           <a
-            className="button whatsapp-inquiry-button"
-            href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أريد الاستفسار عن ${displayName} - لون ${displayColorName(color)}` : `Hello, I would like to ask about ${displayName} - ${displayColorName(color)}.`)}`}
+            className="button button-orange whatsapp-inquiry-button"
+            href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أرغب بطلب:\n${displayName}\nالسعر: ${moneyIqd(product.salePriceIqd)}\nالكمية: ${quantity}\nاللون: ${displayColorName(color)}` : `Hello, I would like to place an order:\n${displayName}\nPrice: ${moneyIqd(product.salePriceIqd)}\nQuantity: ${quantity}\nColor: ${displayColorName(color)}`)}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -149,8 +149,6 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
           </a>
         </div>
         {displayDescription && <p className="product-description">{displayDescription}</p>}
-        {/* Where the order ships from and how fast (store-wide, not per product). */}
-        <div className="product-assurances"><span><Truck size={15} strokeWidth={1.4} />{product.salePriceIqd >= (freeShippingUsd * region.rate) ? t('Free delivery in Iraq') : language === 'ar' ? `توصيل مجاني للطلبات فوق ${moneyIqd(freeShippingUsd * region.rate)}` : `Free delivery over ${moneyIqd(freeShippingUsd * region.rate)}`}</span><span><RotateCcw size={14} strokeWidth={1.4} />{t('30-day returns')}</span></div>
         {(headline || details.highlights.length > 0) && <section className="product-overview" aria-label={language === 'ar' ? 'نظرة سريعة على المنتج' : 'At a glance'}>
           {headline && <h2 className="product-headline">{headline}</h2>}
           {details.highlights.length > 0 && <ul className="product-highlights">
