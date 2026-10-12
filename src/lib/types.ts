@@ -11,3 +11,20 @@ export function primaryImage(color?: ProductColor) { if (!color) return PLACEHOL
 export function hoverImage(color?: ProductColor) { if (!color) return PLACEHOLDER_IMAGE; const alternate = color.images.find((_, index) => index !== color.primaryIndex); return alternate ?? primaryImage(color); }
 export function productImage(product: Product) { return primaryImage(product.colors.find(color => color.stock > 0) ?? product.colors[0]); }
 export function totalStock(product: Product) { return product.colors.reduce((sum, color) => sum + color.stock, 0); }
+
+/** Widths the media endpoint can resize to. Keep in sync with what the CDN should store. */
+export const MEDIA_WIDTHS = [160, 320, 480, 640, 960, 1280, 1600] as const;
+/**
+ * Returns a resized URL for images uploaded through the admin media library
+ * (stored in the database). Other images (static files, external URLs) are returned unchanged.
+ */
+export function mediaSrc(url: string | null | undefined, width: number) {
+  if (!url) return PLACEHOLDER_IMAGE;
+  if (!url.startsWith('/api/media/') || url.includes('?')) return url;
+  return `${url}?w=${width}`;
+}
+/** srcSet for a database image so the browser picks the size that fits the screen. */
+export function mediaSrcSet(url: string | null | undefined, widths: readonly number[]) {
+  if (!url || !url.startsWith('/api/media/') || url.includes('?')) return undefined;
+  return widths.map(width => `${url}?w=${width} ${width}w`).join(', ');
+}

@@ -1,5 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
+import { invalidateSettings, SETTINGS_TAG } from './cache-tags';
 import { db } from '@/db';
 import { banners, contentPages, settings, shippingZones, videoStories } from '@/db/schema';
 import { iraqGovernorates } from './iraq';
@@ -114,73 +116,6 @@ const publicKeys: (keyof StoreSettings)[] = ['storeName', 'tagline', 'logoUrl', 
 
 let bootstrapped: Promise<void> | null = null;
 
-/**
- * Keeps the content_pages table compatible with the current Drizzle schema.
- * Older Supabase projects may have been created before the bilingual/updated_at
- * fields were added, which otherwise makes the admin Content page fail at runtime.
- */
-let settingsSchemaReady: Promise<void> | null = null;
-async function ensureSettingsSchema() {
-  if (settingsSchemaReady) return settingsSchemaReady;
-  settingsSchemaReady = db.execute(sql.raw(`
-    ALTER TABLE public.settings
-      ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now();
-    CREATE TABLE IF NOT EXISTS public.video_stories (
-      id serial PRIMARY KEY,
-      youtube_id text NOT NULL,
-      title text NOT NULL DEFAULT '',
-      title_ar text NOT NULL DEFAULT '',
-      cta text NOT NULL DEFAULT 'Watch now',
-      cta_ar text NOT NULL DEFAULT 'شاهد الآن',
-      href text NOT NULL DEFAULT '/',
-      active boolean NOT NULL DEFAULT true,
-      sort_order integer NOT NULL DEFAULT 0,
-      created_at timestamp NOT NULL DEFAULT now(),
-      updated_at timestamp NOT NULL DEFAULT now()
-    );
-    ALTER TABLE public.video_stories ADD COLUMN IF NOT EXISTS title_ar text NOT NULL DEFAULT '';
-    ALTER TABLE public.video_stories ADD COLUMN IF NOT EXISTS cta_ar text NOT NULL DEFAULT 'شاهد الآن';
-    ALTER TABLE public.video_stories ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now();
-  `)).then(() => undefined).catch((error) => { settingsSchemaReady = null; throw error; });
-  return settingsSchemaReady;
-}
-
-async function ensureContentPagesSchema() {
-  await db.execute(sql.raw(`
-    ALTER TABLE public.content_pages
-      ADD COLUMN IF NOT EXISTS eyebrow_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS title_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS subtitle_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS sections_ar jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS faqs_ar jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now();
-  `));
-}
-
-async function ensureBannersSchema() {
-  await db.execute(sql`
-    ALTER TABLE public.banners
-      ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'hero',
-      ADD COLUMN IF NOT EXISTS category_id text,
-      ADD COLUMN IF NOT EXISTS title text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS title_ar text,
-      ADD COLUMN IF NOT EXISTS subtitle text,
-      ADD COLUMN IF NOT EXISTS subtitle_ar text,
-      ADD COLUMN IF NOT EXISTS cta_label text,
-      ADD COLUMN IF NOT EXISTS cta_label_ar text,
-      ADD COLUMN IF NOT EXISTS href text NOT NULL DEFAULT '/',
-      ADD COLUMN IF NOT EXISTS image text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS mobile_image text,
-      ADD COLUMN IF NOT EXISTS badge text,
-      ADD COLUMN IF NOT EXISTS badge_ar text,
-      ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true,
-      ADD COLUMN IF NOT EXISTS starts_at timestamp,
-      ADD COLUMN IF NOT EXISTS ends_at timestamp,
-      ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now()
-  `);
-}
-
 export function ensureStoreSeeded() {
   if (!bootstrapped) bootstrapped = (async () => {
     // Schema compatibility is handled by Drizzle migrations, not on storefront requests.
@@ -207,7 +142,7 @@ export function ensureStoreSeeded() {
   })().catch(error => { bootstrapped = null; throw error; });
   return bootstrapped;
 }
-export const getSettings = cache(async function getSettings(): Promise<StoreSettings> {
+async function loadSettings(): Promise<StoreSettings> {
   const rows = await db.select().from(settings);
   const merged: Record<string, unknown> = { ...defaultSettings };
   for (const row of rows) merged[row.key] = row.value;
@@ -266,10 +201,15 @@ export const getSettings = cache(async function getSettings(): Promise<StoreSett
     demoDisclaimerAr: String((footer as any).demoDisclaimerAr ?? footer.demoDisclaimer ?? defaultSettings.footer.demoDisclaimer),
   };
   return merged as StoreSettings;
-});
+}
+// Settings are read by every storefront page (layout, metadata, header). They are cached
+// across requests and cleared by saveSettings()/invalidateSettings() on every admin change.
+const cachedSettings = unstable_cache(loadSettings, ['store-settings-v1'], { revalidate: 300, tags: [SETTINGS_TAG] });
+export const getSettings = cache(async function getSettings(): Promise<StoreSettings> { return cachedSettings(); });
 export const getPublicSettings = cache(async function getPublicSettings() { const all = await getSettings(); return Object.fromEntries(publicKeys.map(key => [key, all[key]])) as Omit<StoreSettings, 'adminPasswordHash'>; });
 export async function saveSettings(patch: Partial<StoreSettings>) {
   for (const [key, value] of Object.entries(patch)) await db.insert(settings).values({ key, value: value as object, updatedAt: new Date() }).onConflictDoUpdate({ target: settings.key, set: { value: value as object, updatedAt: new Date() } });
+  invalidateSettings();
 }
 export async function getActiveBanners(kind: string, categoryId?: string) {
   await ensureStoreSeeded();

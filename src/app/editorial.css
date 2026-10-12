@@ -37,3 +37,10 @@
 .info-content h2{font-size:23px;font-weight:400}
 .site-footer .footer-link-group>a,.site-footer .footer-brand>p{font-size:9px}
 .site-footer .footer-link-group h3{font-size:8px}
+/* Product page loading skeleton */
+.skeleton-block{background:linear-gradient(90deg,#eef0e8 0%,#f6f7f2 50%,#eef0e8 100%);background-size:200% 100%;animation:skeleton-shimmer 1.2s ease-in-out infinite}
+.product-page-loading .skeleton-thumb{display:block;width:80px;height:80px}
+.product-page-loading .skeleton-line{display:block;height:14px;margin-bottom:16px;border-radius:2px}
+@keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skeleton-block{animation:none}}
+@media(max-width:767px){.product-page-loading .skeleton-thumb{width:63px;height:63px}}

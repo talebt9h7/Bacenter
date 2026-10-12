@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowRight, Banknote, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, RotateCcw, ShieldCheck, Truck, ZoomIn } from 'lucide-react';
 import { categories } from '@/lib/catalog';
-import { hoverImage, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
+import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
@@ -39,11 +39,11 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
     <div className="product-detail-layout">
       <div className="product-gallery">
         <div className="product-main-image">
-          <img key={`${color.id}-${safeIndex}`} src={images[safeIndex]} alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
+          <img key={`${color.id}-${safeIndex}`} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
         </div>
         <div className="product-thumbnails" aria-label={`${displayColorName(color)} photos`}>
-          {images.map((image, index) => <button key={`${color.id}-${image}-${index}`} className={safeIndex === index ? 'selected' : ''} onClick={() => setImageIndex(index)} aria-label={`${t('Show photo')} ${index + 1}`} aria-pressed={safeIndex === index}><img src={image} alt={`${displayColorName(color)} photo ${index + 1}`} /></button>)}
+          {images.map((image, index) => <button key={`${color.id}-${image}-${index}`} className={safeIndex === index ? 'selected' : ''} onClick={() => setImageIndex(index)} aria-label={`${t('Show photo')} ${index + 1}`} aria-pressed={safeIndex === index}><img src={mediaSrc(image, 160)} alt={`${displayColorName(color)} photo ${index + 1}`} /></button>)}
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
               style={{ '--swatch': item.hex } as React.CSSProperties}
               onClick={() => chooseColor(item)}
             >
-              {item.images[0] ? <img src={item.images[0]} alt="" aria-hidden="true" /> : <span className="swatch-color-fill" aria-hidden="true" />}
+              {item.images[0] ? <img src={mediaSrc(item.images[0], 160)} alt="" aria-hidden="true" /> : <span className="swatch-color-fill" aria-hidden="true" />}
             </button>
             <span>{displayColorName(item)}</span>
           </div>)}
@@ -124,7 +124,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
             {product.dimensions && <div className="product-dimensions-block">
               <h3>{language === 'ar' ? 'الأبعاد الخارجية' : 'External Dimensions'}</h3>
               <p className="product-dimensions-value">{product.dimensions}</p>
-              {product.dimensionsImage && <img className="product-dimensions-image" src={product.dimensionsImage} alt={language === 'ar' ? 'رسم يوضح أبعاد المنتج' : 'Product dimensions diagram'} loading="lazy" />}
+              {product.dimensionsImage && <img className="product-dimensions-image" src={mediaSrc(product.dimensionsImage, 1280)} alt={language === 'ar' ? 'رسم يوضح أبعاد المنتج' : 'Product dimensions diagram'} loading="lazy" />}
             </div>}
             {product.capacity && <div className="product-specification-item"><h3>{language === 'ar' ? 'السعة' : 'Capacity'}</h3><p>{product.capacity}</p></div>}
             {(product.specifications ?? []).map((spec, index) => { const separator = spec.indexOf(':'); const label = separator >= 0 ? spec.slice(0, separator).trim() : (language === 'ar' ? 'تفاصيل' : 'Detail'); const value = separator >= 0 ? spec.slice(separator + 1).trim() : spec; return <div className="product-specification-item" key={index}><h3>{label}</h3><p>{value}</p></div>; })}
@@ -137,8 +137,8 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
       </div>
     </div>
 
-    <section className="product-story" aria-label={language === 'ar' ? 'صور المنتج أثناء الاستخدام' : 'See it out and about'}><div><span className="eyebrow">{language === 'ar' ? 'تفاصيل من الحياة اليومية' : 'See it out and about'}</span><h2>{language === 'ar' ? 'مصمم ليرافقك كل يوم' : 'Made to go with you'}</h2></div><div className="flex w-full gap-4 overflow-x-auto snap-x snap-mandatory pb-2">{(product.storyImages?.length ? product.storyImages : [hoverImage(color)]).map((image, index) => <div key={image + index} className="relative aspect-square w-[78vw] max-w-[400px] shrink-0 snap-center overflow-hidden bg-neutral-100 sm:w-[42vw]"><img src={image} alt={`${displayName} lifestyle photo ${index + 1}`} loading="lazy" className="h-full w-full object-cover" /></div>)}</div><h3 className="text-xs uppercase tracking-[0.2em] text-neutral-500">{language === 'ar' ? 'انضم إلى المجتمع' : 'Join the community'}</h3><div className="flex flex-wrap gap-5 text-sm"><a className="text-orange-700 underline underline-offset-4" href="https://www.instagram.com/" target="_blank" rel="noreferrer">Instagram →</a><a className="text-orange-700 underline underline-offset-4" href="https://www.tiktok.com/" target="_blank" rel="noreferrer">TikTok →</a><a className="text-orange-700 underline underline-offset-4" href="https://www.facebook.com/" target="_blank" rel="noreferrer">Facebook →</a></div></section>{related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
-    {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={images[safeIndex]} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
-    {product.colors.length > 0 && <link rel="prefetch" href={primaryImage(color)} />}
+    <section className="product-story" aria-label={language === 'ar' ? 'صور المنتج أثناء الاستخدام' : 'See it out and about'}><div><span className="eyebrow">{language === 'ar' ? 'تفاصيل من الحياة اليومية' : 'See it out and about'}</span><h2>{language === 'ar' ? 'مصمم ليرافقك كل يوم' : 'Made to go with you'}</h2></div><div className="flex w-full gap-4 overflow-x-auto snap-x snap-mandatory pb-2">{(product.storyImages?.length ? product.storyImages : [hoverImage(color)]).map((image, index) => <div key={image + index} className="relative aspect-square w-[78vw] max-w-[400px] shrink-0 snap-center overflow-hidden bg-neutral-100 sm:w-[42vw]"><img src={mediaSrc(image, 960)} alt={`${displayName} lifestyle photo ${index + 1}`} loading="lazy" className="h-full w-full object-cover" /></div>)}</div><h3 className="text-xs uppercase tracking-[0.2em] text-neutral-500">{language === 'ar' ? 'انضم إلى المجتمع' : 'Join the community'}</h3><div className="flex flex-wrap gap-5 text-sm"><a className="text-orange-700 underline underline-offset-4" href="https://www.instagram.com/" target="_blank" rel="noreferrer">Instagram →</a><a className="text-orange-700 underline underline-offset-4" href="https://www.tiktok.com/" target="_blank" rel="noreferrer">TikTok →</a><a className="text-orange-700 underline underline-offset-4" href="https://www.facebook.com/" target="_blank" rel="noreferrer">Facebook →</a></div></section>{related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
+    {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={mediaSrc(images[safeIndex], 1600)} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
+    {product.colors.length > 0 && <link rel="prefetch" href={mediaSrc(primaryImage(color), 1280)} />}
   </main>;
 }

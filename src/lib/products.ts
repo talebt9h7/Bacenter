@@ -1,48 +1,12 @@
-import { asc, eq, inArray, sql } from 'drizzle-orm';
+import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
+import { asc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { products, productVariants } from '@/db/schema';
 import { bagCategories } from './catalog';
 import type { Product, ProductColor } from './types';
+import { CATALOG_TAG } from './cache-tags';
 
-let schemaReady: Promise<void> | null = null;
-async function ensureProductsSchema() {
-  if (!schemaReady) schemaReady = (async () => {
-    await db.execute(sql.raw(`
-    ALTER TABLE public.products
-      ADD COLUMN IF NOT EXISTS name_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS subtitle text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS subtitle_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS description text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS description_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS price_cents integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS sale_price_iqd integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS capacity text,
-      ADD COLUMN IF NOT EXISTS badge text,
-      ADD COLUMN IF NOT EXISTS badge_ar text,
-      ADD COLUMN IF NOT EXISTS features jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS specifications jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS warranty text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS materials text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS story_images jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS dimensions text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS dimensions_image text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS tags jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT true,
-      ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS created_at timestamp NOT NULL DEFAULT now(),
-      ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now();
-    ALTER TABLE public.product_variants
-      ADD COLUMN IF NOT EXISTS name_ar text NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS hex text NOT NULL DEFAULT '#333333',
-      ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS images jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ADD COLUMN IF NOT EXISTS primary_index integer NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
-  `));
-  })();
-  return schemaReady;
-}
 type ProductRow = typeof products.$inferSelect; type VariantRow = typeof productVariants.$inferSelect;
 function toColor(row: VariantRow): ProductColor { return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, hex: row.hex, stock: row.stock, images: row.images ?? [], primaryIndex: Math.min(row.primaryIndex, Math.max((row.images?.length ?? 1) - 1, 0)) }; }
 function toProduct(row: ProductRow, variants: VariantRow[]): Product {
@@ -53,20 +17,31 @@ async function attachVariants(rows: ProductRow[]) {
   const variants = await db.select().from(productVariants).where(inArray(productVariants.productId, rows.map(row => row.id))).orderBy(asc(productVariants.sortOrder), asc(productVariants.id));
   return rows.map(row => toProduct(row, variants.filter(variant => variant.productId === row.id)));
 }
-export async function getAllProducts({ includeUnpublished = false } = {}) {
-  await ensureProductsSchema();
+async function loadAllProducts() {
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.createdAt));
-  const list = await attachVariants(rows);
-  return includeUnpublished ? list : list.filter(product => product.published && product.colors.length > 0);
+  return attachVariants(rows);
 }
-export async function getProductById(id: string, { includeUnpublished = false } = {}) {
-  await ensureProductsSchema();
+async function loadProduct(id: string) {
   const rows = await db.select().from(products).where(eq(products.id, id)).limit(1);
   if (!rows.length) return null;
   const [product] = await attachVariants(rows);
-  if (!includeUnpublished && (!product.published || !product.colors.length)) return null;
   return product;
 }
+// Storefront reads are shared across requests and cleared by invalidateCatalog()
+// whenever products, stock or orders change. Admin reads (includeUnpublished) stay live.
+const cachedAllProducts = unstable_cache(loadAllProducts, ['catalog-all-products-v1'], { revalidate: 60, tags: [CATALOG_TAG] });
+const cachedProduct = unstable_cache(loadProduct, ['catalog-product-v1'], { revalidate: 60, tags: [CATALOG_TAG] });
+const isVisible = (product: Product) => product.published && product.colors.length > 0;
+
+export const getAllProducts = cache(async function getAllProducts({ includeUnpublished = false } = {}) {
+  if (includeUnpublished) return loadAllProducts();
+  return (await cachedAllProducts()).filter(isVisible);
+});
+export const getProductById = cache(async function getProductById(id: string, { includeUnpublished = false } = {}) {
+  if (includeUnpublished) return loadProduct(id);
+  const product = await cachedProduct(id);
+  return product && isVisible(product) ? product : null;
+});
 export async function getProductsFor(category?: string, collection?: string) {
   let result = await getAllProducts();
   if (category === 'bags') result = result.filter(product => bagCategories.includes(product.category));

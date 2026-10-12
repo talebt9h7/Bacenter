@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
 import { db } from '@/db';
 import { banners, contentPages, media, productVariants, settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -37,6 +38,22 @@ export async function DELETE(request: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
+// Phone photos are often several MB. Storing a web-sized copy keeps the database small
+// and every later read fast. Animated GIFs are kept as they are.
+const OPTIMISABLE = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+async function optimiseUpload(original: Buffer, type: string) {
+  if (!OPTIMISABLE.has(type)) return { data: original, mimeType: type };
+  try {
+    const image = sharp(original, { failOn: 'none' }).rotate();
+    const { width = 0 } = await image.metadata();
+    if (original.length <= 400 * 1024 && width <= 2000) return { data: original, mimeType: type };
+    const data = await image.resize({ width: 2000, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
+    return data.length < original.length ? { data, mimeType: 'image/webp' } : { data: original, mimeType: type };
+  } catch {
+    return { data: original, mimeType: type };
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!(await requireAdminSection('storefront', 'manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   try {
@@ -49,8 +66,7 @@ export async function POST(request: NextRequest) {
       const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']);
       if (!allowedTypes.has(file.type)) return NextResponse.json({ error: `${file.name} is not a supported image. Please use JPG, PNG, WebP, AVIF or GIF.` }, { status: 400 });
       if (file.size > MAX_BYTES) return NextResponse.json({ error: `${file.name} is larger than 8 MB.` }, { status: 400 });
-      const data = Buffer.from(await file.arrayBuffer());
-      const mimeType = file.type;
+      const { data, mimeType } = await optimiseUpload(Buffer.from(await file.arrayBuffer()), file.type);
       const [row] = await db.insert(media).values({ filename: file.name.slice(0, 200), mimeType, size: data.length, data }).returning({ id: media.id });
       urls.push(`/api/media/${row.id}`);
     }

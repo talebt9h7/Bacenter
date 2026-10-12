@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 export default async function ProductPage({ params, searchParams }: Props) {
   const { slug } = await params; const { color } = await searchParams;
-  const product = await getProductById(slug);
+  // Both reads come from the shared catalog cache, so they cost no extra database trips.
+  const [product, all] = await Promise.all([getProductById(slug), getAllProducts()]);
   if (!product) notFound();
-  const all = await getAllProducts();
   const related = all.filter(item => item.id !== product.id).sort((a, b) => Number(b.category === product.category) - Number(a.category === product.category)).slice(0, 4);
   return <ProductDetail key={`${slug}-${color ?? ''}`} product={product} related={related} initialColor={color} />;
 }
