@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
 :root{--ink:#333632;--muted:#777a73;--orange:#de623f;--orange-hover:#c94f30;--paper:#fff;--cream:#f5f4f0;--line:#e4e3dd;--olive:#676f54;--page-gutter:clamp(24px,4.45vw,72px)}
@@ -137,3 +138,10 @@ body{font-size:16px}
 .utility-bar{font-size:12px}.utility-right>button{font-size:12px}.desktop-navigation>a,.nav-stockists{font-size:14px}.shipping-link{font-size:12px}.text-link{font-size:14px}.button{font-size:13px}.eyebrow{font-size:12px}.mega-links>a{font-size:15px}.mega-links .mega-shop-all{font-size:13px}.highlight-card h2{font-size:14px}.section-heading h2{font-size:34px}.section-heading .eyebrow{font-size:11px}.product-card-title{font-size:17px}.product-card-price{font-size:16px}.product-card-details{font-size:13px}.purpose-intro h2{font-size:40px}.purpose-intro p{font-size:22px}.intent-card h3{font-size:28px}.intent-card p{font-size:14px}.category-tabs>button{font-size:14px}.category-discover>span{font-size:13px}.responsible-eyebrow>span:last-child{font-size:11px}.responsible-copy>p{font-size:15px}.visual-footnote{font-size:11px}.store-location p,.info-content p{font-size:15px}.site-footer{font-size:15px}.footer-link-group>a{font-size:14px}.footer-link-group h3{font-size:12px}.footer-bottom{font-size:12px}.cookie-notice>p{font-size:12px}.cookie-notice>button{font-size:12px}.toast{font-size:14px}
 @media(max-width:900px){.utility-bar{font-size:12px}.desktop-navigation>a,.nav-stockists{font-size:13px}.text-link{font-size:13px}.button{font-size:12px}.highlight-card h2{font-size:14px}.section-heading h2{font-size:30px}.product-card-title{font-size:16px}.product-card-price{font-size:15px}.product-card-details{font-size:12px}.purpose-intro h2{font-size:32px}.purpose-intro p{font-size:18px}.intent-card h3{font-size:24px}.intent-card p{font-size:12px}.category-tabs>button{font-size:13px}.info-content p,.store-location p{font-size:14px}}
 @media(max-width:600px){.utility-bar{font-size:11px}.section-heading h2{font-size:27px}.product-card-title{font-size:15px}.product-card-price{font-size:14px}.purpose-intro h2{font-size:28px}.purpose-intro p{font-size:17px}.intent-card h3{font-size:22px}.intent-card p{font-size:11px}.category-tabs>button{font-size:12px}.catalog-grid .product-card-title,.related-products .product-card-title{font-size:15px}.catalog-grid .product-card-price,.related-products .product-card-price{font-size:14px}.info-content p,.store-location p{font-size:13px}}
+
+
+/* Use one consistent Arabic typeface across the storefront and admin UI. */
+html[lang="ar"] body,
+html[lang="ar"] body * {
+  font-family: "Noto Sans Arabic", sans-serif !important;
+}
