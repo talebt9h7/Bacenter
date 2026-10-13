@@ -59,7 +59,7 @@ export async function notifyNewOrder(orderId: number, origin: string) {
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
     if (!order) return;
     const [zone] = await db.select({ nameAr: shippingZones.nameAr }).from(shippingZones).where(eq(shippingZones.code, order.governorate));
-    const items = (Array.isArray(order.items) ? order.items : []) as { variantId: number; name: string; color: string; quantity: number; unitPrice?: number; listPrice?: number; promotionName?: string | null }[];
+    const items = (Array.isArray(order.items) ? order.items : []) as { productId?: string; variantId: number; name: string; color: string; quantity: number; unitPrice?: number; listPrice?: number; promotionName?: string | null }[];
     const address = (order.address ?? {}) as { city?: string; line1?: string; landmark?: string; altPhone?: string };
     const settings = await getSettings();
     const base = (settings.canonicalBaseUrl || origin).replace(/\/$/, '');
@@ -69,7 +69,7 @@ export async function notifyNewOrder(orderId: number, origin: string) {
       `📞 ${escape(order.phone)}${address.altPhone ? ` / ${escape(address.altPhone)}` : ''}`,
       `📍 ${escape(zone?.nameAr ?? order.governorate)} — ${escape(address.city ?? '')}${address.line1 ? `، ${escape(address.line1)}` : ''}${address.landmark ? ` (${escape(address.landmark)})` : ''}`,
       '',
-      ...items.map(i => `• ${i.quantity} × ${escape(i.name)} — ${escape(i.color)}  ${money((i.unitPrice ?? 0) * i.quantity)}${i.promotionName ? ` 🏷️ ${escape(i.promotionName)}` : ''}`),
+      ...items.flatMap(i => [`• ${i.quantity} × ${escape(i.name)} — ${escape(i.color)}  ${money((i.unitPrice ?? 0) * i.quantity)}${i.promotionName ? ` 🏷️ ${escape(i.promotionName)}` : ''}`, ...(i.productId ? [`   ${escape(`${base}/products/${encodeURIComponent(i.productId)}${i.color ? `?color=${encodeURIComponent(i.color)}` : ''}`)}`] : [])]),
       '',
       `المنتجات: ${money(order.subtotalCents)}${order.discountCents ? `  | خصم: −${money(order.discountCents)}${order.couponCode ? ` (${escape(order.couponCode)})` : ''}` : ''}`,
       `التوصيل: ${order.shippingCents ? money(order.shippingCents) : 'مجاني'}`,

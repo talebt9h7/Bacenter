@@ -287,6 +287,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
     assert.ok(msg, 'telegram message received');
     assert.equal(msg.chat_id, '111222333');
     assert.match(msg.text, /Test Buyer/); assert.match(msg.text, /07701234567/); assert.match(msg.text, /\/admin\/orders\/\d+/);
+    assert.ok(msg.text.includes(`/products/${variant.product_id}?color=`), "product link in message"); console.log("TELEGRAM MESSAGE:\n" + msg.text);
     const home = await (await fetch(`${base}/`)).text();
     assert.ok(home.includes("fbq('init','1234567890123456')") || home.includes('fbq(\\u0027init') || home.includes('1234567890123456'), 'pixel on storefront');
     assert.ok(home.includes('G-TEST12345') && home.includes('abcd1234ef'), 'GA4 and Clarity on storefront');
