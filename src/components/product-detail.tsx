@@ -191,7 +191,7 @@ export function ProductDetail({ product, related, initialColor, banner }: { prod
         <img src={mediaSrc(item.image, 960)} alt={`${displayName} — ${pick(language, item.caption, item.captionAr) || (language === 'ar' ? `صورة ${index + 1}` : `photo ${index + 1}`)}`} loading="lazy" />
       </figure>)}</div>
     </section>}
-    {details.videoId && <ProductVideo id={details.videoId} title={pick(language, details.videoTitle, details.videoTitleAr) || displayName} heading={pick(language, details.videoTitle, details.videoTitleAr)} language={language} />}
+    {details.videoId && <ProductVideo id={details.videoId} wide={details.videoWide} title={pick(language, details.videoTitle, details.videoTitleAr) || displayName} heading={pick(language, details.videoTitle, details.videoTitleAr)} language={language} />}
     {banner?.enabled && banner.image && (() => {
       const alt = pick(language, banner.alt, banner.altAr) || displayName;
       const picture = <picture>{banner.mobileImage && <source media="(max-width: 700px)" srcSet={mediaSrc(banner.mobileImage, 960)} />}<img src={mediaSrc(banner.image, 1920)} alt={alt} loading="lazy" /></picture>;

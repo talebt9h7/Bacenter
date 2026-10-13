@@ -123,3 +123,8 @@ html body .co-line-price .price-was{display:block;margin:0;font-size:12px}
 body:has(.product-page-banner){overflow-x:clip}
 .product-page-banner picture,.product-page-banner img{display:block;width:100%;height:auto}
 @media (max-width:700px){.product-video{padding:0;margin-bottom:28px}.product-video>h2{font-size:21px;padding:0 16px}.product-video-play{width:58px;height:58px}.product-page-banner{margin-bottom:40px}}
+
+/* Shorts / reels: vertical 9:16 frame, phone-sized and centred */
+.product-video-short .product-video-frame{aspect-ratio:9/16;width:min(380px,100%);max-height:82vh;margin:0 auto;border-radius:18px;box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
+@supports (height:82vh){.product-video-short .product-video-frame{width:min(380px,100%,calc(82vh * 9 / 16))}}
+@media (max-width:700px){.product-video-short{padding:0 16px}.product-video-short .product-video-frame{width:min(340px,100%)}}
