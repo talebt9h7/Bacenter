@@ -9,7 +9,8 @@ import { getSettings } from '@/lib/settings';
 import { roundIqd } from '@/lib/iraq';
 
 export const metadata = { title: 'Orders' };
-export default async function AdminOrdersPage() {
+export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const { status: initialStatus } = await searchParams;
   const actor = await requireAdminSection('sales', 'view');
   if (!actor) redirect('/admin');
   const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(500);
@@ -19,5 +20,5 @@ export default async function AdminOrdersPage() {
   // Products offered for manual orders show what can still be sold (on hand − pending reservations).
   const catalog = catalogRows.map(row => ({ ...row, stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)), salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));
   const serialised = rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() })) as unknown as OrderRow[];
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">Sales</span><h1>Orders</h1><p>Confirm by phone, pack, hand to the courier and mark delivered. A pending order only reserves stock; confirming deducts it, and cancelling or returning a confirmed order puts it back.</p></div></div><OrdersTable rows={serialised} catalog={catalog} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">Sales</span><h1>Orders</h1><p>Confirm by phone, pack, hand to the courier and mark delivered. A pending order only reserves stock; confirming deducts it, and cancelling or returning a confirmed order puts it back.</p></div></div><OrdersTable rows={serialised} catalog={catalog} initialStatus={initialStatus} /></main>;
 }

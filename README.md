@@ -54,10 +54,19 @@ records its cost as unknown. Sales consume batches oldest first. Every stock cha
 `adjustStock`, `receiveInventoryBatch` or `consumeInventoryBatches` in `src/lib/orders.ts` so the
 movement ledger and batches stay consistent — never update `stock` directly.
 
+**Pending orders reserve, confirmed orders deduct.** `stock` is the physical stock on hand. A
+pending order only reserves its units (nothing is deducted, no batch is consumed). What the store
+can sell is `on hand − reserved` (`src/lib/reservations.ts`); storefront, cart, checkout and
+manual orders all use it. Moving an order to confirmed/processing/shipped/delivered deducts the
+units FIFO and snapshots their purchase cost; moving it back to pending, cancelled or returned puts
+them back. Any status can be chosen from the order page (jumps are confirmed and reversible).
+
 **Money.** Amounts are integer IQD. Revenue and profit are recognised when an order is delivered
 and are reported on its delivery date (`orders.delivered_at`), in Baghdad calendar days
 (`src/lib/report-period.ts`). Product profit = product revenue after the order discount
-(split across lines by value) − purchase cost; delivery and COD fees are excluded.
+(split across lines by value) − purchase cost; delivery and COD fees are excluded. Every admin
+page computes these through `src/lib/finance.ts`; lines with an unknown purchase cost are reported
+separately and left out of COGS, profit and margin.
 
 **Coupons.** A coupon use is claimed atomically at checkout (so a limited coupon can't be
 over-used) and given back if the order is cancelled, returned or deleted.
@@ -69,6 +78,8 @@ npm run typecheck
 npm run lint
 # End-to-end checks for stock, money and permissions. They create data: local database only.
 TEST_BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://...local... ADMIN_PASSWORD=... node scripts/e2e-audit.cjs
+# Unit checks for the money formulas
+node --experimental-strip-types scripts/financial-calculation-test.mjs
 ```
 
 Notes from earlier versions are kept in `docs/history/`.

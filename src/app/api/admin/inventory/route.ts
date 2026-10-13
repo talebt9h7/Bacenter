@@ -8,7 +8,7 @@ import { adjustStock, logActivity, receiveInventoryBatch } from '@/lib/orders';
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
-  if (!(await requireAdminSection('catalog', 'view'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await requireAdminSection('catalog', 'manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const productId = typeof body.productId === 'string' ? body.productId.trim() : '';
   const lines = Array.isArray(body.lines) ? body.lines : [];

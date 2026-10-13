@@ -8,11 +8,10 @@ import { ArrowRight, CircleDollarSign, ShoppingCart, Tag, Truck } from 'lucide-r
 import { db } from '@/db';
 import { orders } from '@/db/schema';
 import { iqd, when } from '@/lib/format';
+import { orderMoney, summarize } from '@/lib/finance';
 import { isRecognizedIn, ordersTouchingRange, reportRange } from '@/lib/report-period';
 
-const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
-const productGrossRevenue = (o: typeof orders.$inferSelect) => Array.isArray(o.items) ? (o.items as {unitPrice?:number;quantity?:number}[]).reduce((s,i)=>s+num(i.unitPrice)*num(i.quantity),0) : 0;
-const productRevenue = (o: typeof orders.$inferSelect) => Math.max(0, productGrossRevenue(o) - num(o.discountCents));
+const productRevenue = (o: typeof orders.$inferSelect) => orderMoney(o).revenue;
 const label = (v: string) => v ? v.replace(/^./, x => x.toUpperCase()) : '—';
 
 export const metadata = { title: 'Revenue' };
@@ -27,11 +26,10 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   const { from, to } = reportRange(period);
   const rows = await db.select().from(orders).where(ordersTouchingRange(from, to)).orderBy(desc(orders.createdAt));
   const live = rows.filter(o => isRecognizedIn(o, from, to));
-  const revenue = live.reduce((s,o) => s + productRevenue(o), 0);
-  const discounts = live.reduce((s,o) => s + num(o.discountCents), 0);
-  const delivery = live.reduce((s,o) => s + num(o.shippingCents), 0);
-  const units = live.reduce((s,o) => s + (Array.isArray(o.items) ? (o.items as {quantity?:number}[]).reduce((a,i)=>a+num(i.quantity),0) : 0), 0);
-  const avg = live.length ? revenue / live.length : 0;
+  const money = summarize(live);
+  const { revenue, discounts, units } = money;
+  const delivery = money.shipping;
+  const avg = money.averageOrder;
   const bySource = Object.entries(live.reduce<Record<string,{orders:number; revenue:number}>>((acc,o) => { const key=o.source||'website'; acc[key] ??= {orders:0,revenue:0}; acc[key].orders++; acc[key].revenue += productRevenue(o); return acc; },{})).sort((a,b)=>b[1].revenue-a[1].revenue);
 
   return <main className="admin-page">

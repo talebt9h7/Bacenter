@@ -315,7 +315,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
   await check('Every admin page renders for the owner', async () => {
     const pages = ['orders', 'customers', 'products', 'inventory', 'purchases', 'categories', 'collections', 'coupons', 'shipping', 'banners', 'homepage', 'sections', 'navigation', 'footer', 'content', 'media', 'videos', 'stores', 'seo', 'redirects', 'messages', 'finance', 'revenue', 'profit', 'reports', 'reports?section=profit', 'reports?section=inventory', 'team', 'activity', 'backup', 'settings'];
     const failures = [];
-    for (const page of ['', ...pages]) { const r = await admin.call(page ? `/admin/${page}` : '/admin'); if (r.status !== 200) failures.push(`${page}:${r.status}`); }
+    for (const page of ['', '?period=today', '?period=7d', '?period=90d', '?period=year', 'orders?status=pending', ...pages]) { const r = await admin.call(!page ? '/admin' : page.startsWith('?') ? `/admin${page}` : `/admin/${page}`); if (r.status !== 200) failures.push(`${page}:${r.status}`); }
     assert.deepEqual(failures, []);
   });
 
