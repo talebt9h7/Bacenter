@@ -93,7 +93,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
   return <main className="product-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <div className="product-detail-layout">
       <div className="product-gallery">
-        <div className="product-main-image" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
+        <div className="product-main-image" style={{ backgroundImage: `url("${mediaSrc(images[safeIndex], 640)}")` }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
           <img key={`${color.id}-${safeIndex}`} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
 

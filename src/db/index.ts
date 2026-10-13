@@ -19,7 +19,8 @@ export const pool =
     max: 1,
     min: 0,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
+    // The Supabase pooler occasionally takes several seconds to authenticate a new connection.
+    connectionTimeoutMillis: 10_000,
     keepAlive: true,
   });
 

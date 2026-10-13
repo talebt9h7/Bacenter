@@ -16,10 +16,15 @@ export function ProductCard({ product, compact = false }: { product: Product; co
   const displayName = language === 'ar' ? (product.nameAr || product.name) : product.name;
   const displaySubtitle = language === 'ar' ? (product.subtitleAr || product.subtitle) : product.subtitle;
   async function add() { setAdding(true); await addToCart(color.id); setAdding(false); }
+  // Both links share one URL so the page is prefetched once. `prefetch` loads the full page data
+  // while the card is on screen, so opening the product needs no server round trip.
+  const href = `/products/${product.id}?color=${encodeURIComponent(color.name)}`;
+  // Start downloading the product page's main photo as soon as the shopper reaches for the card.
+  function warmImage() { const img = new Image(); img.src = mediaSrc(primaryImage(color), 1280); }
   const soldOut = color.stock <= 0;
   return <article className={`product-card ${compact ? 'compact-card' : ''}`}>
     <div className="product-image-wrap">
-      <Link href={`/products/${product.id}?color=${encodeURIComponent(color.name)}`} className="product-image-link" aria-label={`${language === 'ar' ? 'عرض' : 'View'} ${displayName}`}>
+      <Link href={href} prefetch onPointerDown={warmImage} onMouseEnter={warmImage} className="product-image-link" aria-label={`${language === 'ar' ? 'عرض' : 'View'} ${displayName}`}>
         <img src={mediaSrc(primaryImage(color), 640)} srcSet={mediaSrcSet(primaryImage(color), [320, 480, 640, 960])} sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw" alt={`${displayName} in ${language === 'ar' ? (color.nameAr || color.name) : color.name}`} loading="lazy" className="product-image" />
         {!compact && <img src={mediaSrc(hoverImage(color), 640)} srcSet={mediaSrcSet(hoverImage(color), [320, 480, 640, 960])} sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw" alt="" loading="lazy" className="product-image product-image-hover" />}
       </Link>
@@ -27,7 +32,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
       {!compact && !soldOut && <button className="quick-add" aria-label={`${language === 'ar' ? 'إضافة' : 'Add'} ${displayName} ${language === 'ar' ? 'إلى السلة' : 'to bag'}`} title={language === 'ar' ? 'إضافة سريعة إلى السلة' : 'Quick add to bag'} disabled={busy} onClick={add}>{adding ? <LoaderCircle className="spin" size={18} /> : <Plus size={21} strokeWidth={1.4} />}</button>}
     </div>
     <div className="product-card-info">
-      <Link href={`/products/${product.id}`} className="product-card-title">{displayName}</Link>
+      <Link href={href} prefetch onPointerDown={warmImage} className="product-card-title">{displayName}</Link>
       <div className="product-card-price">{moneyIqd(product.salePriceIqd)}</div>
       {!compact && <div className="product-swatches" aria-label={`${displayName} colors`}>
         {product.colors.map(item => <button key={item.id} title={item.stock > 0 ? (language === 'ar' ? (item.nameAr || item.name) : item.name) : `${language === 'ar' ? (item.nameAr || item.name) : item.name} (${language === 'ar' ? 'نفد المخزون' : 'sold out'})`} aria-label={`${displayName}: ${language === 'ar' ? (item.nameAr || item.name) : item.name}`} aria-pressed={color.id === item.id} className={`${color.id === item.id ? 'selected' : ''} ${item.stock <= 0 ? 'swatch-sold-out' : ''}`} style={{ '--swatch': item.hex } as React.CSSProperties} onClick={() => setColor(item)} />)}

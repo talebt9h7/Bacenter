@@ -68,3 +68,6 @@
 .product-story-compare .product-story-items figure+figure{border-inline-start:1px solid #4a4e44}
 .product-story-compare .product-story-items img{aspect-ratio:1;object-fit:contain}
 @media(max-width:767px){.product-headline{font-size:20px}.product-story{padding:28px 16px 24px}.product-story>h2{font-size:22px}.product-story-compare .product-story-items{padding:28px 0}.product-story-compare .product-story-items figure{padding:0 10px}}
+/* Main product photo: the card-sized copy (already in the browser cache from the listing)
+   shows instantly as a background while the full-size photo loads on top of it. */
+.product-main-image{background-size:contain;background-position:center;background-repeat:no-repeat;background-blend-mode:multiply}
