@@ -1,3 +1,4 @@
+import { getCatalogNav } from '@/lib/categories';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CatalogView } from '@/components/catalog-view';
@@ -36,5 +37,5 @@ export default async function CategoryPage({ params }: Props) {
   const categoryBanner = (await getActiveBanners('category', category))[0];
   const managed = categories.find(c => c.id === category);
   const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore the collection';
-  return <CatalogView products={await getProductsFor(category)} category={category} title={title} titleAr={category === 'bags' ? 'الحقائب والأمتعة' : category === 'all' ? 'اختيارات مدروسة لكل تنقلاتك' : (managed?.nameAr || title)} description={descriptions[category]} descriptionAr={managed?.descriptionAr || descriptions[category]} categoryBanner={categoryBanner ? { title: categoryBanner.title, subtitle: categoryBanner.subtitle, image: categoryBanner.image, mobileImage: categoryBanner.mobileImage, ctaLabel: categoryBanner.ctaLabel, href: categoryBanner.href, badge: categoryBanner.badge } : null} />;
+  return <CatalogView navCategories={await getCatalogNav()} products={await getProductsFor(category)} category={category} title={title} titleAr={category === 'bags' ? 'الحقائب والأمتعة' : category === 'all' ? 'اختيارات مدروسة لكل تنقلاتك' : (managed?.nameAr || title)} description={descriptions[category]} descriptionAr={managed?.descriptionAr || descriptions[category]} categoryBanner={categoryBanner ? { title: categoryBanner.title, subtitle: categoryBanner.subtitle, image: categoryBanner.image, mobileImage: categoryBanner.mobileImage, ctaLabel: categoryBanner.ctaLabel, href: categoryBanner.href, badge: categoryBanner.badge } : null} />;
 }

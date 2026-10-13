@@ -48,3 +48,15 @@ export async function getCategory(id: string) {
     return row ? map(row) : null;
   } catch { return null; }
 }
+
+/**
+ * Category links shown above product listings: "Shop all" + the active categories from
+ * Admin → Categories, in their admin order. Falls back to the built-in list if none exist.
+ */
+export async function getCatalogNav() {
+  const { categories: builtIn } = await import('./catalog');
+  const rows = await getCategories().catch(() => []);
+  const active = rows.filter(c => c.active).sort((a, b) => a.sortOrder - b.sortOrder);
+  if (!active.length) return builtIn.map(c => ({ id: c.id, name: c.name, nameAr: c.nameAr }));
+  return [{ id: 'all', name: 'Shop all', nameAr: 'تسوق الكل' }, ...active.map(c => ({ id: c.id, name: c.name, nameAr: c.nameAr || c.name }))];
+}
