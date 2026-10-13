@@ -9,6 +9,7 @@ import './reference-refinements.css';
 import './editorial.css';
 import './admin.css';
 import './typography.css';
+import './cart-checkout.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);

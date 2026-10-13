@@ -8,7 +8,7 @@ import { roundIqd } from '@/lib/iraq';
 import { Check, X, AlertCircle } from 'lucide-react';
 
 export type Region = { name: string; currency: string; rate: number; locale: string };
-export type PublicSettings = { storeName: string; tagline: string; logoUrl: string; logoAlt: string; faviconUrl: string; metaTitle: string; metaDescription: string; announcement: string; announcementHref: string; supportEmail: string; supportPhone: string; whatsapp: string; instagram: string; youtube: string; facebook: string; address: string; footerTagline: string; copyrightText: string; exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; homeHeadline: string; homeSubheadline: string; homeValues: { title: string; text: string; titleAr?: string; textAr?: string }[]; navigation: NavigationGroup[]; footer: FooterConfig };
+export type PublicSettings = { storeName: string; tagline: string; logoUrl: string; logoAlt: string; faviconUrl: string; metaTitle: string; metaDescription: string; announcement: string; announcementHref: string; supportEmail: string; supportPhone: string; whatsapp: string; instagram: string; youtube: string; facebook: string; address: string; footerTagline: string; copyrightText: string; exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; lowStockThreshold?: number; homeHeadline: string; homeSubheadline: string; homeValues: { title: string; text: string; titleAr?: string; textAr?: string }[]; navigation: NavigationGroup[]; footer: FooterConfig };
 export const baseRegions: Region[] = [
   { name: 'Iraq', currency: 'IQD', rate: 1320, locale: 'en-IQ' },
   { name: 'United States', currency: 'USD', rate: 1, locale: 'en-US' },

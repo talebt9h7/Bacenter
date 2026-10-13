@@ -20,8 +20,12 @@ export const iraqGovernorates = [
   { code: 'saladin', nameEn: 'Saladin (Tikrit)', nameAr: 'صلاح الدين', rate: 7000, minDays: 2, maxDays: 4 },
 ];
 export const iraqPhonePattern = /^07[3-9]\d{8}$/;
+/** Converts Arabic-Indic (٠١٢…) and Persian (۰۱۲…) digits to 0-9; phones are often typed with an Arabic keyboard. */
+export function toLatinDigits(raw: string) {
+  return raw.replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)).replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0));
+}
 export function normalizeIraqPhone(raw: string) {
-  let digits = raw.replace(/[^\d+]/g, '');
+  let digits = toLatinDigits(raw).replace(/[^\d+]/g, '');
   if (digits.startsWith('+964')) digits = '0' + digits.slice(4);
   else if (digits.startsWith('00964')) digits = '0' + digits.slice(5);
   else if (digits.startsWith('964')) digits = '0' + digits.slice(3);
