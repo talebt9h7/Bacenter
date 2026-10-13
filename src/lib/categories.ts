@@ -35,7 +35,6 @@ export async function getCategories(options: { includeInactive?: boolean } = {})
   try {
     const rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name));
     const mapped = rows.map(map);
-    if (!mapped.length) return legacyFallback();
     return options.includeInactive ? mapped : mapped.filter(x => x.active);
   } catch {
     return legacyFallback();
@@ -51,12 +50,14 @@ export async function getCategory(id: string) {
 
 /**
  * Category links shown above product listings: "Shop all" + the active categories from
- * Admin → Categories, in their admin order. Falls back to the built-in list if none exist.
+ * Admin → Categories, in their admin order. The built-in list is used only if the database can't be read.
  */
 export async function getCatalogNav() {
   const { categories: builtIn } = await import('./catalog');
-  const rows = await getCategories().catch(() => []);
-  const active = rows.filter(c => c.active).sort((a, b) => a.sortOrder - b.sortOrder);
-  if (!active.length) return builtIn.map(c => ({ id: c.id, name: c.name, nameAr: c.nameAr }));
+  let rows;
+  try { rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name)); }
+  catch { return builtIn.map(c => ({ id: c.id, name: c.name, nameAr: c.nameAr })); } // database unreachable only
+  // Exactly what the admin set: deleted or switched-off categories never show.
+  const active = rows.map(map).filter(c => c.active);
   return [{ id: 'all', name: 'Shop all', nameAr: 'تسوق الكل' }, ...active.map(c => ({ id: c.id, name: c.name, nameAr: c.nameAr || c.name }))];
 }

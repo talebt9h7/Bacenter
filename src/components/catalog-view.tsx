@@ -11,7 +11,7 @@ import { storeT } from '@/lib/i18n';
 
 export function CatalogView({ products, title, titleAr, description, descriptionAr, category = 'all', searchQuery, categoryBanner, navCategories }: { navCategories?: { id: string; name: string; nameAr: string }[]; products: Product[]; title: string; titleAr?: string; description: string; descriptionAr?: string; category?: string; searchQuery?: string; categoryBanner?: { title: string; subtitle: string | null; image: string; mobileImage: string | null; ctaLabel: string | null; href: string; badge: string | null } | null }) {
   // Managed in Admin → Categories (active ones, admin order); built-in list only as a fallback.
-  const categories = navCategories?.length ? navCategories : builtInCategories;
+  const categories = navCategories ?? builtInCategories;
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState(400000);
