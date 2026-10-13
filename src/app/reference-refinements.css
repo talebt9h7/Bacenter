@@ -197,3 +197,11 @@ body{font-family:Bellroy,Arial,Helvetica,sans-serif;font-weight:400}
   }
   .product-page .buy-actions .whatsapp-inquiry-button { min-height: 50px; }
 }
+
+
+/* Header logo: right-aligned after the navigation on desktop, with a slightly smaller mark. */
+@media (min-width: 1280px) {
+  .main-navigation { padding-left: 23px; padding-right: 118px; }
+  .brand-logo { left: auto; right: 25px; top: 29px; width: 76px; }
+  .brand-logo img { width: 76px; height: 48px; object-fit: contain; }
+}
