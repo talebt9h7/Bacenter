@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import Script from 'next/script';
 import { cookies } from 'next/headers';
 import { LanguageProvider } from '@/components/language-provider';
 import { LANGUAGE_COOKIE, normalizeLanguage } from '@/lib/i18n';
@@ -30,5 +31,5 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE)?.value);
-  return <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-scroll-behavior="smooth"><body><LanguageProvider initialLanguage={language}>{children}</LanguageProvider></body></html>;
+  return <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-scroll-behavior="smooth"><body><Script id="microsoft-clarity" strategy="afterInteractive">{`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "yx1slmhyes");`}</Script><LanguageProvider initialLanguage={language}>{children}</LanguageProvider></body></html>;
 }
