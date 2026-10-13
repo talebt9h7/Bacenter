@@ -6,12 +6,36 @@ import { ArrowRight, Banknote, Clock, LoaderCircle, MapPin, Phone, Printer, Save
 import { orderStatuses, statusLabels, statusTransitions, type OrderStatus } from '@/lib/iraq';
 import { api, money, Modal, StatusBadge, useFlash, when } from './ui';
 import { ManualOrderModal } from './manual-order-modal';
+import { Kpi, PageHero } from './dash-ui';
+import { CalendarClock, CircleDollarSign as CircleDollar, Clock3, PackageCheck, Truck as TruckIcon, XCircle } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import { orderStatusT, orderT } from '@/lib/i18n';
 
 export type OrderRow = { id: number; reference: string; name: string; phone: string; email: string; governorate: string; status: string; paymentStatus: string; paymentMethod: string; currency: string; totalCents: number; subtotalCents: number; shippingCents: number; discountCents: number; codFeeCents: number; couponCode: string | null; createdAt: string; updatedAt: string; items: { productId: string; variantId: number; name: string; color: string; quantity: number; unitPrice?: number; profitIqd?: number | null; priceCents?: number; purchaseCostCents?: number | null; batchAllocations?: { batchId: number; quantity: number }[]; image?: string | null }[]; address: { governorate?: string; governorateAr?: string; city?: string; line1?: string; line2?: string; landmark?: string; altPhone?: string; country?: string; postalCode?: string }; customerNote: string | null; adminNote: string | null; trackingNumber: string | null; courier: string | null; source: string; sourceNote: string | null };
 export type OrderEvent = { id: number; type: string; message: string; createdAt: string };
 type CatalogRow = { variantId: number; productId: string; productName: string; color: string; stock: number; priceCents: number; salePriceIqd: number; image: string | null; published: boolean };
+
+type OrderStats = { byStatus: Record<string, { count: number; total: number }>; today: { count: number; total: number }; stalePending: number };
+/** Page heading + live counts for the orders list. */
+export function OrdersHeader({ stats }: { stats: OrderStats }) {
+  const { language } = useLanguage(); const lang = language === 'ar' ? 'ar' : 'en';
+  const tt = (en: string, ar: string) => lang === 'ar' ? ar : en;
+  const c = (s: string) => stats.byStatus[s]?.count ?? 0, v = (s: string) => stats.byStatus[s]?.total ?? 0;
+  const all = Object.values(stats.byStatus).reduce((sum, x) => sum + x.count, 0);
+  const closed = c('delivered') + c('cancelled') + c('returned');
+  const iqdFmt = (n: number) => `${new Intl.NumberFormat('en-US').format(Math.round(n))} IQD`;
+  return <>
+    <PageHero eyebrow={tt('Sales', 'المبيعات')} title={tt('Orders', 'الطلبات')} description={tt('Confirm by phone, pack, hand to the courier and mark delivered. A pending order only reserves stock; confirming deducts it, and cancelling or returning a confirmed order puts it back.', 'أكّد بالاتصال، جهّز، سلّم للمندوب، وبعدين حوّله "تم التوصيل". الطلب قيد الانتظار يحجز الكمية بس؛ التأكيد يخصمها، والإلغاء أو الإرجاع بعد التأكيد يرجعها.')} />
+    <section className="dash-kpis">
+      <Kpi lang={lang} icon={<CalendarClock size={17} />} tone="accent" label={tt('Today', 'اليوم')} value={stats.today.count} note={iqdFmt(stats.today.total)} />
+      <Kpi lang={lang} delay={50} icon={<Clock3 size={17} />} tone="gold" label={tt('Pending confirmation', 'بانتظار التأكيد')} value={c('pending')} note={stats.stalePending ? tt(`${stats.stalePending} older than 24h`, `${stats.stalePending} أقدم من 24 ساعة`) : iqdFmt(v('pending'))} href="/admin/orders?status=pending" />
+      <Kpi lang={lang} delay={100} icon={<PackageCheck size={17} />} tone="blue" label={tt('To pack', 'للتجهيز')} value={c('confirmed') + c('processing')} note={iqdFmt(v('confirmed') + v('processing'))} href="/admin/orders?status=confirmed" />
+      <Kpi lang={lang} delay={150} icon={<TruckIcon size={17} />} tone="violet" label={tt('With courier', 'عند المندوب')} value={c('shipped')} note={tt(`${iqdFmt(v('shipped'))} to collect`, `${iqdFmt(v('shipped'))} للتحصيل`)} href="/admin/orders?status=shipped" />
+      <Kpi lang={lang} delay={200} icon={<CircleDollar size={17} />} tone="success" label={tt('Delivered', 'تم التوصيل')} value={c('delivered')} note={closed ? tt(`${Math.round((c('delivered') / closed) * 100)}% of closed orders`, `${Math.round((c('delivered') / closed) * 100)}% من الطلبات المغلقة`) : '—'} href="/admin/orders?status=delivered" />
+      <Kpi lang={lang} delay={250} icon={<XCircle size={17} />} tone="danger" label={tt('Cancelled / returned', 'ملغي / مرتجع')} value={c('cancelled') + c('returned')} note={all ? tt(`${(((c('cancelled') + c('returned')) / all) * 100).toFixed(1)}% of all orders`, `${(((c('cancelled') + c('returned')) / all) * 100).toFixed(1)}% من كل الطلبات`) : '—'} />
+    </section>
+  </>;
+}
 
 const FLOW: OrderStatus[] = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 const statusNamesAr: Record<OrderStatus, string> = { pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التجهيز', shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي', returned: 'مرتجع' };
@@ -89,7 +113,9 @@ export function OrdersTable({ rows, catalog, initialStatus }: { rows: OrderRow[]
   if (sourceRows !== rows) { setSourceRows(rows); setLocalRows(rows); }
   const [manualOpen, setManualOpen] = useState(false), [editOrder, setEditOrder] = useState<OrderRow | null>(null);
   useEffect(() => { const handler=(event:Event)=>{ const order=(event as CustomEvent<OrderRow>).detail; if(order?.id) setLocalRows(current=>current.map(item=>item.id===order.id?order:item)); }; window.addEventListener('admin-order-updated',handler); return ()=>window.removeEventListener('admin-order-updated',handler); }, []);
-  const [query, setQuery] = useState(''), [status, setStatus] = useState(initialStatus && (orderStatuses as readonly string[]).includes(initialStatus) ? initialStatus : 'all'), [busyId, setBusyId] = useState<number | null>(null);
+  const [query, setQuery] = useState(''), [status, setStatus] = useState(initialStatus && (orderStatuses as readonly string[]).includes(initialStatus) ? initialStatus : 'all'), [statusSource, setStatusSource] = useState(initialStatus), [busyId, setBusyId] = useState<number | null>(null);
+  // Follow ?status= when the page is reopened with another filter (e.g. from the counters above).
+  if (statusSource !== initialStatus) { setStatusSource(initialStatus); setStatus(initialStatus && (orderStatuses as readonly string[]).includes(initialStatus) ? initialStatus : 'all'); }
   const visible = useMemo(() => localRows.filter(row => (status === 'all' || row.status === status) && (!query || `${row.reference} ${row.name} ${row.phone} ${row.email} ${row.governorate} ${row.address?.city ?? ''}`.toLowerCase().includes(query.toLowerCase()))), [localRows, query, status]);
   const counts = useMemo(() => Object.fromEntries(orderStatuses.map(item => [item, localRows.filter(row => row.status === item).length])), [localRows]);
   async function advance(row: OrderRow) { const current = (orderStatuses.includes(row.status as OrderStatus) ? row.status : 'pending') as OrderStatus; const next = statusTransitions[current].find(x => x !== 'cancelled' && x !== 'returned'); if (!next) return; setBusyId(row.id); try { const data=await api<{order:OrderRow}>(`/api/admin/orders/${row.id}`, { method:'PATCH', json:{status:next} }); setLocalRows(current=>current.map(item=>item.id===row.id?data.order:item)); } catch (e) { window.alert(e instanceof Error ? e.message : 'Could not update status.'); } finally { setBusyId(null); } }

@@ -1,0 +1,95 @@
+/* Admin theme: every admin page shares the dashboard look (soft cards, KPI tiles, pill controls,
+   gentle entrance motion). Loaded after admin.css and admin-dashboard.css; scoped to .admin-shell. */
+
+.admin-shell{--d-radius:16px;--d-shadow:0 1px 2px rgba(20,20,15,.04),0 8px 24px -12px rgba(20,20,15,.14);--d-shadow-hover:0 2px 4px rgba(20,20,15,.05),0 16px 32px -16px rgba(20,20,15,.25);--d-blue:#3d5a80;--d-gold:#b07c1f;--d-violet:#6d4c9a}
+
+/* page heading */
+.admin-shell .admin-page-heading{align-items:flex-end;margin-bottom:22px;animation:dash-rise .5s cubic-bezier(.2,.7,.2,1) both}
+.admin-shell .admin-page-heading h1{font-size:28px!important;font-weight:800;letter-spacing:-.4px;line-height:1.2;margin-top:6px}
+.admin-shell .admin-page-heading p{font-size:13px;line-height:1.7}
+.admin-shell .admin-eyebrow{background:#fff;border:1px solid var(--a-line);border-radius:999px;padding:4px 10px;letter-spacing:.6px;font-size:10.5px}
+.admin-shell .admin-heading-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* cards */
+.admin-shell .admin-card{border-radius:var(--d-radius);box-shadow:var(--d-shadow);padding:20px 20px 18px;animation:dash-rise .55s cubic-bezier(.2,.7,.2,1) both}
+.admin-shell .admin-card-heading{margin-bottom:14px}
+.admin-shell .admin-card-heading h2{font-size:16px!important;font-weight:800;line-height:1.3}
+.admin-shell .admin-card-heading h3{font-size:14.5px!important;font-weight:800}
+.admin-shell .admin-card-subtitle,.admin-shell .admin-card-heading p{color:var(--a-muted);font-size:12.5px;line-height:1.6;margin-top:3px}
+.admin-shell .admin-grid-2{gap:14px;margin-bottom:14px}
+.admin-shell .admin-grid-2>.admin-card{margin-bottom:0}
+.admin-shell main>.admin-card+.admin-card,.admin-shell main>.admin-grid-2+.admin-card{margin-top:14px}
+
+/* KPI tiles */
+.admin-shell .admin-stats{gap:14px;margin-bottom:14px}
+.admin-shell .admin-stat{position:relative;border-radius:var(--d-radius);box-shadow:var(--d-shadow);padding:16px 16px 14px;gap:5px;overflow:hidden;transition:transform .2s,box-shadow .25s,border-color .2s;animation:dash-rise .55s cubic-bezier(.2,.7,.2,1) both}
+.admin-shell .admin-stat:hover{transform:translateY(-2px);box-shadow:var(--d-shadow-hover);border-color:#d4d4cc}
+.admin-shell .admin-stat>svg{width:30px;height:30px;padding:7px;border-radius:9px;background:var(--a-accent-soft);color:var(--a-accent);margin-bottom:4px;box-sizing:border-box}
+.admin-shell .admin-stat:nth-child(6n+2)>svg{background:#e4f1ea;color:var(--a-success)}
+.admin-shell .admin-stat:nth-child(6n+3)>svg{background:#e6ecf4;color:var(--d-blue)}
+.admin-shell .admin-stat:nth-child(6n+4)>svg{background:#f6eedc;color:var(--d-gold)}
+.admin-shell .admin-stat:nth-child(6n+5)>svg{background:#eee8f6;color:var(--d-violet)}
+.admin-shell .admin-stat:nth-child(6n)>svg{background:#f8e6e2;color:var(--a-danger)}
+.admin-shell .admin-stat strong{font-size:21px;font-weight:800;letter-spacing:-.3px;line-height:1.2;font-variant-numeric:tabular-nums;unicode-bidi:plaintext;text-align:start}
+.admin-shell .admin-stat span{font-size:12.5px;color:var(--a-muted)}
+.admin-shell .admin-stat small{font-size:11.5px;color:var(--a-muted);line-height:1.5}
+.admin-shell .admin-stats>.admin-stat:nth-child(2){animation-delay:50ms}.admin-shell .admin-stats>.admin-stat:nth-child(3){animation-delay:100ms}.admin-shell .admin-stats>.admin-stat:nth-child(4){animation-delay:150ms}.admin-shell .admin-stats>.admin-stat:nth-child(5){animation-delay:200ms}.admin-shell .admin-stats>.admin-stat:nth-child(6){animation-delay:250ms}.admin-shell .admin-stats>.admin-stat:nth-child(n+7){animation-delay:300ms}
+
+/* tables */
+.admin-shell .admin-table th{font-size:11px;letter-spacing:.5px;font-weight:700;padding:8px 10px;white-space:nowrap}
+[dir=rtl] .admin-shell .admin-table th,.admin-shell[dir=rtl] .admin-table th{text-align:right}
+.admin-shell .admin-table td{border-bottom-color:#f1f1ed}
+.admin-shell .admin-table tbody tr{transition:background .15s}
+.admin-shell .admin-table tbody tr:hover{background:#fafaf7}
+.admin-shell .admin-table tfoot td{border-bottom:0}
+.admin-shell .admin-table .num{font-variant-numeric:tabular-nums}
+.admin-shell .admin-product-cell img{border-radius:9px}
+
+/* buttons */
+.admin-shell .admin-btn{border-radius:10px;padding:9px 15px;font-size:13px;transition:background .15s,border-color .15s,transform .15s,box-shadow .2s}
+.admin-shell .admin-btn:hover:not(:disabled){transform:translateY(-1px)}
+.admin-shell .admin-btn-primary{box-shadow:0 4px 12px -6px rgba(205,76,32,.6)}
+.admin-shell .admin-btn-ghost:hover:not(:disabled){box-shadow:var(--d-shadow)}
+.admin-shell .admin-btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+
+/* pill controls: segmented filters, report periods/tabs, filter bars */
+.admin-shell .admin-segmented,.admin-shell .admin-report-periods{display:inline-flex;gap:2px;padding:3px;border-radius:12px;border:1px solid var(--a-line);background:#fff;box-shadow:var(--d-shadow);overflow-x:auto;max-width:100%;scrollbar-width:none}
+.admin-shell .admin-segmented button,.admin-shell .admin-report-periods a{padding:7px 12px;border-radius:9px;font-size:12.5px;color:var(--a-muted);white-space:nowrap;text-decoration:none;transition:background .2s,color .2s;box-shadow:none}
+.admin-shell .admin-segmented button:hover,.admin-shell .admin-report-periods a:hover{background:#f4f4f1;color:var(--a-ink)}
+.admin-shell .admin-segmented button.active,.admin-shell .admin-report-periods a.active{background:var(--a-ink);color:#fff}
+.admin-shell .admin-report-tabs{gap:6px;border-bottom:0;margin-bottom:16px;padding-bottom:2px;scrollbar-width:none}
+.admin-shell .admin-report-tabs a{border:1px solid var(--a-line);border-radius:999px;padding:7px 14px;background:#fff;font-size:12.5px;transition:background .2s,color .2s,border-color .2s}
+.admin-shell .admin-report-tabs a:hover{border-color:#cfd0c8}
+.admin-shell .admin-report-tabs a.active{background:var(--a-accent);border-color:var(--a-accent);color:#fff}
+.admin-shell .admin-filter-bar{display:inline-flex;gap:2px;padding:3px;border-radius:12px;border:1px solid var(--a-line);background:#fff;box-shadow:var(--d-shadow);margin-bottom:16px;max-width:100%;overflow-x:auto}
+.admin-shell .admin-filter-bar .admin-btn{border:0;box-shadow:none;background:transparent;padding:7px 12px;border-radius:9px;font-weight:500;color:var(--a-muted)}
+.admin-shell .admin-filter-bar .admin-btn:hover{background:#f4f4f1;transform:none;color:var(--a-ink)}
+.admin-shell .admin-filter-bar .admin-btn.active{background:var(--a-ink);color:#fff}
+.admin-shell .admin-toolbar{gap:10px}
+.admin-shell .admin-search{border-radius:12px;background:#fff;box-shadow:var(--d-shadow);min-height:40px}
+
+/* forms */
+.admin-shell .admin-field input,.admin-shell .admin-field select,.admin-shell .admin-field textarea,.admin-shell .admin-form-grid input,.admin-shell .admin-form-grid select,.admin-shell .admin-form-grid textarea{border-radius:10px;transition:border-color .15s,box-shadow .15s}
+.admin-shell .admin-field input:focus,.admin-shell .admin-field select:focus,.admin-shell .admin-field textarea:focus,.admin-shell .admin-form-grid input:focus,.admin-shell .admin-form-grid select:focus,.admin-shell .admin-form-grid textarea:focus{border-color:var(--a-accent);box-shadow:0 0 0 3px rgba(205,76,32,.12);outline:none}
+
+/* alerts, badges, modals, footnotes */
+.admin-shell .admin-alert{border-radius:12px}
+.admin-shell .admin-alert.info{background:#eef2f8;border-color:#d3dcea;color:var(--d-blue)}
+.admin-shell .admin-badge.info{background:#e6ecf4;color:var(--d-blue)}
+.admin-shell .admin-badge.muted{background:#efefeb;color:var(--a-muted)}
+.admin-shell .admin-modal-backdrop .admin-card,.admin-shell [role=dialog].admin-card{border-radius:18px;box-shadow:0 30px 60px -20px rgba(0,0,0,.35)}
+.admin-shell .admin-footnote{font-size:12px;color:var(--a-muted);line-height:1.7;margin-top:12px}
+.admin-shell .admin-empty{padding:28px 0}
+
+/* report helpers used by the rebuilt reports and finance pages */
+.admin-shell .rp-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:14px}
+.admin-shell .rp-custom{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.admin-shell .rp-custom label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--a-muted)}
+.admin-shell .rp-custom input{border:1px solid var(--a-line);border-radius:10px;padding:7px 9px;background:#fff;font:inherit;font-size:12.5px}
+
+@media (max-width:640px){
+  .admin-shell .admin-page-heading h1{font-size:23px!important}
+  .admin-shell .admin-stat strong{font-size:17px}
+  .admin-shell .admin-card{padding:16px 14px}
+}
+@media (prefers-reduced-motion:reduce){.admin-shell *{animation:none!important;transition:none!important}}

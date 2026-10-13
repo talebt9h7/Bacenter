@@ -1,179 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { Bars, Card, CountUp, Delta, Donut, Heatmap, Kpi, PALETTE, TrendChart, ago, compact, fmt, iqd, pct, type Lang } from './dash-ui';
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Boxes, CalendarDays, CircleDollarSign, Clock, Coins, Flame, Layers, MapPin, MessageSquare, Package, PackageX, Plus, Receipt, RefreshCw, ShoppingBag, ShoppingCart, Sparkles, Truck, Users, Wallet } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { DashboardData } from '@/lib/dashboard-data';
 
-type Lang = 'ar' | 'en';
 const STATUS_AR: Record<string, string> = { pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التجهيز', shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي', returned: 'مرتجع' };
 const STATUS_EN: Record<string, string> = { pending: 'Pending', confirmed: 'Confirmed', processing: 'Processing', shipped: 'Shipped', delivered: 'Delivered', cancelled: 'Cancelled', returned: 'Returned' };
 const SOURCE_AR: Record<string, string> = { website: 'الموقع', instagram: 'إنستغرام', whatsapp: 'واتساب', facebook: 'فيسبوك', phone: 'هاتف', store: 'المتجر', other: 'أخرى', tiktok: 'تيك توك' };
-const PALETTE = ['#cd4c20', '#2f6b4f', '#3d5a80', '#c08a2b', '#7a5195', '#5f8575', '#a1593f', '#8d99ae'];
-const WEEKDAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const fmt = (n: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.round(n || 0));
-const iqd = (n: number) => `${fmt(n)} IQD`;
-const compact = (n: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n || 0);
-const pct = (n: number, digits = 0) => `${(n * 100).toFixed(digits)}%`;
-function change(current: number, previous: number) {
-  if (!previous) return current ? { label: 'new', value: 1 } : { label: '—', value: 0 };
-  const value = (current - previous) / Math.abs(previous);
-  return { label: `${value > 0 ? '+' : ''}${(value * 100).toFixed(Math.abs(value) < 0.1 ? 1 : 0)}%`, value };
-}
-function ago(iso: string, lang: Lang) {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 60) return lang === 'ar' ? `قبل ${minutes} د` : `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 48) return lang === 'ar' ? `قبل ${hours} س` : `${hours}h ago`;
-  return lang === 'ar' ? `قبل ${Math.round(hours / 24)} يوم` : `${Math.round(hours / 24)}d ago`;
-}
-
-/** Counts up to the value once it scrolls into view. Static for people who prefer reduced motion. */
-function CountUp({ value, format = fmt }: { value: number; format?: (n: number) => string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [shown, setShown] = useState(value);
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(value); return; }
-    let frame = 0;
-    const run = () => {
-      const start = performance.now(), duration = 900;
-      const tick = (now: number) => { const t = Math.min(1, (now - start) / duration); setShown(value * (1 - Math.pow(1 - t, 3))); if (t < 1) frame = requestAnimationFrame(tick); };
-      frame = requestAnimationFrame(tick);
-    };
-    const observer = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) { observer.disconnect(); run(); } });
-    observer.observe(node);
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
-  }, [value]);
-  return <span ref={ref}>{format(shown)}</span>;
-}
-
-function Delta({ current, previous, inverse = false, lang }: { current: number; previous: number; inverse?: boolean; lang: Lang }) {
-  const c = change(current, previous);
-  const good = inverse ? c.value < 0 : c.value > 0;
-  const tone = c.value === 0 ? 'flat' : good ? 'up' : 'down';
-  const label = c.label === 'new' ? (lang === 'ar' ? 'جديد' : 'New') : c.label;
-  return <span className={`dash-delta ${tone}`} title={lang === 'ar' ? `الفترة السابقة: ${fmt(previous)}` : `Previous period: ${fmt(previous)}`}>{c.value > 0 ? <ArrowUpRight size={13} /> : c.value < 0 ? <ArrowDownRight size={13} /> : null}{label}</span>;
-}
-
-function Sparkline({ values, tone = 'accent' }: { values: number[]; tone?: string }) {
-  if (values.length < 2) return <svg className="dash-spark" viewBox="0 0 100 30" aria-hidden="true" />;
-  const max = Math.max(...values, 1), min = Math.min(...values, 0);
-  const points = values.map((v, i) => `${(i / (values.length - 1)) * 100},${28 - ((v - min) / (max - min || 1)) * 26}`).join(' ');
-  return <svg className={`dash-spark ${tone}`} viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-    <polygon points={`0,30 ${points} 100,30`} className="dash-spark-area" />
-    <polyline points={points} pathLength={1} className="dash-spark-line" vectorEffect="non-scaling-stroke" />
-  </svg>;
-}
-
-function Kpi({ icon, label, value, format, current, previous, inverse, spark, note, tone, lang, href, delay }: { icon: ReactNode; label: string; value: number; format?: (n: number) => string; current: number; previous: number; inverse?: boolean; spark?: number[]; note?: ReactNode; tone?: string; lang: Lang; href?: string; delay: number }) {
-  const body = <>
-    <div className="dash-kpi-top"><span className={`dash-kpi-icon ${tone ?? ''}`}>{icon}</span><span className="dash-kpi-label">{label}</span></div>
-    <div className="dash-kpi-row"><strong className="dash-kpi-value"><CountUp value={value} format={format} /></strong><Delta current={current} previous={previous} inverse={inverse} lang={lang} /></div>
-    {note && <small className="dash-kpi-note">{note}</small>}
-    {spark && <Sparkline values={spark} tone={tone} />}
-  </>;
-  return href ? <Link href={href} className="dash-kpi dash-rise" style={{ animationDelay: `${delay}ms` }}>{body}</Link> : <div className="dash-kpi dash-rise" style={{ animationDelay: `${delay}ms` }}>{body}</div>;
-}
-
-function Card({ title, icon, action, children, className = '', delay = 0 }: { title: ReactNode; icon?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; delay?: number }) {
-  return <section className={`dash-card dash-rise ${className}`} style={{ animationDelay: `${delay}ms` }}>
-    <header className="dash-card-head"><h2>{icon}{title}</h2>{action}</header>
-    {children}
-  </section>;
-}
-
-/** Revenue (area), profit (line) and the previous period's revenue (dashed), with a hover readout. */
-function RevenueChart({ data, finance, lang }: { data: DashboardData['daily']; finance: boolean; lang: Lang }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const W = 1000, H = 260, pad = 8;
-  const max = Math.max(1, ...data.map(d => Math.max(d.revenue, d.previousRevenue, d.profit)));
-  const min = Math.min(0, ...data.map(d => d.profit));
-  const x = (i: number) => data.length === 1 ? W / 2 : pad + (i / (data.length - 1)) * (W - pad * 2);
-  const y = (v: number) => H - 22 - ((v - min) / (max - min || 1)) * (H - 40);
-  const path = (pick: (d: DashboardData['daily'][number]) => number) => data.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(pick(d)).toFixed(1)}`).join(' ');
-  const revenuePath = path(d => d.revenue);
-  const area = `${revenuePath} L${x(data.length - 1)},${y(0)} L${x(0)},${y(0)} Z`;
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => min + (max - min) * t);
-  const labelEvery = Math.max(1, Math.ceil(data.length / 8));
-  const point = hover != null ? data[hover] : null;
-  function move(event: React.PointerEvent<HTMLDivElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-    setHover(Math.round(ratio * (data.length - 1)));
-  }
-  const total = data.reduce((s, d) => s + d.revenue, 0);
-  if (!total && !data.some(d => d.previousRevenue)) return <div className="dash-empty"><Sparkles size={22} />{lang === 'ar' ? 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.' : 'No delivered sales in this period yet.'}</div>;
-  return <div className="dash-chart" dir="ltr">
-    <div className="dash-chart-axis">{ticks.slice().reverse().map((t, i) => <span key={i}>{compact(t)}</span>)}</div>
-    <div className="dash-chart-plot" onPointerMove={move} onPointerLeave={() => setHover(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={lang === 'ar' ? 'مخطط الإيرادات والأرباح' : 'Revenue and profit chart'}>
-        <defs><linearGradient id="dashRevenue" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#cd4c20" stopOpacity=".28" /><stop offset="100%" stopColor="#cd4c20" stopOpacity="0" /></linearGradient></defs>
-        {ticks.map((t, i) => <line key={i} x1="0" x2={W} y1={y(t)} y2={y(t)} className="dash-gridline" vectorEffect="non-scaling-stroke" />)}
-        <path d={path(d => d.previousRevenue)} className="dash-line previous" pathLength={1} vectorEffect="non-scaling-stroke" />
-        <path d={area} className="dash-area" fill="url(#dashRevenue)" />
-        <path d={revenuePath} className="dash-line revenue" pathLength={1} vectorEffect="non-scaling-stroke" />
-        {finance && <path d={path(d => d.profit)} className="dash-line profit" pathLength={1} vectorEffect="non-scaling-stroke" />}
-        {hover != null && <line x1={x(hover)} x2={x(hover)} y1="0" y2={H - 22} className="dash-cursor" vectorEffect="non-scaling-stroke" />}
-      </svg>
-      {point && <>
-        <i className="dash-dot revenue" style={{ left: `${(x(hover!) / W) * 100}%`, top: `calc((100% - 22px) * ${y(point.revenue) / H})` }} />
-        {finance && <i className="dash-dot profit" style={{ left: `${(x(hover!) / W) * 100}%`, top: `calc((100% - 22px) * ${y(point.profit) / H})` }} />}
-        <div className={`dash-tip ${hover! > data.length / 2 ? 'left' : ''}`} style={{ left: `${(x(hover!) / W) * 100}%` }}>
-          <b>{point.key}</b>
-          <span><i className="sw revenue" />{lang === 'ar' ? 'الإيراد' : 'Revenue'} <strong>{iqd(point.revenue)}</strong></span>
-          {finance && <span><i className="sw profit" />{lang === 'ar' ? 'الربح' : 'Profit'} <strong>{iqd(point.profit)}</strong></span>}
-          <span><i className="sw previous" />{lang === 'ar' ? 'الفترة السابقة' : 'Previous'} <strong>{iqd(point.previousRevenue)}</strong></span>
-          <span><i className="sw orders" />{lang === 'ar' ? 'طلبات جديدة' : 'New orders'} <strong>{point.orders}</strong></span>
-        </div>
-      </>}
-      <div className="dash-chart-x">{data.map((d, i) => i % labelEvery === 0 || i === data.length - 1 ? <span key={d.key} style={{ left: `${(x(i) / W) * 100}%` }}>{d.key.length > 7 ? d.key.slice(5) : d.key}</span> : null)}</div>
-    </div>
-  </div>;
-}
-
-function Donut({ rows, lang }: { rows: { key: string; revenue: number; orders: number }[]; lang: Lang }) {
-  const total = rows.reduce((s, r) => s + r.revenue, 0);
-  const R = 52, C = 2 * Math.PI * R;
-  const offsets = rows.map((_, i) => rows.slice(0, i).reduce((sum, r) => sum + (r.revenue / (total || 1)) * C, 0));
-  if (!total) return <div className="dash-empty small">{lang === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</div>;
-  return <div className="dash-donut">
-    <svg viewBox="0 0 140 140" aria-hidden="true">
-      <circle cx="70" cy="70" r={R} className="dash-donut-track" />
-      {rows.map((r, i) => { const len = (r.revenue / total) * C; return <circle key={r.key} cx="70" cy="70" r={R} stroke={PALETTE[i % PALETTE.length]} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offsets[i]} className="dash-donut-seg" style={{ animationDelay: `${i * 90}ms` }} />; })}
-    </svg>
-    <div className="dash-donut-center"><strong>{rows.length}</strong><span>{lang === 'ar' ? 'مصادر' : 'sources'}</span></div>
-    <ul className="dash-legend">{rows.map((r, i) => <li key={r.key}><i style={{ background: PALETTE[i % PALETTE.length] }} /><span>{lang === 'ar' ? SOURCE_AR[r.key] ?? r.key : r.key.replace(/^./, c => c.toUpperCase())}</span><b>{pct(r.revenue / total)}</b><small>{r.orders} {lang === 'ar' ? 'طلب' : 'orders'}</small></li>)}</ul>
-  </div>;
-}
-
-function Bars({ rows, lang }: { rows: DashboardData['byGovernorate']; lang: Lang }) {
-  const max = Math.max(1, ...rows.map(r => r.revenue));
-  if (!rows.length) return <div className="dash-empty small">{lang === 'ar' ? 'لا توجد بيانات بعد.' : 'No data yet.'}</div>;
-  return <ul className="dash-bars">{rows.map((r, i) => <li key={r.key}>
-    <span className="dash-bar-label">{lang === 'ar' ? r.nameAr : r.nameEn}</span>
-    <span className="dash-bar-track"><i style={{ width: `${(r.revenue / max) * 100}%`, animationDelay: `${i * 70}ms` }} /></span>
-    <span className="dash-bar-value">{compact(r.revenue)}<small>{r.orders}</small></span>
-  </li>)}</ul>;
-}
-
-function Heatmap({ grid, lang }: { grid: number[][]; lang: Lang }) {
-  const max = Math.max(1, ...grid.flat());
-  const total = grid.flat().reduce((s, v) => s + v, 0);
-  let best = { day: 0, hour: 0, value: -1 };
-  grid.forEach((row, day) => row.forEach((value, hour) => { if (value > best.value) best = { day, hour, value }; }));
-  const days = lang === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN;
-  return <div className="dash-heat" dir="ltr">
-    <div className="dash-heat-grid">{grid.map((row, day) => <div className="dash-heat-row" key={day}><span className="dash-heat-day">{days[day]}</span>{row.map((value, hour) => <i key={hour} title={`${days[day]} ${String(hour).padStart(2, '0')}:00 · ${value}`} style={{ opacity: value ? 0.15 + 0.85 * (value / max) : 1, animationDelay: `${(day * 24 + hour) * 4}ms` }} className={value ? 'on' : ''} />)}</div>)}
-      <div className="dash-heat-hours"><span />{[0, 6, 12, 18, 23].map(h => <b key={h} style={{ left: `calc(36px + (100% - 36px) * ${h / 24})` }}>{String(h).padStart(2, '0')}</b>)}</div>
-    </div>
-    <p className="dash-foot">{total ? (lang === 'ar' ? `أكثر وقت للطلبات: ${days[best.day]} الساعة ${String(best.hour).padStart(2, '0')}:00 (بتوقيت بغداد)` : `Busiest: ${days[best.day]} at ${String(best.hour).padStart(2, '0')}:00 (Baghdad time)`) : (lang === 'ar' ? 'لا توجد طلبات في هذه الفترة.' : 'No orders in this period.')}</p>
-  </div>;
-}
-
 export function DashboardView({ data, adminName }: { data: DashboardData; adminName?: string }) {
   const { language } = useLanguage();
   const lang: Lang = language === 'ar' ? 'ar' : 'en';
@@ -237,7 +73,11 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
 
     <div className="dash-grid main">
       <Card delay={340} className="span-2" icon={<Flame size={17} />} title={tt('Revenue & profit', 'الإيراد والربح')} action={<div className="dash-legend-inline"><span><i className="sw revenue" />{tt('Revenue', 'الإيراد')}</span>{data.finance && <span><i className="sw profit" />{tt('Profit', 'الربح')}</span>}<span><i className="sw previous" />{tt('Previous period', 'الفترة السابقة')}</span></div>}>
-        <RevenueChart data={data.daily} finance={data.finance} lang={lang} />
+        <TrendChart labels={data.daily.map(d => d.key)} emptyText={tt('No delivered sales in this period yet.', 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.')} series={[
+          { key: 'previous', label: tt('Previous period', 'الفترة السابقة'), values: data.daily.map(d => d.previousRevenue), color: '#a7aaa2', dashed: true },
+          { key: 'revenue', label: tt('Revenue', 'الإيراد'), values: data.daily.map(d => d.revenue), color: '#cd4c20', area: true },
+          ...(data.finance ? [{ key: 'profit', label: tt('Profit', 'الربح'), values: data.daily.map(d => d.profit), color: '#2f6b4f' }] : []),
+        ]} extra={[{ label: tt('New orders', 'طلبات جديدة'), values: data.daily.map(d => d.orders) }]} />
       </Card>
       <Card delay={380} icon={<Layers size={17} />} title={tt('Order pipeline', 'مسار الطلبات')} action={<Link href="/admin/orders" className="dash-link">{tt('Orders', 'الطلبات')} <ArrowRight size={13} /></Link>}>
         <ol className="dash-pipeline">{data.pipeline.map((s, i) => <li key={s.status} className={`st-${s.status}`}>
@@ -256,8 +96,8 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
     </div>
 
     <div className="dash-grid three">
-      <Card delay={420} icon={<ShoppingBag size={17} />} title={tt('Sales by channel', 'المبيعات حسب القناة')}><Donut rows={data.bySource} lang={lang} /></Card>
-      <Card delay={460} icon={<MapPin size={17} />} title={tt('Top governorates', 'أعلى المحافظات')} action={<span className="dash-muted">{tt(`${data.governoratesLive}/18 live`, `${data.governoratesLive}/18 مفعّلة`)}</span>}><Bars rows={data.byGovernorate} lang={lang} /></Card>
+      <Card delay={420} icon={<ShoppingBag size={17} />} title={tt('Sales by channel', 'المبيعات حسب القناة')}><Donut centerLabel={tt('sources', 'مصادر')} emptyText={tt('No data yet.', 'لا توجد بيانات بعد.')} rows={data.bySource.map(r => ({ key: r.key, label: lang === 'ar' ? SOURCE_AR[r.key] ?? r.key : r.key.replace(/^./, c => c.toUpperCase()), value: r.revenue, sub: `${r.orders} ${tt('orders', 'طلب')}` }))} /></Card>
+      <Card delay={460} icon={<MapPin size={17} />} title={tt('Top governorates', 'أعلى المحافظات')} action={<span className="dash-muted">{tt(`${data.governoratesLive}/18 live`, `${data.governoratesLive}/18 مفعّلة`)}</span>}><Bars emptyText={tt('No data yet.', 'لا توجد بيانات بعد.')} color="linear-gradient(90deg,#3d5a80,#6f8db5)" rows={data.byGovernorate.map(r => ({ key: r.key, label: lang === 'ar' ? r.nameAr : r.nameEn, value: r.revenue, sub: String(r.orders) }))} /></Card>
       <Card delay={500} icon={<Clock size={17} />} title={tt('When orders come in', 'أوقات وصول الطلبات')}><Heatmap grid={data.heatmap} lang={lang} /></Card>
     </div>
 
