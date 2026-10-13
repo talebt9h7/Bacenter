@@ -158,3 +158,28 @@ html[lang="ar"] body * {
     height: 18px !important;
   }
 }
+
+
+/* Purchase button typography follows the storefront's shared font.
+   WhatsApp keeps its official brand green. */
+.buy-actions .product-add-to-cart,
+.buy-actions .whatsapp-inquiry-button {
+  font-family: inherit !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.buy-actions .whatsapp-inquiry-button {
+  background: #25D366 !important;
+  border-color: #25D366 !important;
+  color: #fff !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,.10) !important;
+}
+.buy-actions .whatsapp-inquiry-button:hover {
+  background: #20BD5A !important;
+  border-color: #20BD5A !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 9px rgba(0,0,0,.13) !important;
+}
+.buy-actions .whatsapp-inquiry-button .whatsapp-brand-icon {
+  color: #fff !important;
+}
