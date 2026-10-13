@@ -225,7 +225,6 @@ export function Checkout() {
           <ul className="co-trust">
             <li><Banknote size={15} aria-hidden="true" /> {ar ? 'تدفع عند الاستلام' : 'Pay on delivery'}</li>
             <li><PhoneCall size={15} aria-hidden="true" /> {ar ? 'نتصل بك قبل الشحن' : 'We call before dispatch'}</li>
-            <li><RotateCcw size={15} aria-hidden="true" /> {ar ? 'إرجاع خلال 30 يوماً' : '30-day returns'}</li>
           </ul>
           <p className="co-legal">{t('By continuing, you agree to our')} <Link href="/info/terms">{ar ? 'الشروط والأحكام' : 'terms & conditions'}</Link>. {whatsapp ? <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">{ar ? 'عندك سؤال؟ راسلنا واتساب' : 'Questions? WhatsApp us'}</a> : <><MapPin size={11} aria-hidden="true" /> {config.settings.supportPhone}</>}</p>
         </div>

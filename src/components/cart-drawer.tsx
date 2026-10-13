@@ -110,7 +110,6 @@ export function CartDrawer() {
         <ul className="bag-trust">
           <li><Banknote size={15} aria-hidden="true" /> {ar ? 'الدفع نقداً عند الاستلام' : 'Cash on delivery'}</li>
           <li><Truck size={15} aria-hidden="true" /> {ar ? 'لكل محافظات العراق' : 'All 18 governorates'}</li>
-          <li><RotateCcw size={15} aria-hidden="true" /> {ar ? 'إرجاع خلال 30 يوماً' : '30-day returns'}</li>
         </ul>
         <div className="bag-footer-links">
           <button type="button" onClick={close}>{ar ? 'متابعة التسوق' : 'Keep shopping'}</button>
