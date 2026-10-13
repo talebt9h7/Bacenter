@@ -11,12 +11,14 @@ import { ProductCard } from './product-card';
 import { PromoCountdown, usePromoLive } from './promo-price';
 import { track } from '@/lib/track';
 import { Modal, ModalHeading } from './modal';
+import { ProductVideo } from './product-video';
+import type { ProductPageBanner } from '@/lib/product-page-banner';
 import { formatDimensions, formatWarranty, formatWeight, pick, pickList, type HighlightIcon } from '@/lib/product-details';
 import { BadgeCheck, Coins, CreditCard as CardIcon, Droplets, Feather, Gift, Hand, KeyRound, Laptop, Lock, Magnet, Nfc, RulerDimensionLine, Smartphone, Zap } from 'lucide-react';
 
 const HIGHLIGHT_ICON_COMPONENTS: Record<HighlightIcon, typeof CardIcon> = { cards: CardIcon, cash: Banknote, coins: Coins, rfid: Nfc, slim: Feather, size: RulerDimensionLine, leather: Layers, handmade: Hand, magnet: Magnet, lock: Lock, key: KeyRound, phone: Smartphone, laptop: Laptop, water: Droplets, weight: Feather, warranty: BadgeCheck, gift: Gift, quick: Zap };
 
-export function ProductDetail({ product, related, initialColor }: { product: Product; related: Product[]; initialColor?: string }) {
+export function ProductDetail({ product, related, initialColor, banner }: { product: Product; related: Product[]; initialColor?: string; banner?: ProductPageBanner | null }) {
   const { language } = useLanguage();
   const displayColorName = (item: ProductColor) => language === 'ar' ? (item.nameAr || item.name) : item.name;
   // ?color= may hold the English or the Arabic colour name (links are built in either language).
@@ -188,7 +190,14 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         {pick(language, item.caption, item.captionAr) && <figcaption>{pick(language, item.caption, item.captionAr)}</figcaption>}
         <img src={mediaSrc(item.image, 960)} alt={`${displayName} — ${pick(language, item.caption, item.captionAr) || (language === 'ar' ? `صورة ${index + 1}` : `photo ${index + 1}`)}`} loading="lazy" />
       </figure>)}</div>
-    </section>}{related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
+    </section>}
+    {details.videoId && <ProductVideo id={details.videoId} title={pick(language, details.videoTitle, details.videoTitleAr) || displayName} heading={pick(language, details.videoTitle, details.videoTitleAr)} language={language} />}
+    {banner?.enabled && banner.image && (() => {
+      const alt = pick(language, banner.alt, banner.altAr) || displayName;
+      const picture = <picture>{banner.mobileImage && <source media="(max-width: 700px)" srcSet={mediaSrc(banner.mobileImage, 960)} />}<img src={mediaSrc(banner.image, 1920)} alt={alt} loading="lazy" /></picture>;
+      return <section className="product-page-banner" aria-label={alt}>{banner.href ? <Link href={banner.href}>{picture}</Link> : picture}</section>;
+    })()}
+    {related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
     {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={mediaSrc(images[safeIndex], 1600)} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
     {product.colors.length > 0 && <link rel="prefetch" href={mediaSrc(primaryImage(color), 1280)} />}
   </main>;

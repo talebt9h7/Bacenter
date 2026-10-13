@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ImagePlus, LoaderCircle, Plus, Trash2 } from 'lucide-react';
-import { HIGHLIGHT_ICONS, LIMITS, formatDimensions, formatWarranty, formatWeight, type HighlightIcon, type ProductDetails } from '@/lib/product-details';
+import { HIGHLIGHT_ICONS, LIMITS, formatDimensions, formatWarranty, formatWeight, youtubeId, type HighlightIcon, type ProductDetails } from '@/lib/product-details';
 
 type Props = { value: ProductDetails; onChange: (next: ProductDetails) => void; language: 'ar' | 'en' };
 
@@ -138,6 +138,15 @@ export function ProductContentEditor({ value, onChange, language }: Props) {
       </div>)}
       <input ref={storyInput} type="file" multiple accept="image/jpeg,image/png,image/webp" hidden onChange={e => void upload('story', e.target.files)} />
       {value.story.length < LIMITS.story && <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={busy !== null} onClick={() => storyInput.current?.click()}>{busy === 'story' ? <LoaderCircle size={14} className="spin" /> : <ImagePlus size={14} />} {L('Upload photos', 'رفع صور')}</button>}
+    </div>
+
+    <h3 className="pce-title">{L('8. Product video (YouTube)', '8. فيديو المنتج (يوتيوب)')}</h3>
+    <p className="admin-hint">{L('Paste a YouTube link. It appears near the end of the product page, above the closing image.', 'الصق رابط فيديو من يوتيوب. يظهر قرب نهاية صفحة المنتج، فوق الصورة الأخيرة.')}</p>
+    <label className="admin-field"><span>{L('YouTube link', 'رابط يوتيوب')}</span><input id="pce-video-url" dir="ltr" value={value.videoId} onChange={e => set({ videoId: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" />{value.videoId.trim() !== '' && !youtubeId(value.videoId) && <small style={{ color: 'var(--a-danger)' }}>{L('Not a valid YouTube link', 'الرابط مو رابط يوتيوب صحيح')}</small>}</label>
+    {youtubeId(value.videoId) && <img className="pce-video-thumb" src={`https://i.ytimg.com/vi/${youtubeId(value.videoId)}/hqdefault.jpg`} alt="" style={{ width: 240, borderRadius: 10, aspectRatio: '16/9', objectFit: 'cover' }} />}
+    <div className="pce-pair">
+      <label className="admin-field"><span>{L('Title (Arabic)', 'العنوان (عربي)')}</span><input id="pce-video-title-ar" dir="rtl" maxLength={120} value={value.videoTitleAr} onChange={e => set({ videoTitleAr: e.target.value })} placeholder="شاهد المنتج" /></label>
+      <label className="admin-field"><span>{L('Title (English)', 'العنوان (إنكليزي)')}</span><input id="pce-video-title-en" dir="ltr" maxLength={120} value={value.videoTitle} onChange={e => set({ videoTitle: e.target.value })} placeholder="See it in action" /></label>
     </div>
   </section>;
 }

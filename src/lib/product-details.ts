@@ -47,6 +47,8 @@ export type ProductDetails = {
   warrantyMonths: number | null; warranty: string; warrantyAr: string;
   materials: string; materialsAr: string;
   story: StoryItem[];
+  /** YouTube video shown near the end of the product page ('' when none). */
+  videoId: string; videoTitle: string; videoTitleAr: string;
 };
 
 export const LIMITS = { highlights: 10, features: 20, featureLength: 300, specs: 30, story: 20, text: 2000, headline: 160 } as const;
@@ -88,7 +90,17 @@ export function cleanDetails(raw: unknown): ProductDetails {
     warranty: str(d.warranty, LIMITS.text), warrantyAr: str(d.warrantyAr, LIMITS.text),
     materials: str(d.materials, LIMITS.text), materialsAr: str(d.materialsAr, LIMITS.text),
     story,
+    videoId: youtubeId(d.videoId) || youtubeId(d.videoUrl), videoTitle: str(d.videoTitle, 120), videoTitleAr: str(d.videoTitleAr, 120),
   };
+}
+
+/** Accepts any usual YouTube link (watch, youtu.be, shorts, embed, live) or a bare 11-character ID. */
+export function youtubeId(input: unknown) {
+  if (typeof input !== 'string') return '';
+  const value = input.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(value)) return value;
+  const match = value.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return match ? match[1] : '';
 }
 
 const hasArabic = (text: string) => /[؀-ۿ]/.test(text);
