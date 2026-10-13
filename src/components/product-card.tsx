@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Plus, LoaderCircle } from 'lucide-react';
-import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, type Product } from '@/lib/types';
+import { mediaSrc, mediaSrcSet, primaryImage, type Product } from '@/lib/types';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
@@ -26,7 +26,6 @@ export function ProductCard({ product, compact = false }: { product: Product; co
     <div className="product-image-wrap">
       <Link href={href} prefetch onPointerDown={warmImage} onMouseEnter={warmImage} className="product-image-link" aria-label={`${language === 'ar' ? 'عرض' : 'View'} ${displayName}`}>
         <img src={mediaSrc(primaryImage(color), 640)} srcSet={mediaSrcSet(primaryImage(color), [320, 480, 640, 960])} sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw" alt={`${displayName} in ${language === 'ar' ? (color.nameAr || color.name) : color.name}`} loading="lazy" className="product-image" />
-        {!compact && <img src={mediaSrc(hoverImage(color), 640)} srcSet={mediaSrcSet(hoverImage(color), [320, 480, 640, 960])} sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw" alt="" loading="lazy" className="product-image product-image-hover" />}
       </Link>
       {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className={`product-badge ${product.badge.startsWith('NEW') ? 'new-badge' : ''}`}>{language === 'ar' ? (product.badge === 'NEW' ? 'جديد' : product.badge === 'SAVE' ? 'وفر' : product.badge) : product.badge}</span>}
       {!compact && !soldOut && <button className="quick-add" aria-label={`${language === 'ar' ? 'إضافة' : 'Add'} ${displayName} ${language === 'ar' ? 'إلى السلة' : 'to bag'}`} title={language === 'ar' ? 'إضافة سريعة إلى السلة' : 'Quick add to bag'} disabled={busy} onClick={add}>{adding ? <LoaderCircle className="spin" size={18} /> : <Plus size={21} strokeWidth={1.4} />}</button>}

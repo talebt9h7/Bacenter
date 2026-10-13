@@ -74,3 +74,7 @@ html body .trending-section .product-rail {
   html body .product-card .product-card-title { font-size: 15px; }
   html body .product-card .product-card-details { font-size: 12.5px; }
 }
+
+/* No second photo or zoom on hover/tap: tapping the card opens the product page directly. */
+html body .product-card .product-image-wrap:hover .product-image { transform: none; }
+html body .product-card .product-image-hover { display: none; }
