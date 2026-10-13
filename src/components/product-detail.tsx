@@ -30,7 +30,7 @@ export function ProductDetail({ product, related, initialColor, banner }: { prod
   const [loadedPhoto, setLoadedPhoto] = useState('');
   const [imageIndex, setImageIndex] = useState(startColor.primaryIndex);
   const [zoom, setZoom] = useState(false);
-  const { moneyIqd, money, region, addToCart, busy, freeShippingUsd, settings } = useStore();
+  const { moneyIqd, money, region, addToCart, busy, settings } = useStore();
   const displayName = language === 'ar' ? (product.nameAr || product.name) : product.name;
   const displaySubtitle = language === 'ar' ? (product.subtitleAr || product.subtitle) : product.subtitle;
   const displayDescription = language === 'ar' ? (product.descriptionAr || product.description) : product.description;
@@ -180,7 +180,7 @@ export function ProductDetail({ product, related, initialColor, banner }: { prod
           <summary>{language === 'ar' ? 'المواد والمكونات' : 'Materials & composition'}</summary>
           <div><p>{materials}</p><Link href="/info/our-materials">{t('A closer look at our materials')}</Link></div>
         </details>}
-        <details className="product-accordion"><summary>{t('Shipping & returns')}</summary><div>{language === 'ar' ? <>نوصل إلى جميع محافظات العراق مع الدفع عند الاستلام. يصل الطلب إلى بغداد عادة خلال 1–2 يوم عمل، وإلى باقي المحافظات خلال 2–5 أيام. الطلبات فوق {moneyIqd(freeShippingUsd * region.rate)} تحصل على توصيل مجاني. <Link href="/info/shipping">{t('Find out more.')}</Link></> : <>We deliver to all 18 governorates of Iraq with cash on delivery. Baghdad usually arrives in 1–2 business days, other governorates in 2–5. Orders over {moneyIqd(freeShippingUsd * region.rate)} ship free. <Link href="/info/shipping">{t('Find out more.')}</Link></>}</div></details>
+        <details className="product-accordion"><summary>{t('Shipping & returns')}</summary><div>{language === 'ar' ? <>نوصل إلى جميع محافظات العراق مع الدفع عند الاستلام. يصل الطلب إلى بغداد عادة خلال 1–2 يوم عمل، وإلى باقي المحافظات خلال 2–5 أيام. الطلبات فوق {moneyIqd(settings.freeShippingThreshold)} تحصل على توصيل مجاني. <Link href="/info/shipping">{t('Find out more.')}</Link></> : <>We deliver to all 18 governorates of Iraq with cash on delivery. Baghdad usually arrives in 1–2 business days, other governorates in 2–5. Orders over {moneyIqd(settings.freeShippingThreshold)} ship free. <Link href="/info/shipping">{t('Find out more.')}</Link></>}</div></details>
       </div>
     </div>
 

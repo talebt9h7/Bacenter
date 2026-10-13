@@ -166,6 +166,11 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  // The free-delivery threshold is in Iraqi dinars. A small number (e.g. 97) is a dollar amount typed by mistake.
+  if (patch.freeShippingThreshold !== undefined && patch.freeShippingThreshold > 0 && patch.freeShippingThreshold < 1000) {
+    return NextResponse.json({ error: 'حد التوصيل المجاني يُكتب بالدينار العراقي (مثلاً 150000)، مو بالدولار. Free delivery threshold is in IQD, e.g. 150000.' }, { status: 400 });
+  }
+
   if (
     patch.exchangeRate !== undefined &&
     patch.exchangeRate < 1
