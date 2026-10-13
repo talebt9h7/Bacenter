@@ -78,3 +78,12 @@ html body .trending-section .product-rail {
 /* No second photo or zoom on hover/tap: tapping the card opens the product page directly. */
 html body .product-card .product-image-wrap:hover .product-image { transform: none; }
 html body .product-card .product-image-hover { display: none; }
+
+/* Product page main photo: show the original colours. The low-res placeholder sits behind the
+   photo only until it loads; the photo itself is opaque and no longer multiplied over it. */
+html body .product-main-image { background-blend-mode: normal; }
+html body .product-main-image > img { mix-blend-mode: normal; }
+
+/* Colour chooser: a photo swatch (e.g. a transparent PNG) sits on white, not on the colour fill. */
+html body .detail-swatch-wrap > button:has(img) { background: #fff !important; }
+html body .detail-swatch-wrap > button img { background: #fff; }

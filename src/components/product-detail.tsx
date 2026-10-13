@@ -22,6 +22,8 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
   const startColor = product.colors.find(item => wanted && (item.name.toLowerCase() === wanted || (item.nameAr || '').toLowerCase() === wanted)) || product.colors.find(item => item.stock > 0) || product.colors[0];
   const [color, setColor] = useState<ProductColor>(startColor);
   const [quantity, setQuantity] = useState(1);
+  // Key of the main photo that has finished loading; until then a low-res copy shows behind it.
+  const [loadedPhoto, setLoadedPhoto] = useState('');
   const [imageIndex, setImageIndex] = useState(startColor.primaryIndex);
   const [zoom, setZoom] = useState(false);
   const { moneyIqd, money, region, addToCart, busy, freeShippingUsd, settings } = useStore();
@@ -93,8 +95,8 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
   return <main className="product-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <div className="product-detail-layout">
       <div className="product-gallery">
-        <div className="product-main-image" style={{ backgroundImage: `url("${mediaSrc(images[safeIndex], 640)}")` }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
-          <img key={`${color.id}-${safeIndex}`} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
+        <div className="product-main-image" style={loadedPhoto === `${color.id}-${safeIndex}` ? undefined : { backgroundImage: `url("${mediaSrc(images[safeIndex], 640)}")` }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
+          <img key={`${color.id}-${safeIndex}`} onLoad={() => setLoadedPhoto(`${color.id}-${safeIndex}`)} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
 
         </div>
