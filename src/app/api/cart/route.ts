@@ -33,6 +33,7 @@ export async function readCart(
       primaryIndex: productVariants.primaryIndex,
       productId: products.id,
       name: products.name,
+      nameAr: products.nameAr,
       priceCents: products.priceCents,
       salePriceIqd: products.salePriceIqd,
       capacity: products.capacity,
@@ -66,7 +67,9 @@ export async function readCart(
     variantId: row.variantId,
     productId: row.productId,
     name: row.name,
+    nameAr: row.nameAr,
     color: row.color,
+    colorAr: row.nameAr,
     price:
       row.salePriceIqd /
       settings.exchangeRate,
