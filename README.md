@@ -68,6 +68,13 @@ and are reported on its delivery date (`orders.delivered_at`), in Baghdad calend
 page computes these through `src/lib/finance.ts`; lines with an unknown purchase cost are reported
 separately and left out of COGS, profit and margin.
 
+**Offers (time-limited sales).** `promotions` (admin → Offers & Sales) lower prices for the whole
+store, categories or chosen products between a start and an end time: percent off, an amount off
+each unit, or a fixed sale price. They are applied when products are read (`src/lib/promotions.ts`),
+after the catalog cache, so a sale starts and stops on time; the lowest price wins when several
+apply. Cart and checkout charge the offer price and each order line keeps `listPrice`,
+`promotionId` and `promotionName`. Coupons apply on top of offer prices.
+
 **Coupons.** A coupon use is claimed atomically at checkout (so a limited coupon can't be
 over-used) and given back if the order is cancelled, returned or deleted.
 

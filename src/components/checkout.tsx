@@ -80,7 +80,8 @@ export function Checkout() {
   const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
   const codFee = config?.settings.codFee ?? 0;
   const total = Math.max(0, subtotal - discount) + shipping + codFee;
-  const savings = discount + (zone && freeShipping ? zone.rate : 0);
+  const promoSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPriceIqd ?? item.salePriceIqd) - item.salePriceIqd) * item.quantity, 0);
+  const savings = discount + promoSavings + (zone && freeShipping ? zone.rate : 0);
   const cheapestZone = config?.zones.reduce((min, z) => Math.min(min, z.rate), Infinity) ?? 0;
   const whatsapp = String(config?.settings.whatsapp ?? '').replace(/\D/g, '');
 
@@ -132,7 +133,7 @@ export function Checkout() {
     <ul className="co-lines">{lines.map(item => <li key={item.id}>
       <div className="co-line-image"><img src={mediaSrc(item.image, 160)} alt={`${item.label} — ${item.colorLabel}`} /><span>{item.quantity}</span></div>
       <div className="co-line-info"><strong>{item.label}</strong><span>{item.colorLabel}{item.capacity ? ` · ${item.capacity}` : ''}</span></div>
-      <span className="co-line-price">{iqd(item.unit * item.quantity)}</span>
+      <span className="co-line-price">{iqd(item.unit * item.quantity)}{item.originalPriceIqd && item.originalPriceIqd > item.unit && <s className="price-was">{iqd(item.originalPriceIqd * item.quantity)}</s>}</span>
     </li>)}</ul>
     <button type="button" className="co-edit-bag" onClick={() => setCartOpen(true)}>{ar ? 'تعديل السلة' : 'Edit bag'}</button>
 
@@ -146,6 +147,7 @@ export function Checkout() {
 
     <dl className="co-totals">
       <div><dt>{ar ? `المنتجات (${units})` : `Items (${units})`}</dt><dd>{iqd(subtotal)}</dd></div>
+      {promoSavings > 0 && <div className="is-saving"><dt>{ar ? 'وفّرت بالعروض (محسوبة بالأسعار)' : 'Offer savings (already in prices)'}</dt><dd>{iqd(promoSavings)}</dd></div>}
       {discount > 0 && <div className="is-saving"><dt>{ar ? 'الخصم' : 'Discount'}</dt><dd>− {iqd(discount)}</dd></div>}
       <div><dt>{ar ? 'التوصيل' : 'Delivery'}{zone ? ` · ${ar ? zone.nameAr : zone.nameEn}` : ''}</dt><dd>{freeShipping ? <span className="co-free">{ar ? 'مجاني' : 'Free'}{zone && <s>{iqd(zone.rate)}</s>}</span> : zone ? iqd(shipping) : <span className="co-muted">{ar ? `من ${iqd(cheapestZone)}` : `from ${iqd(cheapestZone)}`}</span>}</dd></div>
       {codFee > 0 && <div><dt>{t('Cash handling')}</dt><dd>{iqd(codFee)}</dd></div>}

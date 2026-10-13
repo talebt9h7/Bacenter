@@ -8,6 +8,7 @@ import type { Product, ProductColor } from './types';
 import { CATALOG_TAG } from './cache-tags';
 import { detailsFromRow } from './product-details';
 import { reservedByVariant } from './reservations';
+import { applyPromotions, getUpcomingPromotions } from './promotions';
 
 type ProductRow = typeof products.$inferSelect; type VariantRow = typeof productVariants.$inferSelect;
 function toColor(row: VariantRow, reserved = 0): ProductColor { return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, hex: row.hex, stock: Math.max(0, row.stock - reserved), onHand: row.stock, reserved, images: row.images ?? [], primaryIndex: Math.min(row.primaryIndex, Math.max((row.images?.length ?? 1) - 1, 0)) }; }
@@ -40,12 +41,14 @@ const isVisible = (product: Product) => product.published && product.colors.leng
 
 export const getAllProducts = cache(async function getAllProducts({ includeUnpublished = false } = {}) {
   if (includeUnpublished) return loadAllProducts();
-  return (await cachedAllProducts()).filter(isVisible);
+  // Promotions are applied after the cache so they start and end on time.
+  const [list, promos] = await Promise.all([cachedAllProducts(), getUpcomingPromotions()]);
+  return applyPromotions(list.filter(isVisible), promos);
 });
 export const getProductById = cache(async function getProductById(id: string, { includeUnpublished = false } = {}) {
   if (includeUnpublished) return loadProduct(id);
-  const product = await cachedProduct(id);
-  return product && isVisible(product) ? product : null;
+  const [product, promos] = await Promise.all([cachedProduct(id), getUpcomingPromotions()]);
+  return product && isVisible(product) ? applyPromotions([product], promos)[0] : null;
 });
 export async function getProductsFor(category?: string, collection?: string) {
   let result = await getAllProducts();

@@ -188,6 +188,27 @@ export const shippingZones = pgTable('shipping_zones', {
   sortOrder: integer('sort_order').notNull().default(0),
 });
 
+// Time-limited sales on products. Prices are recomputed at read time, so a sale starts and
+// ends exactly on time without touching the products' regular price.
+export const promotions = pgTable('promotions', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  nameAr: text('name_ar').notNull().default(''),
+  type: text('type').notNull().default('percent'), // percent | amount (off each unit) | price (fixed sale price)
+  value: integer('value').notNull(),
+  scope: text('scope').notNull().default('all'), // all | categories | products
+  categoryIds: text('category_ids').array().notNull().default([]),
+  productIds: text('product_ids').array().notNull().default([]),
+  startsAt: timestamp('starts_at').notNull(),
+  endsAt: timestamp('ends_at').notNull(),
+  active: boolean('active').notNull().default(true),
+  showCountdown: boolean('show_countdown').notNull().default(true),
+  badge: text('badge').notNull().default(''),
+  badgeAr: text('badge_ar').notNull().default(''),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [index('promotions_window_idx').on(table.active, table.endsAt)]);
+
 export const coupons = pgTable('coupons', {
   id: serial('id').primaryKey(),
   code: text('code').notNull().unique(),

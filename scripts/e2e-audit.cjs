@@ -55,6 +55,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
   assert.ok(variant, 'needs a published product with stock >= 10 (run the seed first)');
 
   await check('Product page reflects a sale immediately (cache invalidated on order)', async () => {
+    await db.query(`update orders set status='cancelled' where status='pending'`); // start without reservations
     const before = await stockOf(variant.id);
     const pageBefore = await (await fetch(`${base}/products/${variant.product_id}`)).text();
     const shows = (html, n) => new RegExp(`stock\\\\?":${n}[,}]`).test(html);
@@ -218,6 +219,53 @@ async function shopperOrder(variantId, quantity, extra = {}) {
     await db.query(`update orders set status='cancelled' where id=$1`, [row.id]);
   });
 
+  await check('Offers: a live promotion lowers cart and checkout prices and is recorded on the order', async () => {
+    await db.query(`update orders set status='cancelled' where status='pending'`);
+    await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 6, purchasePriceUsd: 5, exchangeRate: 1000, reason: 'Purchase received' } });
+    const product = await one('select p.id, p.sale_price_iqd from products p where p.id=$1', [variant.product_id]);
+    const now = Date.now();
+    const bad = await admin.call('/api/admin/promotions', { method: 'POST', body: { name: 'Bad', type: 'percent', value: 20, scope: 'all', startsAt: new Date(now).toISOString(), endsAt: new Date(now - 1000).toISOString() } });
+    assert.equal(bad.status, 400, 'end before start is refused');
+    const tooMuch = await admin.call('/api/admin/promotions', { method: 'POST', body: { name: 'Bad', type: 'percent', value: 99, scope: 'all', startsAt: new Date(now).toISOString(), endsAt: new Date(now + 86400e3).toISOString() } });
+    assert.equal(tooMuch.status, 400, 'percent above 95 is refused');
+    const later = await admin.call('/api/admin/promotions', { method: 'POST', body: { name: 'Later', type: 'price', value: 1000, scope: 'products', productIds: [product.id], startsAt: new Date(now + 3600e3).toISOString(), endsAt: new Date(now + 7200e3).toISOString() } });
+    assert.equal(later.status, 201, 'scheduled offer saved');
+    const created = await admin.call('/api/admin/promotions', { method: 'POST', body: { name: 'Two days', nameAr: 'يومين', type: 'percent', value: 20, scope: 'products', productIds: [product.id], startsAt: new Date(now - 60e3).toISOString(), endsAt: new Date(now + 2 * 86400e3).toISOString() } });
+    assert.equal(created.status, 201, 'live offer saved');
+    const promo = (await created.json()).promotion;
+    const expected = Math.round(product.sale_price_iqd * 0.8 / 250) * 250;
+    const s = await session();
+    assert.ok((await s.call('/api/cart', { method: 'POST', body: { variantId: variant.id, quantity: 1 } })).ok);
+    const cart = await json(await s.call('/api/cart'));
+    const line = cart.items.find(i => i.variantId === variant.id);
+    assert.equal(line.salePriceIqd, expected, 'cart shows the offer price (the scheduled one is not live yet)');
+    assert.equal(line.originalPriceIqd, product.sale_price_iqd, 'cart keeps the regular price');
+    const r = await s.call('/api/orders', { method: 'POST', body: { ...address } });
+    assert.equal(r.status, 201);
+    const order = await one('select items, subtotal_cents from orders where reference=$1', [(await r.json()).order.reference]);
+    assert.equal(order.items[0].unitPrice, expected, 'order charged the offer price');
+    assert.equal(order.items[0].listPrice, product.sale_price_iqd);
+    assert.equal(order.items[0].promotionId, promo.id);
+    const page = await (await fetch(`${base}/products/${product.id}`)).text();
+    assert.ok(new RegExp(`originalPriceIqd\\\\?":${product.sale_price_iqd}[,}]`).test(page), 'product page carries the regular price');
+    // End it now: prices go back to normal straight away.
+    const end = await admin.call(`/api/admin/promotions/${promo.id}`, { method: 'PUT', body: { ...promo, endsAt: new Date(Date.now() + 1500).toISOString() } });
+    assert.ok(end.ok);
+    await new Promise(res => setTimeout(res, 2000));
+    const s2 = await session();
+    assert.ok((await s2.call('/api/cart', { method: 'POST', body: { variantId: variant.id, quantity: 1 } })).ok);
+    const after = (await json(await s2.call('/api/cart'))).items.find(i => i.variantId === variant.id);
+    assert.equal(after.salePriceIqd, product.sale_price_iqd, 'regular price once the offer has ended');
+    await db.query(`update orders set status='cancelled' where status='pending'`);
+    await db.query('delete from promotions');
+  });
+
+  await check('Offers page renders and sales staff without manage cannot create offers', async () => {
+    assert.equal((await admin.call('/admin/promotions')).status, 200);
+    const anon = await session();
+    assert.equal((await anon.call('/api/admin/promotions', { method: 'POST', body: {} })).status, 403);
+  });
+
   await check('Delivered order: profit = discounted revenue − purchase cost, delivery excluded; delivered_at set', async () => {
     const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 10, purchasePriceUsd: 10, exchangeRate: 1000, reason: 'Purchase received' } });
     assert.ok(r.ok);
@@ -313,7 +361,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
   });
 
   await check('Every admin page renders for the owner', async () => {
-    const pages = ['orders', 'customers', 'products', 'inventory', 'purchases', 'categories', 'collections', 'coupons', 'shipping', 'banners', 'homepage', 'sections', 'navigation', 'footer', 'content', 'media', 'videos', 'stores', 'seo', 'redirects', 'messages', 'finance', 'revenue', 'profit', 'reports', 'reports?section=profit', 'reports?section=inventory', 'team', 'activity', 'backup', 'settings'];
+    const pages = ['promotions', 'orders', 'customers', 'products', 'inventory', 'purchases', 'categories', 'collections', 'coupons', 'shipping', 'banners', 'homepage', 'sections', 'navigation', 'footer', 'content', 'media', 'videos', 'stores', 'seo', 'redirects', 'messages', 'finance', 'revenue', 'profit', 'reports', 'reports?section=profit', 'reports?section=inventory', 'team', 'activity', 'backup', 'settings'];
     const failures = [];
     for (const page of ['', '?period=today', '?period=7d', '?period=90d', '?period=year', 'orders?status=pending', ...pages]) { const r = await admin.call(!page ? '/admin' : page.startsWith('?') ? `/admin${page}` : `/admin/${page}`); if (r.status !== 200) failures.push(`${page}:${r.status}`); }
     assert.deepEqual(failures, []);

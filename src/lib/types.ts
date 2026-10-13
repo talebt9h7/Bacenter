@@ -6,10 +6,12 @@ export type Product = {
   id: string; name: string; nameAr: string; subtitle: string; subtitleAr: string; description: string; descriptionAr: string; price: number; salePriceIqd: number; category: string;
   capacity?: string | null; badge?: string | null; features: string[]; specifications?: string[]; warranty?: string; materials?: string; storyImages?: string[]; dimensions: string; dimensionsImage?: string; tags: string[];
   published: boolean; colors: ProductColor[];
+  /** Set while a promotion applies: salePriceIqd is then the promotional price and this is the regular one. */
+  originalPriceIqd?: number; promotion?: AppliedPromotion | null;
   /** Product-page content (headline, highlights, features, specs, warranty, materials, photos). */
   details: ProductDetails;
 };
-export type CartLine = { id: number; variantId: number; productId: string; name: string; nameAr: string; color: string; colorAr: string; price: number; salePriceIqd: number; image: string; capacity: string | null; quantity: number; stock: number };
+export type CartLine = { id: number; variantId: number; productId: string; name: string; nameAr: string; color: string; colorAr: string; price: number; salePriceIqd: number; image: string; capacity: string | null; quantity: number; stock: number; originalPriceIqd?: number; promotion?: AppliedPromotion | null };
 
 export const PLACEHOLDER_IMAGE = '/images/placeholder.svg';
 export function primaryImage(color?: ProductColor) { if (!color) return PLACEHOLDER_IMAGE; return color.images[color.primaryIndex] ?? color.images[0] ?? PLACEHOLDER_IMAGE; }
@@ -33,3 +35,6 @@ export function mediaSrcSet(url: string | null | undefined, widths: readonly num
   if (!url || !url.startsWith('/api/media/') || url.includes('?')) return undefined;
   return widths.map(width => `${url}?w=${width} ${width}w`).join(', ');
 }
+
+/** A live promotion as shown on the storefront. endsAt is an ISO string. */
+export type AppliedPromotion = { id: number; name: string; nameAr: string; badge: string; badgeAr: string; endsAt: string; showCountdown: boolean; percentOff: number };

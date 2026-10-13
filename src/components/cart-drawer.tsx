@@ -22,6 +22,7 @@ export function CartDrawer() {
 
   // Money is in IQD throughout (sale prices are fixed in IQD).
   const subtotal = cart.reduce((sum, item) => sum + item.salePriceIqd * item.quantity, 0);
+  const promoSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPriceIqd ?? item.salePriceIqd) - item.salePriceIqd) * item.quantity, 0);
   const threshold = settings.freeShippingThreshold;
   const remaining = Math.max(0, threshold - subtotal);
   const progress = threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 100;
@@ -64,7 +65,7 @@ export function CartDrawer() {
               <div className="bag-item-info">
                 <div className="bag-item-top">
                   <Link href={href} onClick={close} className="bag-item-name">{name(item)}</Link>
-                  <strong className="bag-item-price">{moneyIqd(item.salePriceIqd * item.quantity)}</strong>
+                  <strong className="bag-item-price">{moneyIqd(item.salePriceIqd * item.quantity)}{item.originalPriceIqd && item.originalPriceIqd > item.salePriceIqd && <s className="price-was">{moneyIqd(item.originalPriceIqd * item.quantity)}</s>}</strong>
                 </div>
                 <p className="bag-item-meta">{colorName(item)}{item.capacity ? ` · ${item.capacity}` : ''}{item.quantity > 1 && <> · {moneyIqd(item.salePriceIqd)} {ar ? 'للقطعة' : 'each'}</>}</p>
                 {item.quantity > item.stock
@@ -91,7 +92,7 @@ export function CartDrawer() {
               <Link href={`/products/${product.id}`} onClick={close}><img src={mediaSrc(primaryImage(color), 320)} alt={ar ? product.nameAr || product.name : product.name} loading="lazy" /></Link>
               <div>
                 <Link href={`/products/${product.id}`} onClick={close} className="bag-pick-name">{ar ? product.nameAr || product.name : product.name}</Link>
-                <span>{moneyIqd(product.salePriceIqd)}</span>
+                <span>{moneyIqd(product.salePriceIqd)}{product.originalPriceIqd && <s className="price-was"> {moneyIqd(product.originalPriceIqd)}</s>}</span>
               </div>
               <button type="button" className="bag-pick-add" disabled={busy} aria-label={`${ar ? 'إضافة' : 'Add'} ${ar ? product.nameAr || product.name : product.name}`} onClick={async () => { setAdding(color.id); await addToCart(color.id); setAdding(null); }}>
                 {adding === color.id ? <LoaderCircle size={15} className="spin" /> : <Plus size={15} />}
@@ -102,6 +103,7 @@ export function CartDrawer() {
       </div>
 
       <div className="bag-footer">
+        {promoSavings > 0 && <div className="bag-savings"><span>{ar ? 'وفّرت بالعروض' : 'You save with offers'}</span><strong>− {moneyIqd(promoSavings)}</strong></div>}
         <div className="bag-total"><span>{t('Subtotal')}</span><strong>{moneyIqd(subtotal)}</strong></div>
         <p className="bag-total-note">{remaining === 0 ? (ar ? 'التوصيل مجاني. تدفع عند الاستلام.' : 'Delivery is free. You pay on delivery.') : (ar ? 'أجور التوصيل تُحسب حسب المحافظة. تدفع عند الاستلام.' : 'Delivery is calculated by governorate. You pay on delivery.')}</p>
         <Link className="bag-checkout" href="/checkout" onClick={close}>{ar ? 'إتمام الطلب' : 'Checkout'} <span aria-hidden="true">·</span> {moneyIqd(subtotal)} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</Link>

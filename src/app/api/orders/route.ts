@@ -8,6 +8,7 @@ import { getSettings } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
 import { assertAvailable, claimCoupon, validateCoupon } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
+import { bestPromotion, getUpcomingPromotions } from '@/lib/promotions';
 
 /** A checkout problem to show the shopper. Thrown inside the transaction so nothing is saved. */
 class CheckoutError extends Error {}
@@ -28,8 +29,9 @@ export async function POST(request: NextRequest) {
     const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, governorate));
     if (!zone || !zone.enabled) return NextResponse.json({ error: 'Please choose a governorate we currently deliver to.' }, { status: 400 });
     const sessionId = await getSession();
+    const promos = await getUpcomingPromotions();
     const result = await db.transaction(async tx => {
-      const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
+      const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, category: products.category }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
       if (!cart.length) throw new CheckoutError('Your bag is empty. Add something you love first.');
       const rate = settings.exchangeRate;
       const reference = `${settings.orderPrefix || 'BR'}-${randomBytes(3).toString('hex').toUpperCase()}`;
@@ -44,7 +46,10 @@ export async function POST(request: NextRequest) {
           }
           throw error;
         }
-        items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: line.color, quantity: line.quantity, unitPrice: line.salePriceIqd || roundIqd(line.priceCents / 100 * rate), profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+        const regular = line.salePriceIqd || roundIqd(line.priceCents / 100 * rate);
+        // A live promotion sets the price actually charged; the regular price and the promotion are kept on the line for reports.
+        const promo = bestPromotion({ id: line.productId, category: line.category, salePriceIqd: regular }, promos);
+        items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: line.color, quantity: line.quantity, unitPrice: promo?.price ?? regular, listPrice: regular, promotionId: promo?.promotion.id ?? null, promotionName: promo?.promotion.name ?? null, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
       let discount = 0; let freeShipping = subtotal >= settings.freeShippingThreshold; let appliedCoupon: string | null = null;

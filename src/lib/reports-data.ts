@@ -156,6 +156,16 @@ export async function loadReports(input: { period?: string; from?: string; to?: 
   for (const o of delivered) { const m = orderMoney(o); if (!m.discounts) continue; const k = o.couponCode || '—'; const r = couponAgg.get(k) ?? { uses: 0, discount: 0, revenue: 0 }; r.uses++; r.discount += m.discounts; r.revenue += m.revenue; couponAgg.set(k, r); }
   const coupons = [...couponAgg.entries()].map(([code, r]) => ({ code, uses: r.uses, discount: round(r.discount), revenue: round(r.revenue), aov: r.uses ? round(r.revenue / r.uses) : 0 })).sort((a, b) => b.discount - a.discount);
   const discountedOrders = delivered.filter(o => orderMoney(o).discounts > 0).length;
+  // Offers (time-limited sales): what customers saved vs the regular price, per offer.
+  const offerAgg = new Map<string, { orders: Set<number>; units: number; revenue: number; saved: number }>();
+  for (const o of delivered) for (const item of (Array.isArray(o.items) ? o.items : []) as { promotionName?: string | null; listPrice?: number; unitPrice?: number; quantity?: number }[]) {
+    if (!item.promotionName || !item.listPrice) continue;
+    const r = offerAgg.get(item.promotionName) ?? { orders: new Set<number>(), units: 0, revenue: 0, saved: 0 };
+    const qty = Number(item.quantity || 0);
+    r.orders.add(o.id); r.units += qty; r.revenue += Number(item.unitPrice || 0) * qty; r.saved += Math.max(0, item.listPrice - Number(item.unitPrice || 0)) * qty;
+    offerAgg.set(item.promotionName, r);
+  }
+  const offers = [...offerAgg.entries()].map(([name, r]) => ({ name, orders: r.orders.size, units: r.units, revenue: round(r.revenue), saved: round(r.saved) })).sort((a, b) => b.revenue - a.revenue);
 
   // ---- expenses by category ----
   const expenseByCategory = [...expenseNow.reduce((map, e) => map.set(e.category, (map.get(e.category) ?? 0) + e.amountIqd), new Map<string, number>()).entries()].map(([k, v]) => ({ key: k, value: v })).sort((a, b) => b.value - a.value);
@@ -170,7 +180,7 @@ export async function loadReports(input: { period?: string; from?: string; to?: 
     customers: customerStats, topBuyers,
     statusCounts, funnel, avgDeliveryDays, ordersList, deliveredList,
     governorates,
-    coupons, discountedOrders,
+    coupons, discountedOrders, offers,
   };
 }
 

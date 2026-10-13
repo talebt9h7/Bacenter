@@ -87,3 +87,24 @@ html body .product-main-image > img { mix-blend-mode: normal; }
 /* Colour chooser: a photo swatch (e.g. a transparent PNG) sits on white, not on the colour fill. */
 html body .detail-swatch-wrap > button:has(img) { background: #fff !important; }
 html body .detail-swatch-wrap > button img { background: #fff; }
+
+/* Promotions: sale price, struck regular price, badge and countdown */
+html body .price-was{color:#8b8d86;font-weight:400;text-decoration:line-through;text-decoration-thickness:1px;margin-inline-start:7px;font-size:.88em}
+html body .product-card-price.on-sale{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 0}
+html body .product-card-price.on-sale .price-now,html body .product-price.on-sale .price-now{color:#b8401c;font-weight:600}
+html body .product-badge.promo-badge{background:#b8401c;color:#fff!important;padding:4px 8px;border-radius:999px;letter-spacing:.02em;font-size:11px}
+html body .promo-countdown{display:inline-flex;align-items:center;gap:5px;color:#b8401c;font-size:12px;font-weight:600}
+html body .promo-countdown.ended{color:#8b8d86}
+html body .product-price.on-sale{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 0}
+html body .product-price.on-sale .price-save{margin-inline-start:12px;background:#fbe9e1;color:#b8401c;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;align-self:center}
+html body .promo-panel{width:100%;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 4px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#fff4ee,#fbe9e1);border:1px solid #f3cdbb}
+html body .promo-panel-name{font-weight:700;color:#8f2f12;font-size:14px}
+html body .promo-countdown.full{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+html body .promo-countdown-label{display:inline-flex;align-items:center;gap:5px;font-size:12px}
+html body .promo-countdown-units{display:flex;gap:6px}
+html body .promo-unit{display:flex;flex-direction:column;align-items:center;min-width:44px;background:#fff;border-radius:9px;padding:5px 6px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+html body .promo-unit b{font-size:17px;color:#26282a;font-variant-numeric:tabular-nums;line-height:1.1}
+html body .promo-unit small{font-size:10px;color:#8b8d86;font-weight:500}
+html body .bag-savings{display:flex;justify-content:space-between;font-size:13px;color:#b8401c;margin-bottom:6px}
+html body .bag-item-price .price-was{display:block;margin:0;font-size:12px}
+html body .co-line-price .price-was{display:block;margin:0;font-size:12px}

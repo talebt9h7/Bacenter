@@ -8,6 +8,7 @@ import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
 import { ProductCard } from './product-card';
+import { PromoCountdown, usePromoLive } from './promo-price';
 import { Modal, ModalHeading } from './modal';
 import { formatDimensions, formatWarranty, formatWeight, pick, pickList, type HighlightIcon } from '@/lib/product-details';
 import { BadgeCheck, Coins, CreditCard as CardIcon, Droplets, Feather, Gift, Hand, KeyRound, Laptop, Lock, Magnet, Nfc, RulerDimensionLine, Smartphone, Zap } from 'lucide-react';
@@ -50,6 +51,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
   const materials = pick(language, details.materials, details.materialsAr);
   const story = details.story;
   const categoryName = categories.find(item => item.id === product.category)?.name || 'Products';
+  const promoLive = usePromoLive(product.promotion) && !!product.originalPriceIqd;
   const soldOut = color.stock <= 0; const lowStock = color.stock > 0 && color.stock <= 5;
   const maxQuantity = Math.max(1, Math.min(10, color.stock));
   // The gallery position is shared by all colours: on photo 3 of one colour, switching colour
@@ -109,7 +111,8 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
       <div className="product-buy-box">
         <div className="product-heading">
           <h1>{displayName}</h1>
-          <div className="product-price">{moneyIqd(product.salePriceIqd)}</div>
+          {promoLive ? <div className="product-price on-sale"><span className="price-now">{moneyIqd(product.salePriceIqd)}</span><s className="price-was">{moneyIqd(product.originalPriceIqd!)}</s><span className="price-save">{language === 'ar' ? `وفّر ${moneyIqd(product.originalPriceIqd! - product.salePriceIqd)}` : `Save ${moneyIqd(product.originalPriceIqd! - product.salePriceIqd)}`}</span></div> : <div className="product-price">{moneyIqd(product.originalPriceIqd ?? product.salePriceIqd)}</div>}
+          {promoLive && product.promotion && <div className="promo-panel"><span className="promo-panel-name">{(language === 'ar' ? product.promotion.badgeAr || product.promotion.nameAr : product.promotion.badge || product.promotion.name) || `−${product.promotion.percentOff}%`}</span>{product.promotion.showCountdown && <PromoCountdown endsAt={product.promotion.endsAt} language={language} refreshOnEnd />}</div>}
         </div>
 
         {product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}

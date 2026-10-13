@@ -9,6 +9,7 @@ import {
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
 import { reservedByVariant, reservedForVariant } from '@/lib/reservations';
+import { bestPromotion, getUpcomingPromotions } from '@/lib/promotions';
 import {
   primaryImage,
   type CartLine,
@@ -37,6 +38,7 @@ export async function readCart(
       nameAr: products.nameAr,
       priceCents: products.priceCents,
       salePriceIqd: products.salePriceIqd,
+      category: products.category,
       capacity: products.capacity,
       published: products.published,
     })
@@ -63,8 +65,8 @@ export async function readCart(
     )
     .orderBy(cartItems.id);
 
-  const reserved = await reservedByVariant();
-  return rows.map((row) => ({
+  const [reserved, promos] = await Promise.all([reservedByVariant(), getUpcomingPromotions()]);
+  return rows.map((row) => { const promo = bestPromotion({ id: row.productId, category: row.category, salePriceIqd: row.salePriceIqd }, promos); const unit = promo?.price ?? row.salePriceIqd; return ({
     id: row.id,
     variantId: row.variantId,
     productId: row.productId,
@@ -73,9 +75,11 @@ export async function readCart(
     color: row.color,
     colorAr: row.colorAr,
     price:
-      row.salePriceIqd /
+      unit /
       settings.exchangeRate,
-    salePriceIqd: row.salePriceIqd,
+    salePriceIqd: unit,
+    originalPriceIqd: promo ? row.salePriceIqd : undefined,
+    promotion: promo?.promotion ?? null,
     image: primaryImage({
       id: row.variantId,
       name: row.color,
@@ -89,7 +93,7 @@ export async function readCart(
     quantity: row.quantity,
     // What can still be bought: stock on hand minus units held by pending orders.
     stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)),
-  }));
+  }); });
 }
 
 export async function GET() {

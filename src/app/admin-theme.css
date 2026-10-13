@@ -93,3 +93,5 @@
   .admin-shell .admin-card{padding:16px 14px}
 }
 @media (prefers-reduced-motion:reduce){.admin-shell *{animation:none!important;transition:none!important}}
+.admin-shell .admin-modal-header h2,.admin-shell .admin-modal h2{font-size:20px!important;line-height:1.3}
+.admin-promo-line{display:block;color:var(--a-accent);font-size:11px}.admin-promo-line s{color:var(--a-muted)}
