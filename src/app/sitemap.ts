@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getAllProducts().catch(() => []),
     getCategories().catch(() => []),
   ]);
-  const base = (settings.canonicalBaseUrl || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const base = (settings.canonicalBaseUrl || process.env.NEXT_PUBLIC_SITE_URL || 'https://ur-leather.shop').replace(/\/$/, '');
   const now = new Date();
   const urls: MetadataRoute.Sitemap = [{ url: `${base}/`, lastModified: now, changeFrequency: 'weekly', priority: 1 }];
   for (const product of products) urls.push({ url: `${base}/products/${encodeURIComponent(product.id)}`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 });
