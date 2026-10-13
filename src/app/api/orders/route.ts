@@ -6,7 +6,7 @@ import { cartItems, customers, orderEvents, orders, productVariants, products, s
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
-import { claimCoupon, consumeInventoryBatches, validateCoupon } from '@/lib/orders';
+import { assertAvailable, claimCoupon, validateCoupon } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
 
 /** A checkout problem to show the shopper. Thrown inside the transaction so nothing is saved. */
@@ -31,20 +31,26 @@ export async function POST(request: NextRequest) {
     const result = await db.transaction(async tx => {
       const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
       if (!cart.length) throw new CheckoutError('Your bag is empty. Add something you love first.');
-      const short = cart.find(line => line.quantity > line.stock);
-      if (short) throw new CheckoutError(`${short.name} in ${short.color} only has ${short.stock} left. Please adjust your bag.`);
       const rate = settings.exchangeRate;
       const reference = `${settings.orderPrefix || 'BR'}-${randomBytes(3).toString('hex').toUpperCase()}`;
       const items = [];
       for (const line of cart) {
-        const consumed = await consumeInventoryBatches(tx, line.variantId, line.quantity, 'Order placed', reference);
-        items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: line.color, quantity: line.quantity, unitPrice: line.salePriceIqd || roundIqd(line.priceCents / 100 * rate), profitIqd: consumed.purchaseCostCents == null ? 0 : (line.salePriceIqd || roundIqd(line.priceCents / 100 * rate)) - Number(consumed.purchaseCostCents), purchaseCostCents: consumed.purchaseCostCents, batchAllocations: consumed.allocations.map(item => ({ batchId: item.batchId, quantity: item.quantity })), image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+        // A new order is pending: it reserves the units but does not take them out of stock.
+        // Stock is deducted (and the purchase cost recorded) when the order is confirmed.
+        try { await assertAvailable(tx, line.variantId, line.quantity); }
+        catch (error) {
+          if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') {
+            throw new CheckoutError(`${line.name} in ${line.color} doesn’t have ${line.quantity} available any more. Please adjust your bag.`);
+          }
+          throw error;
+        }
+        items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: line.color, quantity: line.quantity, unitPrice: line.salePriceIqd || roundIqd(line.priceCents / 100 * rate), profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
       let discount = 0; let freeShipping = subtotal >= settings.freeShippingThreshold; let appliedCoupon: string | null = null;
       if (couponCode) {
         // Validated inside the transaction and claimed atomically. Throwing (not returning)
-        // rolls back the stock already taken above if the coupon turns out to be invalid.
+        // rolls back the whole order if the coupon turns out to be invalid.
         const check = await validateCoupon(couponCode, subtotal, tx);
         if ('error' in check) throw new CheckoutError(check.error ?? 'That coupon isn’t valid.');
         if (!(await claimCoupon(tx, check.coupon.id))) throw new CheckoutError('That coupon has been fully redeemed.');

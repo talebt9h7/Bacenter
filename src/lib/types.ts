@@ -1,6 +1,7 @@
 import type { ProductDetails } from './product-details';
 
-export type ProductColor = { id: number; name: string; nameAr: string; hex: string; stock: number; images: string[]; primaryIndex: number };
+/** `stock` is what can still be sold (on hand − reserved by pending orders). `onHand` is physical stock. */
+export type ProductColor = { id: number; name: string; nameAr: string; hex: string; stock: number; onHand?: number; reserved?: number; images: string[]; primaryIndex: number };
 export type Product = {
   id: string; name: string; nameAr: string; subtitle: string; subtitleAr: string; description: string; descriptionAr: string; price: number; salePriceIqd: number; category: string;
   capacity?: string | null; badge?: string | null; features: string[]; specifications?: string[]; warranty?: string; materials?: string; storyImages?: string[]; dimensions: string; dimensionsImage?: string; tags: string[];

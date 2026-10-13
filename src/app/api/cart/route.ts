@@ -8,6 +8,7 @@ import {
 } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
+import { reservedByVariant, reservedForVariant } from '@/lib/reservations';
 import {
   primaryImage,
   type CartLine,
@@ -62,6 +63,7 @@ export async function readCart(
     )
     .orderBy(cartItems.id);
 
+  const reserved = await reservedByVariant();
   return rows.map((row) => ({
     id: row.id,
     variantId: row.variantId,
@@ -85,7 +87,8 @@ export async function readCart(
     }),
     capacity: row.capacity,
     quantity: row.quantity,
-    stock: row.stock,
+    // What can still be bought: stock on hand minus units held by pending orders.
+    stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)),
   }));
 }
 
@@ -199,6 +202,9 @@ export async function POST(
       (existing?.quantity ?? 0) +
       quantity;
 
+    // Units held by pending orders are not for sale.
+    variant.stock = Math.max(0, variant.stock - await reservedForVariant(db, variant.id));
+
     if (variant.stock <= 0) {
       return NextResponse.json(
         {
@@ -304,6 +310,8 @@ export async function PATCH(
       const [line] =
         await db
           .select({
+            variantId:
+              productVariants.id,
             stock:
               productVariants.stock,
             name:
@@ -319,6 +327,7 @@ export async function PATCH(
           )
           .where(condition);
 
+      if (line) line.stock = Math.max(0, line.stock - await reservedForVariant(db, line.variantId));
       if (
         line &&
         quantity > line.stock

@@ -5,7 +5,8 @@ import { db } from '@/db';
 import { customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { normalizeIraqPhone, iraqPhonePattern } from '@/lib/iraq';
-import { consumeInventoryBatches, logActivity, orderProductProfit } from '@/lib/orders';
+import { assertAvailable, consumeInventoryBatches, logActivity, orderProductProfit } from '@/lib/orders';
+import { statusHoldsStock } from '@/lib/reservations';
 import { getSettings } from '@/lib/settings';
 import { invalidateCatalog } from '@/lib/cache-tags';
 
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     const email = text('email', 254).toLowerCase(), governorate = text('governorate', 40), city = text('city', 120), address = text('address', 300), landmark = text('landmark', 200), note = text('note', 500);
     const source = text('source', 40) || 'instagram', sourceNote = text('sourceNote', 200) || null;
     const paymentMethod = text('paymentMethod', 30) || 'cod', paymentStatus = text('paymentStatus', 30) || 'unpaid', status = text('status', 30) || 'pending';
-    // A new order takes stock, so it cannot start out cancelled or returned.
+    // A new order reserves or takes stock, so it cannot start out cancelled or returned.
     if (!['pending', 'confirmed', 'processing', 'shipped', 'delivered'].includes(status)) return NextResponse.json({ error: 'Choose a valid order status.' }, { status: 400 });
     if (!['unpaid', 'paid', 'refunded'].includes(paymentStatus)) return NextResponse.json({ error: 'Choose a valid payment status.' }, { status: 400 });
     const discount = Math.max(0, Number.isFinite(Number(body.discount)) ? Math.round(Number(body.discount)) : 0);
@@ -41,11 +42,20 @@ export async function POST(request: NextRequest) {
         if (!Number.isInteger(variantId) || !Number.isInteger(quantity) || quantity <= 0 || !Number.isInteger(enteredPrice) || enteredPrice < 0) throw new Error('INVALID_ITEM');
         const [line] = await tx.select({ variantId: productVariants.id, productId: products.id, name: products.name, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(productVariants.id, variantId)).for('update', { of: productVariants });
         if (!line) throw new Error('PRODUCT_NOT_FOUND');
-        if (quantity > line.stock) throw new Error(`INSUFFICIENT_STOCK:${line.name} / ${line.color}`);
+        const image = line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null;
+        const alreadyInOrder = items.filter(item => item.variantId === variantId).reduce((sum, item) => sum + item.quantity, 0);
+        if (!statusHoldsStock(status)) {
+          // Pending: reserve only. Stock is deducted when the order is confirmed.
+          try { await assertAvailable(tx, variantId, alreadyInOrder + quantity); } catch { throw new Error(`INSUFFICIENT_STOCK:${line.name} / ${line.color}`); }
+          items.push({ productId: line.productId, variantId, name: line.name, color: line.color, quantity, unitPrice: enteredPrice, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image });
+          continue;
+        }
+        // Confirmed or later: the units leave stock now, so they must not be promised to pending orders.
+        try { await assertAvailable(tx, variantId, quantity); } catch { throw new Error(`INSUFFICIENT_STOCK:${line.name} / ${line.color}`); }
         const consumed = await consumeInventoryBatches(tx, variantId, quantity, 'Manual order', reference);
         const purchaseCost = consumed.purchaseCostCents == null ? null : Number(consumed.purchaseCostCents);
         const unitProfit = purchaseCost == null ? 0 : enteredPrice - purchaseCost;
-        items.push({ productId: line.productId, variantId, name: line.name, color: line.color, quantity, unitPrice: enteredPrice, profitIqd: unitProfit, purchaseCostCents: purchaseCost, batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })), image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+        items.push({ productId: line.productId, variantId, name: line.name, color: line.color, quantity, unitPrice: enteredPrice, profitIqd: unitProfit, purchaseCostCents: purchaseCost, batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })), image });
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
       const safeDiscount = Math.min(discount, subtotal), shipping = shippingOverride === null ? zone.rate : Math.max(0, Math.round(shippingOverride));

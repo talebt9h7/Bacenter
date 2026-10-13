@@ -1,3 +1,4 @@
+import { reservedByVariant } from '@/lib/reservations';
 import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { desc, eq } from 'drizzle-orm';
@@ -14,7 +15,9 @@ export default async function AdminOrdersPage() {
   const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(500);
   const settings = await getSettings();
   const catalogRows = await db.select({ variantId: productVariants.id, productId: products.id, productName: products.name, color: productVariants.name, stock: productVariants.stock, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, image: productVariants.images, primaryIndex: productVariants.primaryIndex, published: products.published }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).orderBy(products.name, productVariants.sortOrder);
-  const catalog = catalogRows.map(row => ({ ...row, salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));
+  const reserved = await reservedByVariant();
+  // Products offered for manual orders show what can still be sold (on hand − pending reservations).
+  const catalog = catalogRows.map(row => ({ ...row, stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)), salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));
   const serialised = rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString() })) as unknown as OrderRow[];
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">Sales</span><h1>Orders</h1><p>Confirm by phone, pack, hand to the courier and mark delivered. Cancelling or returning an order puts stock back automatically.</p></div></div><OrdersTable rows={serialised} catalog={catalog} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">Sales</span><h1>Orders</h1><p>Confirm by phone, pack, hand to the courier and mark delivered. A pending order only reserves stock; confirming deducts it, and cancelling or returning a confirmed order puts it back.</p></div></div><OrdersTable rows={serialised} catalog={catalog} /></main>;
 }

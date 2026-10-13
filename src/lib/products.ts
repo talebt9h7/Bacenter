@@ -7,16 +7,20 @@ import { bagCategories } from './catalog';
 import type { Product, ProductColor } from './types';
 import { CATALOG_TAG } from './cache-tags';
 import { detailsFromRow } from './product-details';
+import { reservedByVariant } from './reservations';
 
 type ProductRow = typeof products.$inferSelect; type VariantRow = typeof productVariants.$inferSelect;
-function toColor(row: VariantRow): ProductColor { return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, hex: row.hex, stock: row.stock, images: row.images ?? [], primaryIndex: Math.min(row.primaryIndex, Math.max((row.images?.length ?? 1) - 1, 0)) }; }
-function toProduct(row: ProductRow, variants: VariantRow[]): Product {
-  return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, subtitle: row.subtitle, subtitleAr: row.subtitleAr || row.subtitle, description: row.description, descriptionAr: row.descriptionAr || row.description, price: row.priceCents / 100, salePriceIqd: row.salePriceIqd || Math.round((row.priceCents / 100) * 1320), category: row.category, capacity: row.capacity, badge: row.badge, features: row.features ?? [], specifications: row.specifications ?? [], warranty: row.warranty ?? '', materials: row.materials ?? '', storyImages: row.storyImages ?? [], dimensions: row.dimensions, dimensionsImage: row.dimensionsImage ?? '', tags: row.tags ?? [], published: row.published, colors: variants.map(toColor), details: detailsFromRow(row) };
+function toColor(row: VariantRow, reserved = 0): ProductColor { return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, hex: row.hex, stock: Math.max(0, row.stock - reserved), onHand: row.stock, reserved, images: row.images ?? [], primaryIndex: Math.min(row.primaryIndex, Math.max((row.images?.length ?? 1) - 1, 0)) }; }
+function toProduct(row: ProductRow, variants: VariantRow[], reserved: Map<number, number>): Product {
+  return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, subtitle: row.subtitle, subtitleAr: row.subtitleAr || row.subtitle, description: row.description, descriptionAr: row.descriptionAr || row.description, price: row.priceCents / 100, salePriceIqd: row.salePriceIqd || Math.round((row.priceCents / 100) * 1320), category: row.category, capacity: row.capacity, badge: row.badge, features: row.features ?? [], specifications: row.specifications ?? [], warranty: row.warranty ?? '', materials: row.materials ?? '', storyImages: row.storyImages ?? [], dimensions: row.dimensions, dimensionsImage: row.dimensionsImage ?? '', tags: row.tags ?? [], published: row.published, colors: variants.map(variant => toColor(variant, reserved.get(variant.id) ?? 0)), details: detailsFromRow(row) };
 }
 async function attachVariants(rows: ProductRow[]) {
   if (!rows.length) return [];
-  const variants = await db.select().from(productVariants).where(inArray(productVariants.productId, rows.map(row => row.id))).orderBy(asc(productVariants.sortOrder), asc(productVariants.id));
-  return rows.map(row => toProduct(row, variants.filter(variant => variant.productId === row.id)));
+  const [variants, reserved] = await Promise.all([
+    db.select().from(productVariants).where(inArray(productVariants.productId, rows.map(row => row.id))).orderBy(asc(productVariants.sortOrder), asc(productVariants.id)),
+    reservedByVariant(),
+  ]);
+  return rows.map(row => toProduct(row, variants.filter(variant => variant.productId === row.id), reserved));
 }
 async function loadAllProducts() {
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder), asc(products.createdAt));

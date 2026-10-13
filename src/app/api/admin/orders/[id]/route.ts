@@ -42,7 +42,11 @@ export async function PATCH(request: NextRequest, { params }: Context) {
   try {
     await transitionOrder(Number(id), next, { trackingNumber: typeof body.trackingNumber === 'string' ? body.trackingNumber.trim().slice(0, 80) : undefined, courier: typeof body.courier === 'string' ? body.courier.trim().slice(0, 80) : undefined, adminNote: typeof body.adminNote === 'string' ? body.adminNote.trim().slice(0, 2000) : undefined, paymentStatus });
     return NextResponse.json(await orderWithEvents(Number(id)));
-  } catch (error) { console.error('Order update failed', error); return NextResponse.json({ error: 'The order could not be updated.' }, { status: 500 }); }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Not enough stock on hand for this order. Receive stock or edit the order first.', code: 'INSUFFICIENT_STOCK' }, { status: 409 });
+    console.error('Order update failed', error); return NextResponse.json({ error: 'The order could not be updated.' }, { status: 500 });
+  }
 }
 
 

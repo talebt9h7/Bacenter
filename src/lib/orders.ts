@@ -4,6 +4,7 @@ import { activityLog, coupons, customers, inventoryBatches, inventoryMovements, 
 import { roundIqd } from './iraq';
 import { invalidateCatalog } from './cache-tags';
 import type { OrderStatus } from './iraq';
+import { reservedForVariant, statusHoldsStock } from './reservations';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -138,6 +139,37 @@ export async function restoreInventoryBatches(tx: Tx | typeof db, item: OrderIte
   return adjustStock(tx, item.variantId, item.quantity, reason, reference);
 }
 
+/**
+ * Checks that `quantity` units of a variant can be reserved by a pending order:
+ * on hand − units already reserved by other pending orders. Locks the variant row so two
+ * checkouts for the last unit are decided one after the other.
+ */
+export async function assertAvailable(tx: Tx, variantId: number, quantity: number, excludeOrderId?: number) {
+  const [variant] = await tx.select({ stock: productVariants.stock }).from(productVariants).where(eq(productVariants.id, variantId)).for('update');
+  if (!variant) throw new Error('PRODUCT_NOT_FOUND');
+  const available = variant.stock - await reservedForVariant(tx, variantId, excludeOrderId);
+  if (quantity > available) throw new Error('INSUFFICIENT_STOCK');
+  return available;
+}
+
+/** Deducts an order's units from stock (FIFO batches) and snapshots their purchase cost. */
+async function commitOrderStock(tx: Tx, items: OrderItem[], reason: string, reference: string) {
+  const next: OrderItem[] = [];
+  for (const item of items) {
+    const consumed = await consumeInventoryBatches(tx, item.variantId, item.quantity, reason, reference);
+    const cost = consumed.purchaseCostCents == null ? null : Number(consumed.purchaseCostCents);
+    next.push({ ...item, purchaseCostCents: cost, profitIqd: cost == null ? 0 : Number(item.unitPrice || 0) - cost, batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })) });
+  }
+  return next;
+}
+
+/** Puts an order's units back on hand (into the batches they came from). */
+async function releaseOrderStock(tx: Tx, items: OrderItem[], reason: string, reference: string) {
+  const next: OrderItem[] = [];
+  for (const item of items) { await restoreInventoryBatches(tx, item, reason, reference); next.push({ ...item, batchAllocations: [] }); }
+  return next;
+}
+
 function customerOrderValue(subtotal: number, discount: number) {
   return Math.max(0, Math.round(subtotal) - Math.max(0, Math.round(discount)));
 }
@@ -191,38 +223,27 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
     const previous = order.status;
     const wasCancelled = previous === 'cancelled' || previous === 'returned';
     const willCancel = next === 'cancelled' || next === 'returned';
-    if (!wasCancelled && willCancel) {
-      for (const item of order.items as OrderItem[]) await restoreInventoryBatches(tx, item, next === 'returned' ? 'Order returned' : 'Order cancelled', order.reference);
-      await releaseCoupon(tx, order.couponCode);
+    let items = order.items as OrderItem[];
+    const heldStock = statusHoldsStock(previous), holdsStock = statusHoldsStock(next);
+    if (heldStock && !holdsStock) {
+      const reason = next === 'returned' ? 'Order returned' : next === 'cancelled' ? 'Order cancelled' : 'Order moved back to pending';
+      items = await releaseOrderStock(tx, items, reason, order.reference);
+    } else if (!heldStock && holdsStock) {
+      // Confirming takes the units out of stock now. A pending order's own reservation is part of
+      // the stock on hand, so only physical stock has to cover it.
+      items = await commitOrderStock(tx, items, previous === 'pending' ? 'Order confirmed' : 'Order reinstated', order.reference);
+    } else if (!holdsStock && next === 'pending' && wasCancelled) {
+      // Reinstated as pending: it reserves units again, so they must still be available.
+      for (const item of items) await assertAvailable(tx, item.variantId, item.quantity, orderId);
     }
-    if (wasCancelled && !willCancel) {
-      const nextItems: OrderItem[] = [];
-      for (const item of order.items as OrderItem[]) {
-        let allocations = item.batchAllocations ?? [];
-        let restoredAvailability = true;
-        for (const allocation of allocations) {
-          const [batch] = await tx.select({ quantityRemaining: inventoryBatches.quantityRemaining }).from(inventoryBatches).where(eq(inventoryBatches.id, allocation.batchId)).for('update');
-          if (!batch || batch.quantityRemaining < allocation.quantity) { restoredAvailability = false; break; }
-        }
-        if (restoredAvailability && allocations.length) {
-          for (const allocation of allocations) await tx.update(inventoryBatches).set({ quantityRemaining: sql`${inventoryBatches.quantityRemaining} - ${allocation.quantity}` }).where(eq(inventoryBatches.id, allocation.batchId));
-          const [updated] = await tx.update(productVariants).set({ stock: sql`${productVariants.stock} - ${item.quantity}` }).where(eq(productVariants.id, item.variantId)).returning({ stock: productVariants.stock });
-          if (!updated || updated.stock < 0) throw new Error('INSUFFICIENT_STOCK');
-          await tx.insert(inventoryMovements).values({ variantId: item.variantId, delta: -item.quantity, stockAfter: updated.stock, reason: 'Order reinstated', reference: order.reference });
-        } else {
-          const consumed = await consumeInventoryBatches(tx, item.variantId, item.quantity, 'Order reinstated', order.reference);
-          allocations = consumed.allocations.map(allocation => ({ batchId: allocation.batchId, quantity: allocation.quantity }));
-        }
-        nextItems.push({ ...item, batchAllocations: allocations });
-      }
-      await tx.update(orders).set({ items: nextItems }).where(eq(orders.id, orderId));
-      await reclaimCoupon(tx, order.couponCode);
-    }
+    if (items !== order.items) await tx.update(orders).set({ items }).where(eq(orders.id, orderId));
+    if (!wasCancelled && willCancel) await releaseCoupon(tx, order.couponCode);
+    if (wasCancelled && !willCancel) await reclaimCoupon(tx, order.couponCode);
     const paymentStatus = extra.paymentStatus ?? (next === 'delivered' && order.paymentMethod === 'cod' ? 'paid' : willCancel ? (order.paymentStatus === 'paid' ? 'refunded' : 'unpaid') : order.paymentStatus);
     // Financial recognition starts only when the order is delivered. Pending/confirmed/processing/shipped
     // orders are operationally active but must not contribute to realized revenue or profit yet.
     const recognizedProfit = next === 'delivered'
-      ? orderProductProfit(order.items as OrderItem[], Number(order.discountCents || 0))
+      ? orderProductProfit(items, Number(order.discountCents || 0))
       : 0;
     // Keep the original delivery date when a delivered order is only being annotated.
     const deliveredAt = next === 'delivered' ? (previous === 'delivered' && order.deliveredAt ? order.deliveredAt : new Date()) : null;
@@ -258,19 +279,24 @@ export async function updateOrderDetails(orderId: number, input: {
       if (!input.items.length) throw new Error('INVALID_ITEMS');
       const requested = input.items.map(item => ({ variantId: Number(item.variantId), quantity: Number(item.quantity), unitPrice: Number(item.unitPrice) }));
       if (requested.some(item => !Number.isInteger(item.variantId) || !Number.isInteger(item.quantity) || item.quantity <= 0 || !Number.isInteger(item.unitPrice) || item.unitPrice < 0 || false)) throw new Error('INVALID_ITEMS');
-      if (order.status !== 'cancelled' && order.status !== 'returned') {
-        for (const item of nextItems) await restoreInventoryBatches(tx, item, 'Order edited', order.reference);
-      }
+      const holds = statusHoldsStock(order.status);
+      if (holds) for (const item of nextItems) await restoreInventoryBatches(tx, item, 'Order edited', order.reference);
       nextItems = [];
       for (const requestedItem of requested) {
         const [line] = await tx.select({ variantId: productVariants.id, productId: products.id, name: products.name, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(productVariants.id, requestedItem.variantId)).for('update', { of: productVariants });
         if (!line) throw new Error('PRODUCT_NOT_FOUND');
-        if (order.status !== 'cancelled' && order.status !== 'returned') {
+        const base = { productId: line.productId, variantId: requestedItem.variantId, name: line.name, color: line.color, quantity: requestedItem.quantity, unitPrice: requestedItem.unitPrice, image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null };
+        if (holds) {
           if (requestedItem.quantity > line.stock) throw new Error(`INSUFFICIENT_STOCK:${line.name} / ${line.color}`);
           const consumed = await consumeInventoryBatches(tx, requestedItem.variantId, requestedItem.quantity, 'Order edited', order.reference);
-          nextItems.push({ productId: line.productId, variantId: requestedItem.variantId, name: line.name, color: line.color, quantity: requestedItem.quantity, unitPrice: requestedItem.unitPrice, profitIqd: consumed.purchaseCostCents == null ? 0 : requestedItem.unitPrice - Number(consumed.purchaseCostCents), purchaseCostCents: consumed.purchaseCostCents, batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })), image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+          nextItems.push({ ...base, profitIqd: consumed.purchaseCostCents == null ? 0 : requestedItem.unitPrice - Number(consumed.purchaseCostCents), purchaseCostCents: consumed.purchaseCostCents, batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })) });
         } else {
-          nextItems.push({ productId: line.productId, variantId: requestedItem.variantId, name: line.name, color: line.color, quantity: requestedItem.quantity, unitPrice: requestedItem.unitPrice, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+          if (order.status === 'pending') {
+            const sameVariantBefore = nextItems.filter(item => item.variantId === requestedItem.variantId).reduce((sum, item) => sum + item.quantity, 0);
+            try { await assertAvailable(tx, requestedItem.variantId, sameVariantBefore + requestedItem.quantity, orderId); }
+            catch { throw new Error(`INSUFFICIENT_STOCK:${line.name} / ${line.color}`); }
+          }
+          nextItems.push({ ...base, profitIqd: 0, purchaseCostCents: null, batchAllocations: [] });
         }
       }
     }
@@ -317,10 +343,8 @@ export async function deleteOrder(orderId: number) {
     if (!order) throw new Error('NOT_FOUND');
     if (order.status === 'delivered') throw new Error('CANNOT_DELETE_DELIVERED');
     const wasCancelled = order.status === 'cancelled' || order.status === 'returned';
-    if (!wasCancelled) {
-      for (const item of order.items as OrderItem[]) await restoreInventoryBatches(tx, item, 'Order deleted', order.reference);
-      await releaseCoupon(tx, order.couponCode);
-    }
+    if (statusHoldsStock(order.status)) await releaseOrderStock(tx, order.items as OrderItem[], 'Order deleted', order.reference);
+    if (!wasCancelled) await releaseCoupon(tx, order.couponCode);
     if (order.customerId) {
       // A cancelled/returned order was already removed from the customer's totals.
       if (!wasCancelled) await tx.update(customers).set({ ordersCount: sql`GREATEST(${customers.ordersCount} - 1, 0)`, totalSpent: sql`GREATEST(${customers.totalSpent} - ${customerOrderValue(order.subtotalCents, order.discountCents)}, 0)` }).where(eq(customers.id, order.customerId));

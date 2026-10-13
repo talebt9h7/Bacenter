@@ -81,7 +81,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
     const ok = [a, b].filter(x => x.status === 201).length;
     assert.equal(ok, 1, `exactly one order should succeed, got ${a.status}/${b.status}`);
     assert.equal((await one(`select used_count from coupons where code='ONCE10'`)).used_count, 1);
-    assert.equal(await stockOf(variant.id), stock - 1, 'only the successful order took stock');
+    assert.equal(await stockOf(variant.id), stock, 'pending orders reserve, they do not deduct stock');
   });
 
   await check('Stock added without a purchase batch can still be sold', async () => {
@@ -90,10 +90,14 @@ async function shopperOrder(variantId, quantity, extra = {}) {
     const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 3, reason: 'Found in storage' } });
     assert.ok(r.ok, `adjust ${r.status}`);
     assert.equal(await batchSum(variant.id), 4, 'manual increase adds no batch');
+    await db.query(`update orders set status='cancelled' where status='pending'`); // free earlier reservations
     const stock = await stockOf(variant.id);
     // Sell everything: batches run out and the last units are unbatched.
     const order = await shopperOrder(variant.id, stock);
     assert.equal(order.status, 201, JSON.stringify(order.data));
+    const placed = await one(`select id from orders where reference=$1`, [order.data.order.reference]);
+    const confirm = await admin.call(`/api/admin/orders/${placed.id}`, { method: 'PATCH', body: { status: 'confirmed' } });
+    assert.ok(confirm.ok, `confirm ${confirm.status}`);
     assert.equal(await stockOf(variant.id), 0);
     assert.equal(await batchSum(variant.id), 0);
     const last = await one(`select items from orders where reference=$1`, [order.data.order.reference]);
@@ -111,13 +115,107 @@ async function shopperOrder(variantId, quantity, extra = {}) {
 
   await check('Saving the product editor does not overwrite sales made while it was open', async () => {
     const product = (await json(await admin.call(`/api/admin/products/${variant.product_id}`))).product;
-    const loaded = product.colors.find(c => c.id === variant.id).stock;
+    const onHand = c => c.onHand ?? c.stock;
+    const loaded = onHand(product.colors.find(c => c.id === variant.id));
     const order = await shopperOrder(variant.id, 2);
     assert.equal(order.status, 201);
-    const payload = { ...product, salePriceIqd: product.salePriceIqd, purchasePriceUsd: null, exchangeRate: 1300, colors: product.colors.map(c => ({ ...c, baseStock: c.stock, stock: c.id === variant.id ? loaded + 5 : c.stock })) };
+    const placed = await one(`select id from orders where reference=$1`, [order.data.order.reference]);
+    assert.ok((await admin.call(`/api/admin/orders/${placed.id}`, { method: 'PATCH', body: { status: 'confirmed' } })).ok, 'confirm');
+    const payload = { ...product, salePriceIqd: product.salePriceIqd, purchasePriceUsd: null, exchangeRate: 1300, colors: product.colors.map(c => ({ ...c, baseStock: onHand(c), stock: c.id === variant.id ? loaded + 5 : onHand(c) })) };
     const save = await admin.call(`/api/admin/products/${variant.product_id}`, { method: 'PUT', body: payload });
     assert.ok(save.ok, `save ${save.status} ${JSON.stringify(await json(save))}`);
     assert.equal(await stockOf(variant.id), loaded - 2 + 5, 'editor change applied on top of the sale');
+  });
+
+  await check('Pending order reserves units: stock unchanged, available drops, overselling blocked', async () => {
+    await db.query(`update orders set status='cancelled' where status='pending'`);
+    const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, set: 3, reason: 'Count correction' } });
+    assert.ok(r.ok);
+    const batches = await batchSum(variant.id);
+    const a = await shopperOrder(variant.id, 2);
+    assert.equal(a.status, 201, JSON.stringify(a.data));
+    assert.equal(await stockOf(variant.id), 3, 'stock on hand not deducted');
+    assert.equal(await batchSum(variant.id), batches, 'no batch consumed');
+    const row = await one('select items from orders where reference=$1', [a.data.order.reference]);
+    assert.deepEqual(row.items[0].batchAllocations, [], 'no allocation while pending');
+    const product = await json(await fetch(`${base}/api/products?collection=`));
+    const color = (product.products || []).flatMap(p => p.colors).find(c => c.id === variant.id);
+    if (color) assert.equal(color.stock, 1, 'storefront shows available = 3 − 2');
+    const b = await shopperOrder(variant.id, 1);
+    assert.equal(b.status, 201, 'last available unit can be ordered');
+    const s = await session();
+    const add = await s.call('/api/cart', { method: 'POST', body: { variantId: variant.id, quantity: 1 } });
+    assert.equal(add.status, 409, 'nothing left to add once everything is reserved');
+  });
+
+  await check('Confirm deducts (FIFO cost snapshot); cancel from pending changes nothing; cancel after confirm restores', async () => {
+    const pending = (await db.query(`select * from orders where status='pending' order by id`)).rows;
+    assert.equal(pending.length, 2);
+    const [first, second] = pending;
+    const stock = await stockOf(variant.id);
+    const c1 = await admin.call(`/api/admin/orders/${second.id}`, { method: 'PATCH', body: { status: 'cancelled' } });
+    assert.ok(c1.ok);
+    assert.equal(await stockOf(variant.id), stock, 'cancelling a pending order does not touch stock');
+    const ok = await admin.call(`/api/admin/orders/${first.id}`, { method: 'PATCH', body: { status: 'confirmed' } });
+    assert.ok(ok.ok, `confirm ${ok.status}`);
+    assert.equal(await stockOf(variant.id), stock - 2, 'confirm deducts');
+    const confirmed = await one('select items from orders where id=$1', [first.id]);
+    assert.ok(Array.isArray(confirmed.items[0].batchAllocations), 'allocations recorded on confirm');
+    const back = await admin.call(`/api/admin/orders/${first.id}`, { method: 'PATCH', body: { status: 'cancelled' } });
+    assert.ok(back.ok);
+    assert.equal(await stockOf(variant.id), stock, 'cancelling a confirmed order restores stock');
+    const again = await admin.call(`/api/admin/orders/${first.id}`, { method: 'PATCH', body: { status: 'pending', force: true } });
+    assert.ok(again.ok, 'reinstated as pending');
+    assert.equal(await stockOf(variant.id), stock, 'reinstated pending order only reserves');
+    const del = await admin.call(`/api/admin/orders/${first.id}`, { method: 'DELETE' });
+    assert.ok(del.ok);
+    assert.equal(await stockOf(variant.id), stock, 'deleting a pending order does not touch stock');
+  });
+
+  await check('Confirming without enough stock on hand is refused with a clear error', async () => {
+    await db.query(`update orders set status='cancelled' where status='pending'`);
+    const a = await shopperOrder(variant.id, 2);
+    assert.equal(a.status, 201);
+    const row = await one('select id from orders where reference=$1', [a.data.order.reference]);
+    await db.query('update product_variants set stock = 1 where id=$1', [variant.id]);
+    const r = await admin.call(`/api/admin/orders/${row.id}`, { method: 'PATCH', body: { status: 'confirmed' } });
+    assert.equal(r.status, 409);
+    assert.equal((await one('select status from orders where id=$1', [row.id])).status, 'pending');
+    await db.query(`update orders set status='cancelled' where id=$1`, [row.id]);
+  });
+
+  await check('Status can jump (forced): delivered → pending gives stock back and clears profit', async () => {
+    await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 5, purchasePriceUsd: 4, exchangeRate: 1000, reason: 'Purchase received' } });
+    const stock = await stockOf(variant.id);
+    const a = await shopperOrder(variant.id, 1);
+    const row = await one('select id from orders where reference=$1', [a.data.order.reference]);
+    const jump = await admin.call(`/api/admin/orders/${row.id}`, { method: 'PATCH', body: { status: 'delivered', force: true } });
+    assert.ok(jump.ok, `jump ${jump.status}`);
+    let o = await one('select * from orders where id=$1', [row.id]);
+    assert.equal(await stockOf(variant.id), stock - 1);
+    assert.ok(o.delivered_at && o.profit_iqd !== 0, 'delivered with profit');
+    const down = await admin.call(`/api/admin/orders/${row.id}`, { method: 'PATCH', body: { status: 'pending', force: true } });
+    assert.ok(down.ok);
+    o = await one('select * from orders where id=$1', [row.id]);
+    assert.equal(await stockOf(variant.id), stock, 'stock back on hand');
+    assert.equal(o.profit_iqd, 0); assert.equal(o.delivered_at, null);
+    await admin.call(`/api/admin/orders/${row.id}`, { method: 'PATCH', body: { status: 'cancelled' } });
+  });
+
+  await check('Migration 0028 gives back stock taken by old-style pending orders, once', async () => {
+    const fs = require('node:fs');
+    const a = await shopperOrder(variant.id, 2);
+    const row = await one('select * from orders where reference=$1', [a.data.order.reference]);
+    const stock = await stockOf(variant.id);
+    // Simulate the old rule: the pending order took 2 units at checkout.
+    await db.query('update product_variants set stock = stock - 2 where id=$1', [variant.id]);
+    await db.query(`insert into inventory_movements (variant_id, delta, stock_after, reason, reference) values ($1, -2, $2, 'Order placed', $3)`, [variant.id, stock - 2, row.reference]);
+    const sql = fs.readFileSync('drizzle/0028_pending_orders_reserve_stock.sql', 'utf8');
+    await db.query(sql);
+    assert.equal(await stockOf(variant.id), stock, 'stock restored');
+    await db.query(sql);
+    assert.equal(await stockOf(variant.id), stock, 'running it again changes nothing');
+    await db.query(`update orders set status='cancelled' where id=$1`, [row.id]);
   });
 
   await check('Delivered order: profit = discounted revenue − purchase cost, delivery excluded; delivered_at set', async () => {
