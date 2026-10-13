@@ -96,11 +96,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
         <div className="product-main-image" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
           <img key={`${color.id}-${safeIndex}`} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
-          {images.length > 1 && <>
-            <button type="button" className="gallery-arrow gallery-arrow-left" onClick={() => showImage(safeIndex - 1)} aria-label={language === 'ar' ? 'الصورة السابقة' : 'Previous photo'}><ChevronLeft size={20} /></button>
-            <button type="button" className="gallery-arrow gallery-arrow-right" onClick={() => showImage(safeIndex + 1)} aria-label={language === 'ar' ? 'الصورة التالية' : 'Next photo'}><ChevronRight size={20} /></button>
-            <span className="gallery-counter" aria-live="polite">{safeIndex + 1} / {images.length}</span>
-          </>}
+
         </div>
         {neighbourImages.map(image => <link key={image} rel="prefetch" as="image" href={mediaSrc(image, 1280)} />)}
         <div className="product-thumbnails" aria-label={`${displayColorName(color)} photos`}>
