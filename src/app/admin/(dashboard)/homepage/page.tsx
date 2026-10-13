@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { normalizeLanguage, storefrontT } from '@/lib/i18n';
@@ -12,5 +14,5 @@ export default async function AdminHomepagePage() {
   const actor = await requireAdminSection('storefront', 'view');
   if (!actor) redirect('/admin');
   const settings = await getSettings();
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{storefrontT('Storefront', language)}</span><h1>{storefrontT('Homepage', language)}</h1><p>{storefrontT('Control the homepage sections, cards, category tabs, collections and social content without editing code.', language)}</p></div></div><HomepageManager initial={settings.homepage} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{storefrontT('Storefront', language)}</span><h1>{storefrontT('Homepage', language)}</h1><p>{storefrontT('Control the homepage sections, cards, category tabs, collections and social content without editing code.', language)}</p></div></div><PageKpis items={await pageStats('homepage')} /><HomepageManager initial={settings.homepage} /></main>;
 }

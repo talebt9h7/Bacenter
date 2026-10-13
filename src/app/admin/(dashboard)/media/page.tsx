@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { redirect } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { requireAdminSection } from '@/lib/admin-auth';
@@ -19,5 +21,5 @@ export default async function AdminMediaPage() {
     console.error('Admin media page failed to load media records', error);
     loadError = 'Could not load media records. Check Vercel Logs for the database error.';
   }
-  return <main className="admin-page"><AdminPageHeader section="Storefront" title="Media Library" description="Manage every uploaded image used by products, banners, pages and storefront content." /><MediaLibrary initialItems={rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString() }))} initialError={loadError} /></main>;
+  return <main className="admin-page"><AdminPageHeader section="Storefront" title="Media Library" description="Manage every uploaded image used by products, banners, pages and storefront content." /><PageKpis items={await pageStats('media')} /><MediaLibrary initialItems={rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString() }))} initialError={loadError} /></main>;
 }

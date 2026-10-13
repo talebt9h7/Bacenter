@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { normalizeLanguage, storefrontT } from '@/lib/i18n';
@@ -19,5 +21,5 @@ export default async function AdminSectionsPage() {
   await ensureStoreSeeded();
   const rows = await db.select().from(banners).where(eq(banners.kind, 'category')).orderBy(banners.sortOrder, banners.id);
   const initial = rows.map(row => ({ ...row, startsAt: row.startsAt?.toISOString() ?? null, endsAt: row.endsAt?.toISOString() ?? null }));
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{storefrontT('Storefront', language)}</span><h1>{storefrontT('Sections & category banners', language)}</h1><p>{storefrontT('Manage the visual content for sections such as Wallets, Backpacks, Bags and Accessories.', language)}</p></div></div><SectionManager categories={categories} banners={initial} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{storefrontT('Storefront', language)}</span><h1>{storefrontT('Sections & category banners', language)}</h1><p>{storefrontT('Manage the visual content for sections such as Wallets, Backpacks, Bags and Accessories.', language)}</p></div></div><PageKpis items={await pageStats('sections')} /><SectionManager categories={categories} banners={initial} /></main>;
 }

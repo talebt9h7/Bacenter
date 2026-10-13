@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { redirect } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { requireAdminSection } from '@/lib/admin-auth';
@@ -8,5 +10,5 @@ export default async function VideoStoriesPage() {
   const actor = await requireAdminSection('storefront', 'view');
   if (!actor) redirect('/admin');
   const settings = await getSettings();
-  return <main className="admin-page"><AdminPageHeader section="Storefront" title="Video Stories" description="Manage homepage video stories, YouTube IDs, Arabic and English copy, calls to action and visibility." /><VideoStoriesManager initial={settings.homepage}/></main>;
+  return <main className="admin-page"><AdminPageHeader section="Storefront" title="Video Stories" description="Manage homepage video stories, YouTube IDs, Arabic and English copy, calls to action and visibility." /><PageKpis items={await pageStats('videos')} /><VideoStoriesManager initial={settings.homepage}/></main>;
 }

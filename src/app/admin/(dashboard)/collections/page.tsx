@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { normalizeLanguage, catalogT } from '@/lib/i18n';
@@ -20,5 +22,5 @@ export default async function AdminCollectionsPage() {
     titleAr: collection.titleAr ?? '',
     descriptionAr: collection.descriptionAr ?? '',
   }));
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{catalogT('Catalog', language)}</span><h1>{catalogT('Collections', language)}</h1><p>{catalogT('Manage collection landing pages and choose exactly which products belong to each collection.', language)}</p></div></div><CollectionsManager initial={collectionRows} products={productRows} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{catalogT('Catalog', language)}</span><h1>{catalogT('Collections', language)}</h1><p>{catalogT('Manage collection landing pages and choose exactly which products belong to each collection.', language)}</p></div></div><PageKpis items={await pageStats('collections')} /><CollectionsManager initial={collectionRows} products={productRows} /></main>;
 }

@@ -104,3 +104,9 @@
 .ppb-actions{display:flex;gap:6px;flex-wrap:wrap}
 .ppb-fields{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 @media (max-width:640px){.ppb-slots{grid-template-columns:1fr}}
+/* plain <label>Text<input/></label> forms (purchases & suppliers) */
+.admin-shell .admin-form-grid>label:not(.admin-field){display:grid;gap:6px;font-size:12.5px;font-weight:600;color:var(--a-muted);align-content:start}
+.admin-shell .admin-form-grid>label:not(.admin-field)>input,.admin-shell .admin-form-grid>label:not(.admin-field)>select,.admin-shell .admin-form-grid>label:not(.admin-field)>textarea{border:1px solid var(--a-line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;font-weight:400;background:#fff;width:100%;color:var(--a-ink);box-sizing:border-box}
+.admin-shell .admin-form-grid>label:not(.admin-field)>textarea{resize:vertical;min-height:72px}
+.admin-shell .admin-form-grid>.full,.admin-shell .admin-form-grid>label.full{grid-column:1/-1}
+.admin-shell .admin-pager{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0 4px;font-size:12.5px;color:var(--a-muted)}

@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { AdminHeading } from '@/components/admin/admin-heading';
 import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
@@ -5,4 +7,4 @@ import { getSettings } from '@/lib/settings';
 import { SeoManager } from '@/components/admin/seo-manager';
 export const dynamic='force-dynamic';
 export const metadata={title:'SEO'};
-export default async function SeoPage(){const actor=await requireAdminSection('configuration','view'); if(!actor)redirect('/admin'); const s=await getSettings(); return <main className="admin-page"><AdminHeading eyebrow={{ en: 'Configuration', ar: 'الإعدادات' }} title={{ en: 'SEO', ar: 'تحسين محركات البحث' }} description={{ en: 'Control search indexing, metadata, canonical URLs and social sharing defaults.', ar: 'تحكم بظهور الموقع في محركات البحث، والوصف، والروابط الأساسية، ومشاركة السوشيال.' }} /><SeoManager initial={{metaTitle:s.metaTitle,metaDescription:s.metaDescription,seoIndex:s.seoIndex,seoFollow:s.seoFollow,canonicalBaseUrl:s.canonicalBaseUrl,ogImage:s.ogImage}}/></main>}
+export default async function SeoPage(){const actor=await requireAdminSection('configuration','view'); if(!actor)redirect('/admin'); const s=await getSettings(); return <main className="admin-page"><AdminHeading eyebrow={{ en: 'Configuration', ar: 'الإعدادات' }} title={{ en: 'SEO', ar: 'تحسين محركات البحث' }} description={{ en: 'Control search indexing, metadata, canonical URLs and social sharing defaults.', ar: 'تحكم بظهور الموقع في محركات البحث، والوصف، والروابط الأساسية، ومشاركة السوشيال.' }} /><PageKpis items={await pageStats('seo')} /><SeoManager initial={{metaTitle:s.metaTitle,metaDescription:s.metaDescription,seoIndex:s.seoIndex,seoFollow:s.seoFollow,canonicalBaseUrl:s.canonicalBaseUrl,ogImage:s.ogImage}}/></main>}

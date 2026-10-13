@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { getStoreLocations } from '@/lib/store-locations';
@@ -9,5 +11,5 @@ export const metadata = { title: 'Stores & stockists' };
 export default async function StoresPage() {
   const actor = await requireAdminSection('storefront', 'view');
   if (!actor) redirect('/admin');
-  return <main className="admin-page"><AdminPageHeader section="Storefront" title="Stores & stockists" description="Manage the points of sale shown on the storefront. Changes are saved to the database." /><StoreLocationManager initial={await getStoreLocations({ includeInactive: true })} /></main>;
+  return <main className="admin-page"><AdminPageHeader section="Storefront" title="Stores & stockists" description="Manage the points of sale shown on the storefront. Changes are saved to the database." /><PageKpis items={await pageStats('stores')} /><StoreLocationManager initial={await getStoreLocations({ includeInactive: true })} /></main>;
 }

@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { redirect } from 'next/navigation';
 import { asc } from 'drizzle-orm';
 import { db } from '@/db';
@@ -45,7 +47,7 @@ export default async function TeamPage() {
         section="System"
         title="Team & Permissions"
         description="Manage who can access the admin panel and exactly which sections they can view or manage."
-      />
+      /><PageKpis items={await pageStats('team')} />
 
       <TeamManager
         initial={teamUsers}

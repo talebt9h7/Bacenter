@@ -1,3 +1,5 @@
+import { PageKpis } from '@/components/admin/page-kpis';
+import { pageStats } from '@/lib/admin-page-stats';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { normalizeLanguage, storefrontT } from '@/lib/i18n';
@@ -13,5 +15,5 @@ export default async function AdminBannersPage() {
   if (!actor) redirect('/admin');
   await ensureStoreSeeded();
   const rows = (await resources.banners.list()).map(row => ({ ...row, startsAt: row.startsAt ? (row.startsAt as Date).toISOString() : null, endsAt: row.endsAt ? (row.endsAt as Date).toISOString() : null })) as unknown as BannerRow[];
-  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{storefrontT('Merchandising', language)}</span><h1>{storefrontT('Banners', language)}</h1><p>{storefrontT('Hero slides, highlight cards and promotional placements. Schedule campaigns with start and end dates.', language)}</p></div></div><BannerManager initial={rows} /></main>;
+  return <main className="admin-page"><div className="admin-page-heading"><div><span className="admin-eyebrow">{storefrontT('Merchandising', language)}</span><h1>{storefrontT('Banners', language)}</h1><p>{storefrontT('Hero slides, highlight cards and promotional placements. Schedule campaigns with start and end dates.', language)}</p></div></div><PageKpis items={await pageStats('banners')} /><BannerManager initial={rows} /></main>;
 }
