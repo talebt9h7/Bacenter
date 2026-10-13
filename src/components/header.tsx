@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { useLocalStorageValue, writeLocalStorage } from '@/lib/use-local-storage';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ChevronDown, ChevronRight, Globe2, Mail, MapPin, Menu, Search, ShoppingCart, X } from 'lucide-react';
@@ -101,14 +100,4 @@ export function Header() {
     {regionOpen && <Modal title={t('Choose your region')} className="region-overlay" onClose={() => setRegionOpen(false)}><ModalHeading title={language === 'ar' ? 'من أين تتصفح؟' : 'Where are you exploring from?'} onClose={() => setRegionOpen(false)} /><div className="region-content"><Globe2 size={40} strokeWidth={1} /><p>{language === 'ar' ? 'اختر طريقة عرض الأسعار. التوصيل متاح إلى جميع محافظات العراق.' : 'Choose how prices are displayed. Delivery is available across all governorates of Iraq.'}</p><label htmlFor="region">{t('Country / region')}</label><select id="region" value={selectedRegion} onChange={event => setSelectedRegion(event.target.value)}>{regions.map(item => <option key={item.name} value={item.name}>{item.name} ({item.currency})</option>)}</select><button className="button button-orange button-full" onClick={() => { setRegion(regions.find(item => item.name === selectedRegion) || regions[0]); setRegionOpen(false); }}>{t('Save preferences')} <ArrowRight size={16} /></button><small>{language === 'ar' ? 'نوصل إلى جميع محافظات العراق. الطلبات تُحسب بالدينار العراقي، والدولار يظهر كمرجع فقط.' : 'We deliver within Iraq only. Orders are placed in Iraqi dinars (IQD); USD is shown for reference.'}</small></div></Modal>}
     <CartDrawer />
   </>;
-}
-// Storage key kept from the original template so existing visitors aren't asked again.
-const COOKIE_KEY = 'bellroy-cookies';
-export function CookieNotice() {
-  const { language } = useLanguage();
-  // Server render and first paint assume "accepted" so the notice never flashes for returning visitors.
-  const accepted = useLocalStorageValue(COOKIE_KEY, 'accepted');
-  function accept() { writeLocalStorage(COOKIE_KEY, 'accepted'); }
-  if (accepted) return null;
-  return <div className="cookie-notice" dir={language === 'ar' ? 'rtl' : 'ltr'}><p>{language === 'ar' ? <>نستخدم ملفات تعريف الارتباط لتحسين تجربتك. بمتابعة التصفح أنت توافق على <Link href="/info/cookies">سياسة ملفات الارتباط</Link>.</> : <>Cookies improve your experience – by browsing our site you agree to our <Link href="/info/cookies">cookies policy</Link>.</>}</p><button onClick={accept}>{language === 'ar' ? 'حسنًا' : 'Got it'}</button></div>;
 }
