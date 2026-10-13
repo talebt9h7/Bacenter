@@ -1,4 +1,5 @@
 'use client';
+import { track } from '@/lib/track';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocalStorageValue, writeLocalStorage } from '@/lib/use-local-storage';
@@ -48,7 +49,10 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
       const response = await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variantId, quantity }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
-      setCart(data.items); setCartOpen(true); return true;
+      setCart(data.items); setCartOpen(true);
+      const line = (data.items as CartLine[]).find(item => item.variantId === variantId);
+      if (line) track.addToCart({ id: line.productId, name: line.name, variant: line.color, price: line.salePriceIqd, quantity });
+      return true;
     } catch (error) { notify(error instanceof Error ? error.message : 'Please check your connection.', true); return false; }
     finally { setBusy(false); }
   }

@@ -1,4 +1,5 @@
 'use client';
+import { track } from '@/lib/track';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Banknote, Check, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
@@ -51,6 +52,13 @@ export function Checkout() {
   const [phoneError, setPhoneError] = useState('');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [order, setOrder] = useState<PlacedOrder | null>(null);
+  // InitiateCheckout / begin_checkout once, when the bag has loaded with items.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || !cart.length) return;
+    checkoutTracked.current = true;
+    track.beginCheckout(cart.map(i => ({ id: i.productId, name: i.name, variant: i.color, price: i.salePriceIqd, quantity: i.quantity })));
+  }, [cart]);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => { fetch('/api/checkout').then(r => r.json()).then(setConfig).catch(() => setError(ar ? 'تعذر تحميل صفحة إتمام الطلب. حدّث الصفحة.' : 'Checkout could not be loaded. Please refresh.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- load once
@@ -105,7 +113,8 @@ export function Checkout() {
       const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, coupon: coupon?.code ?? '' }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error);
       try { const { note: _note, payment: _payment, ...keep } = data; void _note; void _payment; localStorage.setItem(SAVED_KEY, JSON.stringify(keep)); } catch { /* storage unavailable */ }
-      setOrder({ ...result.order, zone }); await refreshCart(); window.scrollTo({ top: 0, behavior: 'smooth' });
+      setOrder({ ...result.order, zone });
+      track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping, coupon: coupon?.code }); await refreshCart(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) { setError(err instanceof Error ? err.message : (ar ? 'تحقق من الاتصال وحاول مرة أخرى.' : 'Please check your connection and try again.')); }
     finally { setSubmitting(false); }
   }

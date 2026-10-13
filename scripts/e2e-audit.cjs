@@ -49,6 +49,9 @@ async function shopperOrder(variantId, quantity, extra = {}) {
 }
 
 (async () => {
+  // Fake Telegram API for the notification check (server started with TELEGRAM_API_BASE=http://127.0.0.1:4599).
+  global.__telegramMessages = [];
+  require('node:http').createServer((req, res) => { let body = ''; req.on('data', c => body += c); req.on('end', () => { try { global.__telegramMessages.push(JSON.parse(body)); } catch {} res.setHeader('content-type', 'application/json'); res.end('{"ok":true}'); }); }).listen(4599).unref();
   await db.connect();
   const admin = await owner();
   const variant = await one(`select v.id, v.product_id from product_variants v join products p on p.id=v.product_id where p.published and v.stock >= 10 order by v.id limit 1`);
@@ -266,6 +269,33 @@ async function shopperOrder(variantId, quantity, extra = {}) {
     assert.equal((await anon.call('/api/admin/promotions', { method: 'POST', body: {} })).status, 403);
   });
 
+  await check('New order notifies Telegram (message has customer, items, total, link) without slowing checkout', async () => {
+    const messages = global.__telegramMessages || [];
+    const token = '123456789:' + 'A'.repeat(35);
+    const save = await admin.call('/api/admin/integrations', { method: 'PUT', body: { telegram: { enabled: true, botToken: token, chatIds: ['111222333'] }, whatsapp: { enabled: false, phone: '', apiKey: '' }, notify: { newOrder: true, lowStock: true }, tracking: { metaPixelId: '1234567890123456', ga4Id: 'G-TEST12345', clarityId: 'abcd1234ef' } } });
+    assert.ok(save.ok, `save ${save.status} ${JSON.stringify(await json(save))}`);
+    const got = await json(await admin.call('/api/admin/integrations'));
+    assert.ok(!JSON.stringify(got).includes('A'.repeat(35)), 'bot token is never sent back in full');
+    const bad = await admin.call('/api/admin/integrations', { method: 'PUT', body: { ...got.integrations, tracking: { metaPixelId: 'abc', ga4Id: '', clarityId: '' } } });
+    assert.equal(bad.status, 400, 'invalid pixel id refused');
+    const t0 = Date.now();
+    const order = await shopperOrder(variant.id, 1);
+    assert.equal(order.status, 201);
+    assert.ok(Date.now() - t0 < 5000, 'checkout is not held up by the notification');
+    for (let i = 0; i < 40 && !messages.some(m => m.text.includes(order.data.order.reference)); i++) await new Promise(r => setTimeout(r, 250));
+    const msg = messages.find(m => m.text.includes(order.data.order.reference));
+    assert.ok(msg, 'telegram message received');
+    assert.equal(msg.chat_id, '111222333');
+    assert.match(msg.text, /Test Buyer/); assert.match(msg.text, /07701234567/); assert.match(msg.text, /\/admin\/orders\/\d+/);
+    const home = await (await fetch(`${base}/`)).text();
+    assert.ok(home.includes("fbq('init','1234567890123456')") || home.includes('fbq(\\u0027init') || home.includes('1234567890123456'), 'pixel on storefront');
+    assert.ok(home.includes('G-TEST12345') && home.includes('abcd1234ef'), 'GA4 and Clarity on storefront');
+    const adminHtml = await (await admin.call('/admin')).text();
+    assert.ok(!adminHtml.includes('G-TEST12345'), 'no tracking in the admin');
+    await admin.call('/api/admin/integrations', { method: 'PUT', body: { telegram: { enabled: false, botToken: '', chatIds: [] }, whatsapp: { enabled: false, phone: '', apiKey: '' }, notify: { newOrder: true, lowStock: true }, tracking: { metaPixelId: '', ga4Id: '', clarityId: '' } } });
+    await db.query(`update orders set status='cancelled' where status='pending'`);
+  });
+
   await check('Delivered order: profit = discounted revenue − purchase cost, delivery excluded; delivered_at set', async () => {
     const r = await admin.call('/api/admin/inventory', { method: 'POST', body: { variantId: variant.id, delta: 10, purchasePriceUsd: 10, exchangeRate: 1000, reason: 'Purchase received' } });
     assert.ok(r.ok);
@@ -361,7 +391,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
   });
 
   await check('Every admin page renders for the owner', async () => {
-    const pages = ['promotions', 'orders', 'customers', 'products', 'inventory', 'purchases', 'categories', 'collections', 'coupons', 'shipping', 'banners', 'homepage', 'sections', 'navigation', 'footer', 'content', 'media', 'videos', 'stores', 'seo', 'redirects', 'messages', 'finance', 'revenue', 'profit', 'reports', 'reports?section=profit', 'reports?section=inventory', 'team', 'activity', 'backup', 'settings'];
+    const pages = ['integrations', 'promotions', 'orders', 'customers', 'products', 'inventory', 'purchases', 'categories', 'collections', 'coupons', 'shipping', 'banners', 'homepage', 'sections', 'navigation', 'footer', 'content', 'media', 'videos', 'stores', 'seo', 'redirects', 'messages', 'finance', 'revenue', 'profit', 'reports', 'reports?section=profit', 'reports?section=inventory', 'team', 'activity', 'backup', 'settings'];
     const failures = [];
     for (const page of ['', '?period=today', '?period=7d', '?period=90d', '?period=year', 'orders?status=pending', ...pages]) { const r = await admin.call(!page ? '/admin' : page.startsWith('?') ? `/admin${page}` : `/admin/${page}`); if (r.status !== 200) failures.push(`${page}:${r.status}`); }
     assert.deepEqual(failures, []);

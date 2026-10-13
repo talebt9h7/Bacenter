@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { notifyNewOrder } from '@/lib/notify';
 import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
@@ -70,10 +71,14 @@ export async function POST(request: NextRequest) {
       const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: rate, subtotalCents: subtotal, shippingCents: shipping, discountCents: discount, codFeeCents: codFee, totalCents: total, profitIqd: 0, couponCode: appliedCoupon, paymentMethod: 'cod', paymentStatus: 'unpaid', status: 'pending', customerNote: note || null }).returning({ id: orders.id });
       await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Order placed · cash on delivery · ${zone.nameEn}` });
       await tx.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
-      return { order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
+      return { orderId: created.id, order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
     });
     invalidateCatalog();
-    return NextResponse.json(result, { status: 201 });
+    // Tell the owner (Telegram / WhatsApp) after the response is sent, so checkout never waits on it.
+    const origin = request.nextUrl.origin;
+    after(() => notifyNewOrder(result.orderId, origin));
+    const { orderId: _orderId, ...response } = result; void _orderId;
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
     if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: 409 });
     if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Some items just sold out. Please review your bag.' }, { status: 409 });

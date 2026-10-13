@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { AdminActor, AdminSection } from '@/lib/admin-auth';
 import { useLanguage } from '@/components/language-provider';
 import { adminT, type AppLanguage } from '@/lib/i18n';
-import { Boxes, ExternalLink, FileText, Images, LayoutDashboard, LogOut, Menu, MessageSquare, Package, Settings, ShoppingCart, Tag, Truck, Users, X, BarChart3, CircleDollarSign, UserCog, ShieldCheck, PlayCircle, TrendingUp, WalletCards, MapPin, Percent } from 'lucide-react';
+import { Boxes, ExternalLink, FileText, Images, LayoutDashboard, LogOut, Menu, MessageSquare, Package, Settings, ShoppingCart, Tag, Truck, Users, X, BarChart3, CircleDollarSign, UserCog, ShieldCheck, PlayCircle, TrendingUp, WalletCards, MapPin, Percent, Bell } from 'lucide-react';
 
 const groups = [
   { title: 'Overview', links: [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true }, { href: '/admin/reports', label: 'Reports', icon: BarChart3 }] },
@@ -13,13 +13,13 @@ const groups = [
   { title: 'Catalog', links: [{ href: '/admin/products', label: 'Products', icon: Package }, { href: '/admin/categories', label: 'Categories', icon: Tag }, { href: '/admin/collections', label: 'Collections', icon: Images }, { href: '/admin/inventory', label: 'Inventory', icon: Boxes }, { href: '/admin/purchases', label: 'Purchases & Suppliers', icon: ShoppingCart }] },
   { title: 'Storefront', links: [{ href: '/admin/homepage', label: 'Homepage', icon: LayoutDashboard }, { href: '/admin/sections', label: 'Sections', icon: Images }, { href: '/admin/media', label: 'Media Library', icon: Images }, { href: '/admin/navigation', label: 'Header & Navigation', icon: Menu }, { href: '/admin/footer', label: 'Footer', icon: FileText }, { href: '/admin/banners', label: 'Banners', icon: Images }, { href: '/admin/content', label: 'Content', icon: FileText }, { href: '/admin/videos', label: 'Video Stories', icon: PlayCircle }, { href: '/admin/messages', label: 'Inbox', icon: MessageSquare }, { href: '/admin/stores', label: 'Stores & stockists', icon: MapPin }] },
   { title: 'Finance', links: [{ href: '/admin/revenue', label: 'Revenue', icon: CircleDollarSign }, { href: '/admin/profit', label: 'Profit', icon: TrendingUp }, { href: '/admin/finance', label: 'Finance & Expenses', icon: WalletCards }] },
-  { title: 'Configuration', links: [{ href: '/admin/shipping', label: 'Delivery · Iraq', icon: Truck }, { href: '/admin/settings', label: 'Settings', icon: Settings }, { href: '/admin/team', label: 'Team & Permissions', icon: UserCog }, { href: '/admin/activity', label: 'Activity Log', icon: FileText }, { href: '/admin/seo', label: 'SEO', icon: ShieldCheck }, { href: '/admin/redirects', label: 'URL Redirects', icon: ExternalLink }, { href: '/admin/backup', label: 'Backup & Restore', icon: ShieldCheck }] },
+  { title: 'Configuration', links: [{ href: '/admin/shipping', label: 'Delivery · Iraq', icon: Truck }, { href: '/admin/settings', label: 'Settings', icon: Settings }, { href: '/admin/integrations', label: 'Notifications & tracking', icon: Bell }, { href: '/admin/team', label: 'Team & Permissions', icon: UserCog }, { href: '/admin/activity', label: 'Activity Log', icon: FileText }, { href: '/admin/seo', label: 'SEO', icon: ShieldCheck }, { href: '/admin/redirects', label: 'URL Redirects', icon: ExternalLink }, { href: '/admin/backup', label: 'Backup & Restore', icon: ShieldCheck }] },
 ];
 const pathSections: Record<string, AdminSection> = {
   '/admin/reports':'finance','/admin/orders':'sales','/admin/customers':'sales','/admin/coupons':'sales','/admin/promotions':'sales',
   '/admin/products':'catalog','/admin/categories':'catalog','/admin/collections':'catalog','/admin/inventory':'catalog','/admin/purchases':'catalog',
   '/admin/homepage':'storefront','/admin/sections':'storefront','/admin/media':'storefront','/admin/navigation':'storefront','/admin/footer':'storefront','/admin/banners':'storefront','/admin/content':'storefront','/admin/videos':'storefront','/admin/messages':'storefront','/admin/stores':'storefront',
-  '/admin/revenue':'finance','/admin/profit':'finance','/admin/finance':'finance','/admin/shipping':'configuration','/admin/settings':'configuration','/admin/team':'team','/admin/activity':'configuration','/admin/seo':'configuration','/admin/redirects':'configuration','/admin/backup':'configuration',
+  '/admin/revenue':'finance','/admin/profit':'finance','/admin/finance':'finance','/admin/shipping':'configuration','/admin/settings':'configuration','/admin/integrations':'configuration','/admin/team':'team','/admin/activity':'configuration','/admin/seo':'configuration','/admin/redirects':'configuration','/admin/backup':'configuration',
 };
 function canViewPath(actor: AdminActor, href: string) {
   if (href === '/admin/backup') return actor.type === 'owner';

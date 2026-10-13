@@ -75,6 +75,14 @@ after the catalog cache, so a sale starts and stops on time; the lowest price wi
 apply. Cart and checkout charge the offer price and each order line keeps `listPrice`,
 `promotionId` and `promotionName`. Coupons apply on top of offer prices.
 
+**Notifications & tracking.** Admin → Notifications & tracking. New orders are sent (after the
+response, via `after()`) to Telegram (bot from @BotFather; "Find my chat" reads the bot's updates)
+and/or WhatsApp through CallMeBot (free, own number only) — `src/lib/notify.ts`. The bot token and
+API key stay server-side (`src/lib/integrations.ts`). Meta Pixel, GA4 and Microsoft Clarity IDs are
+validated and injected on the storefront only (`src/components/tracking.tsx`); events go through
+`src/lib/track.ts` (view item, add to cart, begin checkout, purchase with the order number as
+event/transaction ID, currency IQD).
+
 **Coupons.** A coupon use is claimed atomically at checkout (so a limited coupon can't be
 over-used) and given back if the order is cancelled, returned or deleted.
 

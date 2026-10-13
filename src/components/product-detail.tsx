@@ -9,6 +9,7 @@ import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
 import { ProductCard } from './product-card';
 import { PromoCountdown, usePromoLive } from './promo-price';
+import { track } from '@/lib/track';
 import { Modal, ModalHeading } from './modal';
 import { formatDimensions, formatWarranty, formatWeight, pick, pickList, type HighlightIcon } from '@/lib/product-details';
 import { BadgeCheck, Coins, CreditCard as CardIcon, Droplets, Feather, Gift, Hand, KeyRound, Laptop, Lock, Magnet, Nfc, RulerDimensionLine, Smartphone, Zap } from 'lucide-react';
@@ -52,6 +53,7 @@ export function ProductDetail({ product, related, initialColor }: { product: Pro
   const story = details.story;
   const categoryName = categories.find(item => item.id === product.category)?.name || 'Products';
   const promoLive = usePromoLive(product.promotion) && !!product.originalPriceIqd;
+  useEffect(() => { track.viewItem({ id: product.id, name: product.name, price: product.salePriceIqd, category: product.category }); }, [product.id, product.name, product.salePriceIqd, product.category]);
   const soldOut = color.stock <= 0; const lowStock = color.stock > 0 && color.stock <= 5;
   const maxQuantity = Math.max(1, Math.min(10, color.stock));
   // The gallery position is shared by all colours: on photo 3 of one colour, switching colour
