@@ -10,6 +10,7 @@ import './editorial.css';
 import './admin.css';
 import './typography.css';
 import './cart-checkout.css';
+import './product-card.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);
