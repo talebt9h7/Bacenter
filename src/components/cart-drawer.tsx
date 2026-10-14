@@ -58,7 +58,7 @@ export function CartDrawer() {
 
         <ul className="bag-items">
           {cart.map(item => {
-            const href = item.bundle ? '/bundles' : `/products/${item.productId}?color=${encodeURIComponent(item.color)}`;
+            const href = item.bundle ? `/bundles/${encodeURIComponent(item.bundle.slug)}` : `/products/${item.productId}?color=${encodeURIComponent(item.color)}`;
             const max = Math.min(10, item.stock);
             return <li className="bag-item" key={item.id}>
               <Link href={href} onClick={close} className="bag-item-image"><img src={mediaSrc(item.image, 320)} alt={`${name(item)} — ${colorName(item)}`} /></Link>

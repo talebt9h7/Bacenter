@@ -19,16 +19,16 @@ export function BundleCard({ bundle, compact = false }: { bundle: BundleView; co
   const soldOut = bundle.available <= 0;
   async function add() { setAdding(true); await addBundleToCart(bundle.id); setAdding(false); }
   return <article className={`bundle-card ${compact ? 'bundle-card-compact' : ''}`}>
-    <div className="bundle-visual">
+    <Link href={`/bundles/${encodeURIComponent(bundle.slug)}`} className="bundle-visual" aria-label={name}>
       {bundle.image && !bundle.parts.some(p => p.image === bundle.image)
         ? <img src={mediaSrc(bundle.image, 900)} alt={name} loading="lazy" />
         : <div className="bundle-parts-visual">{bundle.parts.map((p, i) => <span key={p.variantId}>{i > 0 && <i className="bundle-plus"><Plus size={14} /></i>}<img src={mediaSrc(p.image, 480)} alt={ar ? p.nameAr || p.name : p.name} loading="lazy" /></span>)}</div>}
       {pct > 0 && <b className="bundle-save">{ar ? `وفّر ${pct}%` : `Save ${pct}%`}</b>}
-    </div>
+    </Link>
     <div className="bundle-body">
       <span className="bundle-eyebrow"><Gift size={13} /> {ar ? 'بكج' : 'Bundle'}</span>
-      <h3>{name}</h3>
-      <ul className="bundle-items">{bundle.parts.map(p => <li key={p.variantId}><Link href={`/products/${p.productId}?color=${encodeURIComponent(p.color)}`}>{p.quantity > 1 && <b>{p.quantity}× </b>}{ar ? p.nameAr || p.name : p.name}</Link> <span><i style={{ background: p.hex }} />{ar ? p.colorAr || p.color : p.color}</span></li>)}</ul>
+      <h3><Link href={`/bundles/${encodeURIComponent(bundle.slug)}`}>{name}</Link></h3>
+      <ul className="bundle-items">{bundle.parts.map(p => <li key={p.variantId}><Link href={`/bundles/${encodeURIComponent(bundle.slug)}#part-${p.variantId}`}>{p.quantity > 1 && <b>{p.quantity}× </b>}{ar ? p.nameAr || p.name : p.name}</Link> <span><i style={{ background: p.hex }} />{ar ? p.colorAr || p.color : p.color}</span></li>)}</ul>
       {description && !compact && <p className="bundle-desc">{description}</p>}
       <div className="bundle-price"><strong>{moneyIqd(bundle.priceIqd)}</strong>{bundle.savingIqd > 0 && <s>{moneyIqd(bundle.regularIqd)}</s>}</div>
       {bundle.savingIqd > 0 && <p className="bundle-saving">{ar ? `توفّر ${moneyIqd(bundle.savingIqd)} مقارنة بشراء القطع لوحدها` : `You save ${moneyIqd(bundle.savingIqd)} versus buying separately`}</p>}
