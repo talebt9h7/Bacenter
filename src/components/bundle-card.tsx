@@ -31,7 +31,7 @@ export function BundleCard({ bundle, compact = false }: { bundle: BundleView; co
       <ul className="bundle-items">{bundle.parts.map(p => <li key={p.variantId}><Link href={`/bundles/${encodeURIComponent(bundle.slug)}#part-${p.variantId}`}>{p.quantity > 1 && <b>{p.quantity}× </b>}{ar ? p.nameAr || p.name : p.name}</Link> <span><i style={{ background: p.hex }} />{ar ? p.colorAr || p.color : p.color}</span></li>)}</ul>
       {description && !compact && <p className="bundle-desc">{description}</p>}
       <div className="bundle-price"><strong>{moneyIqd(bundle.priceIqd)}</strong>{bundle.savingIqd > 0 && <s>{moneyIqd(bundle.regularIqd)}</s>}</div>
-      {bundle.savingIqd > 0 && <p className="bundle-saving">{ar ? `توفّر ${moneyIqd(bundle.savingIqd)} مقارنة بشراء القطع لوحدها` : `You save ${moneyIqd(bundle.savingIqd)} versus buying separately`}</p>}
+      {bundle.savingIqd > 0 && <p className="bundle-saving">{ar ? `توفّر ${moneyIqd(bundle.savingIqd)} عن شراء القطع منفردة` : `You save ${moneyIqd(bundle.savingIqd)} versus buying separately`}</p>}
       <button type="button" className="button button-orange bundle-add" disabled={soldOut || adding} onClick={() => void add()}>{adding ? <LoaderCircle size={16} className="spin" /> : <ShoppingBag size={16} />} {soldOut ? (ar ? 'نفد حالياً' : 'Sold out') : (ar ? 'أضف البكج للسلة' : 'Add bundle to bag')}</button>
     </div>
   </article>;

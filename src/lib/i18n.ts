@@ -329,7 +329,7 @@ export const storefrontTranslations: Record<string, { ar: string; en: string }> 
   'scheduled': { ar: 'مجدول', en: 'scheduled' }, 'Hide': { ar: 'إخفاء', en: 'Hide' }, 'Show': { ar: 'إظهار', en: 'Show' }, 'Menu item': { ar: 'عنصر القائمة', en: 'Menu item' },
   'No': { ar: 'لا', en: 'No' }, 'Yes': { ar: 'نعم', en: 'Yes' },
 };
-export function storefrontT(label: string, language: AppLanguage) { return storefrontTranslations[label]?.[language] ?? label; }
+export function storefrontT(label: string, language: AppLanguage) { return storefrontTranslations[label]?.[language] ?? storeTranslations[label]?.[language] ?? extraStoreTranslations[label]?.[language] ?? label; }
 
 
 export const batchTranslations = {
@@ -372,4 +372,55 @@ export const storeTranslations: Record<string, { ar: string; en: string }> = {
   'Filter': { ar: 'تصفية', en: 'Filter' }, 'Hide filters': { ar: 'إخفاء الفلاتر', en: 'Hide filters' }, 'Sort by': { ar: 'ترتيب حسب', en: 'Sort by' }, 'Price: low to high': { ar: 'السعر: من الأقل إلى الأعلى', en: 'Price: low to high' }, 'Price: high to low': { ar: 'السعر: من الأعلى إلى الأقل', en: 'Price: high to low' }, 'No products match your search. Try a broader term or explore the full collection.': { ar: 'لا توجد منتجات مطابقة لبحثك. جرّب كلمة أوسع أو استعرض المجموعة كاملة.', en: 'No products match your search. Try a broader term or explore the full collection.' }, 'No products match those filters. Let’s try something a little different.': { ar: 'لا توجد منتجات تطابق هذه الفلاتر. جرّب خيارات مختلفة.', en: 'No products match those filters. Let’s try something a little different.' }, 'Previous products': { ar: 'المنتجات السابقة', en: 'Previous products' }, 'Next products': { ar: 'المنتجات التالية', en: 'Next products' },
   'Contact': { ar: 'اتصل بنا', en: 'Contact' }, 'Play slideshow': { ar: 'تشغيل العرض', en: 'Play slideshow' }, 'Pause slideshow': { ar: 'إيقاف العرض', en: 'Pause slideshow' }, 'More highlights': { ar: 'المزيد من العناصر', en: 'More highlights' }, 'Discover UR': { ar: 'اكتشف المتجر', en: 'Discover UR' }, 'Shop our collections': { ar: 'تسوق مجموعاتنا', en: 'Shop our collections' }, 'Show previous': { ar: 'عرض السابق', en: 'Show previous' }, 'Show next': { ar: 'عرض التالي', en: 'Show next' }, 'Previous photo': { ar: 'الصورة السابقة', en: 'Previous photo' }, 'Next photo': { ar: 'الصورة التالية', en: 'Next photo' }, 'Zoom product image': { ar: 'تكبير صورة المنتج', en: 'Zoom product image' }, 'Choose a color': { ar: 'اختر اللون', en: 'Choose a color' }, 'Decrease quantity': { ar: 'تقليل الكمية', en: 'Decrease quantity' }, 'Increase quantity': { ar: 'زيادة الكمية', en: 'Increase quantity' }, 'In stock': { ar: 'متوفر', en: 'In stock' }, 'Only': { ar: 'متبقي فقط', en: 'Only' }, 'Design insights': { ar: 'تفاصيل التصميم', en: 'Design insights' }, 'Dimensions & materials': { ar: 'الأبعاد والخامات', en: 'Dimensions & materials' }, 'Our warranty': { ar: 'ضماننا', en: 'Our warranty' }, 'A closer look at our materials': { ar: 'تعرّف أكثر على خاماتنا', en: 'A closer look at our materials' }, 'Find out more.': { ar: 'اعرف المزيد.', en: 'Find out more.' }, 'The thinking behind the things': { ar: 'الفكرة وراء منتجاتنا', en: 'The thinking behind the things' }, 'Continue exploring': { ar: 'متابعة التصفح', en: 'Continue exploring' }, 'Your order qualifies for free delivery across Iraq!': { ar: 'طلبك مؤهل للتوصيل المجاني داخل العراق!', en: 'Your order qualifies for free delivery across Iraq!' }, 'Delivery calculated at checkout by governorate. Cash on delivery.': { ar: 'تُحسب أجور التوصيل عند إتمام الطلب حسب المحافظة. الدفع عند الاستلام.', en: 'Delivery calculated at checkout by governorate. Cash on delivery.' }, 'Secure checkout · 30-day returns': { ar: 'دفع آمن · إرجاع خلال 30 يوماً', en: 'Secure checkout · 30-day returns' }, 'Decrease': { ar: 'تقليل', en: 'Decrease' }, 'Increase': { ar: 'زيادة', en: 'Increase' }, 'Checkout could not be loaded. Please refresh.': { ar: 'تعذر تحميل صفحة إتمام الطلب. حدّث الصفحة.', en: 'Checkout could not be loaded. Please refresh.' }, 'Where to?': { ar: 'إلى أين؟', en: 'Where to?' }, 'City / district': { ar: 'المدينة / القضاء', en: 'City / district' }, 'Nearest landmark (optional)': { ar: 'أقرب نقطة دالة (اختياري)', en: 'Nearest landmark (optional)' }, 'Coupon code': { ar: 'رمز الخصم', en: 'Coupon code' }, 'Apply': { ar: 'تطبيق', en: 'Apply' }, 'Remove coupon': { ar: 'إزالة القسيمة', en: 'Remove coupon' }, 'Placing your order…': { ar: 'جارٍ تأكيد الطلب…', en: 'Placing your order…' }, 'By continuing, you agree to our': { ar: 'بمتابعة الطلب، أنت توافق على', en: 'By continuing, you agree to our' }, 'terms & conditions.': { ar: 'الشروط والأحكام.', en: 'terms & conditions.' }, 'Questions?': { ar: 'لديك استفسار؟', en: 'Questions?' }, 'Your good company': { ar: 'اختيارك الجميل', en: 'Your good company' }, 'Add': { ar: 'إضافة', en: 'Add' }, 'more for free delivery anywhere in Iraq.': { ar: 'إضافية للحصول على توصيل مجاني إلى أي مكان في العراق.', en: 'more for free delivery anywhere in Iraq.' }, 'Sale prices are fixed in IQD. USD is used only for purchase cost and reference.': { ar: 'أسعار البيع ثابتة بالدينار العراقي. يُستخدم الدولار فقط لتكلفة الشراء والمرجع.', en: 'Sale prices are fixed in IQD. USD is used only for purchase cost and reference.' }, 'By signing up, you agree to our': { ar: 'بالاشتراك، أنت توافق على', en: 'By signing up, you agree to our' }, 'privacy policy': { ar: 'سياسة الخصوصية', en: 'privacy policy' }, 'You can unsubscribe at any time.': { ar: 'يمكنك إلغاء الاشتراك في أي وقت.', en: 'You can unsubscribe at any time.' }, 'Please try again in a moment.': { ar: 'يرجى المحاولة مرة أخرى بعد قليل.', en: 'Please try again in a moment.' }, 'Store benefits': { ar: 'مزايا المتجر', en: 'Store benefits' }, 'Got a question?': { ar: 'لديك سؤال؟', en: 'Got a question?' }, 'Subscribe to the newsletter': { ar: 'اشترك في النشرة البريدية', en: 'Subscribe to the newsletter' }, 'Cookies improve your experience': { ar: 'تساعد ملفات تعريف الارتباط على تحسين تجربتك', en: 'Cookies improve your experience' }, 'cookies policy': { ar: 'سياسة ملفات تعريف الارتباط', en: 'cookies policy' }, 'Got it': { ar: 'فهمت', en: 'Got it' }, 'Language': { ar: 'اللغة', en: 'Language' },
 };
-export function storeT(label: string, language: AppLanguage) { return storeTranslations[label]?.[language] ?? label; }
+export function storeT(label: string, language: AppLanguage) { return storeTranslations[label]?.[language] ?? storefrontTranslations[label]?.[language] ?? extraStoreTranslations[label]?.[language] ?? label; }
+
+/** Fallback Arabic for store labels that are not in the two dictionaries above. */
+export const extraStoreTranslations: Record<string, { ar: string; en: string }> = {
+  'Skip to content': { ar: 'تخطَّ إلى المحتوى', en: 'Skip to content' },
+  'Iraq': { ar: 'العراق', en: 'Iraq' },
+  'IQD': { ar: 'د.ع', en: 'IQD' },
+  'Got a question?': { ar: 'عندك سؤال؟', en: 'Got a question?' },
+  'Customer care': { ar: 'خدمة العملاء', en: 'Customer care' },
+  'Shipping & returns': { ar: 'الشحن والإرجاع', en: 'Shipping & returns' },
+  'Extended warranties': { ar: 'الضمان', en: 'Extended warranties' },
+  'Cleaning & care': { ar: 'العناية والتنظيف', en: 'Cleaning & care' },
+  'Contact us': { ar: 'تواصل معنا', en: 'Contact us' },
+  'Terms & conditions': { ar: 'الشروط والأحكام', en: 'Terms & conditions' },
+  'Privacy policy': { ar: 'سياسة الخصوصية', en: 'Privacy policy' },
+  'Cookie policy': { ar: 'سياسة ملفات الارتباط', en: 'Cookie policy' },
+  'Shop all products': { ar: 'كل المنتجات', en: 'Shop all products' },
+  'Backpacks': { ar: 'حقائب ظهر', en: 'Backpacks' },
+  'Slings & crossbody bags': { ar: 'حقائب كتف', en: 'Slings & crossbody bags' },
+  'Bags & luggage': { ar: 'حقائب وأمتعة', en: 'Bags & luggage' },
+  'Wallets': { ar: 'محافظ', en: 'Wallets' },
+  'Phone cases': { ar: 'كفرات موبايل', en: 'Phone cases' },
+  'Accessories': { ar: 'أكسسوارات', en: 'Accessories' },
+  'Bestsellers': { ar: 'الأكثر مبيعاً', en: 'Bestsellers' },
+  'New releases': { ar: 'وصل حديثاً', en: 'New releases' },
+  'Travel': { ar: 'سفر', en: 'Travel' },
+  'Work': { ar: 'عمل', en: 'Work' },
+  'Outdoor': { ar: 'رحلات', en: 'Outdoor' },
+  'The Outlet': { ar: 'التخفيضات', en: 'The Outlet' },
+  'Value sets': { ar: 'البكجات', en: 'Value sets' },
+  'Our story': { ar: 'قصتنا', en: 'Our story' },
+  'Our materials': { ar: 'جلودنا', en: 'Our materials' },
+  'Responsible business': { ar: 'مسؤوليتنا', en: 'Responsible business' },
+  'The journal': { ar: 'المدونة', en: 'The journal' },
+  'Stores & stockists': { ar: 'نقاط البيع', en: 'Stores & stockists' },
+  'Corporate gifting': { ar: 'هدايا الشركات', en: 'Corporate gifting' },
+  'Careers': { ar: 'الوظائف', en: 'Careers' },
+  'Your name': { ar: 'اسمك', en: 'Your name' },
+  'Email address': { ar: 'البريد الإلكتروني', en: 'Email address' },
+  'How can we help?': { ar: 'شلون نگدر نساعدك؟', en: 'How can we help?' },
+  'Choose a topic': { ar: 'اختار الموضوع', en: 'Choose a topic' },
+  'My order': { ar: 'طلبي', en: 'My order' },
+  'Product question': { ar: 'سؤال عن منتج', en: 'Product question' },
+  'Privacy & data removal': { ar: 'الخصوصية وحذف البيانات', en: 'Privacy & data removal' },
+  'Something else': { ar: 'شي ثاني', en: 'Something else' },
+  'Your message': { ar: 'رسالتك', en: 'Your message' },
+  'Tell us a little more…': { ar: 'احچيلنا أكثر…', en: 'Tell us a little more…' },
+  'Sending': { ar: 'جارٍ الإرسال', en: 'Sending' },
+  'Send your message': { ar: 'أرسل رسالتك', en: 'Send your message' },
+  'A quick heads-up.': { ar: 'ملاحظة سريعة', en: 'A quick heads-up.' },
+  'Lights. Camera. Action.': { ar: 'شاهد قطعنا عن قرب', en: 'Lights. Camera. Action.' },
+};

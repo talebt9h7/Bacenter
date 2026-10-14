@@ -15,7 +15,6 @@ type Coupon = { code: string; discount: number; freeShipping: boolean; descripti
 type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone };
 type Saved = { name?: string; phone?: string; altPhone?: string; email?: string; governorate?: string; city?: string; address?: string; landmark?: string };
 
-const iqd = (value: number) => new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(value);
 const SAVED_KEY = 'checkout-details-v1';
 
 /** Expected delivery window as calendar dates, counting working days (Friday off). */
@@ -39,6 +38,7 @@ export function Checkout() {
   const { cart, loaded, refreshCart, setCartOpen } = useStore();
   const { language } = useLanguage();
   const ar = language === 'ar';
+  const iqd = (value: number) => ar ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)} د.ع` : new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(value);
   const t = (label: string) => storeT(label, language);
   const [config, setConfig] = useState<Config | null>(null);
   const [governorate, setGovernorate] = useState('');

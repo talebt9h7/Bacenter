@@ -24,7 +24,7 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
   const { language } = useLanguage();
   const t = (label: string) => storeT(label, language);
   const bannerArabic: Record<string, { title: string; cta?: string }> = {};
-  const slides = heroBanners.length ? heroBanners.map(banner => { const arBanner = bannerArabic[banner.title]; const title = language === 'ar' ? (banner.titleAr || arBanner?.title || banner.title) : banner.title; return { key: String(banner.id), image: banner.image, mobileImage: banner.mobileImage || banner.image, lines: title.split('\n').filter(Boolean), cta: language === 'ar' ? (banner.ctaLabelAr || arBanner?.cta || banner.ctaLabel || t('Shop now')) : (banner.ctaLabel || t('Shop now')), href: banner.href, alt: language === 'ar' ? (banner.subtitleAr || banner.subtitle || title) : (banner.subtitle || banner.title) }; }) : defaultSlides.map(item => ({ ...item, lines: language === 'ar' ? (bannerArabic[item.lines.join('\n')]?.title?.split('\n') || item.lines) : item.lines, cta: t(item.cta) }));
+  const slides = heroBanners.length ? heroBanners.map(banner => { const arBanner = bannerArabic[banner.title]; const title = language === 'ar' ? (banner.titleAr || arBanner?.title || banner.title) : banner.title; return { key: String(banner.id), image: banner.image, mobileImage: banner.mobileImage || banner.image, lines: title.split('\n').filter(Boolean), cta: language === 'ar' ? (banner.ctaLabelAr || arBanner?.cta || (banner.ctaLabel && /[\u0600-\u06FF]/.test(banner.ctaLabel) ? banner.ctaLabel : t('Shop now'))) : (banner.ctaLabel || t('Shop now')), href: banner.href, alt: language === 'ar' ? (banner.subtitleAr || banner.subtitle || title) : (banner.subtitle || banner.title) }; }) : defaultSlides.map(item => ({ ...item, lines: language === 'ar' ? (bannerArabic[item.lines.join('\n')]?.title?.split('\n') || item.lines) : item.lines, cta: t(item.cta) }));
   const highlightArabic: Record<string, string> = {};
   const highlights = highlightBanners.length ? highlightBanners.map(banner => ({ key: String(banner.id), image: banner.image, title: language === 'ar' ? (banner.titleAr || highlightArabic[banner.title] || banner.title) : banner.title, href: banner.href, badge: language === 'ar' ? (banner.badgeAr || (banner.badge === 'NEW' ? 'جديد' : banner.badge === 'SAVE' ? 'وفر' : banner.badge)) : banner.badge })) : defaultHighlights.map(item => ({ ...item, title: language === 'ar' ? (highlightArabic[item.title] || item.title) : item.title, badge: language === 'ar' ? (item.badge === 'NEW' ? 'جديد' : item.badge === 'SAVE' ? 'وفر' : item.badge) : item.badge }));
   const blockState = new Map(homepage.blocks.map(block => [block.key, block]));
@@ -56,7 +56,7 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
     'Backpacks': 'حقائب الظهر',
     'Wallets': 'المحافظ',
   };
-  const text = (en: string, arValue?: string) => ar ? (arValue || homepageArabic[en] || en) : en;
+  const text = (en: string, arValue?: string) => ar ? (arValue && /[\u0600-\u06FF]/.test(arValue) ? arValue : homepageArabic[en] || (t(en) !== en ? t(en) : arValue || en)) : en;
   const intents = [...homepage.intents].filter(item => item.active).sort((a, b) => a.sortOrder - b.sortOrder);
   const collections = [...homepage.collections].filter(item => item.active).sort((a, b) => a.sortOrder - b.sortOrder);
   const socialItems = [...homepage.social].filter(item => item.active).sort((a, b) => a.sortOrder - b.sortOrder);

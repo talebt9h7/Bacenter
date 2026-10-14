@@ -1,4 +1,5 @@
 'use client';
+import { useLanguage } from './language-provider';
 import { track } from '@/lib/track';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -24,6 +25,7 @@ type Store = {
 const Context = createContext<Store | null>(null);
 const REGION_KEY = 'bellroy-region';
 export function StoreProvider({ children, settings }: { children: ReactNode; settings: PublicSettings }) {
+  const { language } = useLanguage();
   const regions = useMemo(() => baseRegions.map(region => region.currency === 'IQD' ? { ...region, rate: settings.exchangeRate } : region), [settings.exchangeRate]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -93,11 +95,12 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   }
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const fmtIqd = useCallback((n: number) => language === 'ar' ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n)} د.ع` : new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(n), [language]);
   function money(price: number) {
-    if (region.currency === 'IQD') return new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(roundIqd(price * region.rate));
+    if (region.currency === 'IQD') return fmtIqd(roundIqd(price * region.rate));
     return new Intl.NumberFormat(region.locale, { style: 'currency', currency: region.currency, maximumFractionDigits: 0 }).format(Math.round(price * region.rate));
   }
-  const moneyIqd = useCallback((priceIqd: number) => { if (region.currency === 'IQD') return new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(Math.round(priceIqd)); return new Intl.NumberFormat(region.locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(priceIqd / settings.exchangeRate); }, [region, settings.exchangeRate]);
+  const moneyIqd = useCallback((priceIqd: number) => { if (region.currency === 'IQD') return fmtIqd(Math.round(priceIqd)); return new Intl.NumberFormat(region.locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(priceIqd / settings.exchangeRate); }, [region, settings.exchangeRate, fmtIqd]);
   const freeShippingUsd = settings.freeShippingThreshold / settings.exchangeRate;
   return <Context.Provider value={{ cart, loaded, busy, cartOpen, setCartOpen, addToCart, updateQuantity, refreshCart, addBundleToCart, count, subtotal, region, regions, setRegion, money, moneyIqd, notify, settings, freeShippingUsd }}>
     {children}

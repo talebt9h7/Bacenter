@@ -245,3 +245,26 @@ body:has(.product-page-banner){overflow-x:clip}
 .product-video-frame iframe{z-index:1}
 .product-video-sound{position:absolute;z-index:2;bottom:12px;inset-inline-start:12px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:0;background:rgba(20,14,8,.68);color:#fff;font:inherit;font-size:12.5px;cursor:pointer;backdrop-filter:blur(4px)}
 .product-video-sound:hover{background:rgba(20,14,8,.85)}
+/* Mobile: bundles as a swipeable rail of compact cards (the stacked full-width cards were taller than the screen). */
+@media (max-width:767px){
+  .bundles-section{padding-top:28px;padding-bottom:28px}
+  .bundles-section .section-heading{margin-bottom:14px}
+  main:not(.bundles-page) .bundles-section .bundles-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-inline:-16px;padding:4px 16px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  main:not(.bundles-page) .bundles-section .bundles-grid::-webkit-scrollbar{display:none}
+  main:not(.bundles-page) .bundles-grid>.bundle-card{flex:0 0 78%;max-width:320px;scroll-snap-align:start}
+  main:not(.bundles-page) .bundles-grid>.bundle-card:only-child{flex-basis:100%;max-width:none}
+  .bundle-card:hover{transform:none}
+  .bundle-visual{aspect-ratio:4/3}
+  .bundle-parts-visual{padding:12px}
+  .bundle-save{font-size:11px;padding:4px 9px}
+  .bundle-body{padding:12px 14px 14px;gap:5px}
+  .bundle-eyebrow{font-size:11px}
+  .bundle-body h3{font-size:15.5px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .bundle-items{font-size:12.5px;gap:3px}
+  .bundle-items span{font-size:11.5px}
+  .bundle-price{gap:8px;padding-top:4px}
+  .bundle-price strong{font-size:18px}
+  .bundle-price s{font-size:12.5px}
+  .bundle-saving{font-size:11.5px;line-height:1.5}
+  .bundle-add{min-height:42px;font-size:12.5px;margin-top:4px;padding:10px 12px}
+}
