@@ -63,9 +63,9 @@ async function check(name, fn) { try { await fn(); results.push('PASS ' + name);
     assert.equal((await admin.call('/admin/wholesale')).status, 200);
   });
   await check('Wholesale price never reaches the storefront', async () => {
-    await q('update products set wholesale_price_iqd = 12345 where id=$1', [a.product_id]);
+    await q('update products set wholesale_price_iqd = 987613 where id=$1', [a.product_id]);
     const html = await (await fetch(base + '/products/' + a.product_id)).text();
-    assert.ok(!html.includes('12345') && !html.includes('wholesalePriceIqd'), 'no wholesale price in page');
+    assert.ok(!html.includes('987613') && !html.includes('wholesalePriceIqd'), 'no wholesale price in page');
   });
   await check('Reviews: submit → pending (hidden) → approve → shown with rating and JSON-LD; verified when phone bought it', async () => {
     const pid = a.product_id;
