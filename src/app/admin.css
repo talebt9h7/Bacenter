@@ -102,3 +102,47 @@ html[dir="rtl"] .admin-shell{direction:rtl}html[dir="rtl"] .admin-sidebar{left:a
 .product-content-editor{margin-top:20px}
 .product-content-editor .pce-row input,.product-content-editor .pce-row select{border:1px solid var(--a-line);border-radius:8px;padding:9px 11px;font-size:13px;background:#fff;color:var(--a-ink)}
 .product-content-editor .pce-row input:focus,.product-content-editor .pce-row select:focus{border-color:#9ea19a;outline:2px solid #cd4c2033}
+/* Admin sign-in — Apple ID style */
+.al-page{--al-bg:#f5f5f7;--al-card:rgba(255,255,255,.78);--al-line:#d2d2d7;--al-text:#1d1d1f;--al-mute:#6e6e73;--al-brand:#8b5a2b;--al-brand-2:#5c3a1b;--al-focus:rgba(139,90,43,.28);--al-err:#d70015;position:relative;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:32px 16px;background:var(--al-bg);color:var(--al-text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","IBM Plex Sans Arabic","Helvetica Neue",Arial,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+.al-glow{position:absolute;inset:-20% -10% auto;height:70%;background:radial-gradient(40% 50% at 70% 30%,rgba(139,90,43,.16),transparent 70%),radial-gradient(35% 45% at 25% 55%,rgba(196,150,100,.14),transparent 70%);filter:blur(30px);pointer-events:none}
+.al-card{position:relative;width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:44px 32px 26px;background:var(--al-card);border:1px solid rgba(255,255,255,.7);border-radius:28px;box-shadow:0 1px 1px rgba(0,0,0,.03),0 24px 60px -18px rgba(60,40,20,.22);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);animation:al-in .6s cubic-bezier(.2,.8,.2,1) both;transition:transform .5s,opacity .5s}
+.al-card.is-done{transform:scale(.97);opacity:.6}
+@keyframes al-in{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.al-icon{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(145deg,#a06a36,var(--al-brand-2));box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 10px 24px -8px rgba(92,58,27,.55);margin-bottom:22px}
+.al-icon img{filter:brightness(0) invert(1);opacity:.95}
+.al-card h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px;line-height:1.2}
+.al-sub{font-size:15px;color:var(--al-mute);margin:0 0 26px}
+.al-seg{position:relative;display:grid;grid-template-columns:1fr 1fr;width:100%;padding:3px;margin-bottom:22px;background:rgba(118,118,128,.12);border-radius:10px}
+.al-seg-thumb{position:absolute;top:3px;bottom:3px;right:3px;width:calc(50% - 3px);background:#fff;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);transition:transform .32s cubic-bezier(.3,.7,.2,1)}
+.al-seg button{position:relative;z-index:1;border:0;background:none;padding:8px 0;font:inherit;font-size:13px;font-weight:500;color:var(--al-text);cursor:pointer;border-radius:8px}
+.al-seg button[aria-selected=false]{color:var(--al-mute)}
+.al-fields{width:100%;border:1px solid var(--al-line);border-radius:14px;background:#fff;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.al-fields:focus-within{border-color:var(--al-brand);box-shadow:0 0 0 4px var(--al-focus)}
+.al-fields.has-error{border-color:var(--al-err);box-shadow:0 0 0 4px rgba(215,0,21,.12)}
+.al-shake{animation:al-shake .45s cubic-bezier(.36,.07,.19,.97)}
+@keyframes al-shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+.al-field{position:relative;height:58px}
+.al-field+.al-field{border-top:1px solid var(--al-line)}
+.al-field input{width:100%;height:100%;border:0;outline:0;background:none;padding:22px 16px 6px;font:inherit;font-size:17px;color:var(--al-text);text-align:right}
+.al-field-pass input{padding-left:92px;letter-spacing:.02em}
+.al-field input[dir=ltr]{text-align:right}
+.al-field label{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--al-mute);pointer-events:none;transform-origin:right center;transition:transform .18s ease,top .18s ease,font-size .18s ease}
+.al-field input:focus+label,.al-field input:not(:placeholder-shown)+label{top:15px;font-size:12px}
+.al-eye{position:absolute;left:50px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;border:0;background:none;color:var(--al-mute);cursor:pointer;border-radius:50%}
+.al-eye:hover{color:var(--al-text)}
+.al-go{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:grid;place-items:center;border:1.5px solid var(--al-mute);border-radius:50%;background:none;color:var(--al-mute);cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .15s}
+.al-go:not(:disabled){background:var(--al-brand);border-color:var(--al-brand);color:#fff}
+.al-go:not(:disabled):hover{background:var(--al-brand-2);border-color:var(--al-brand-2)}
+.al-go:not(:disabled):active{transform:translateY(-50%) scale(.92)}
+.al-go:disabled{opacity:.45;cursor:default}
+.al-spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:spin .7s linear infinite}
+.al-go:disabled .al-spin{border-color:rgba(110,110,115,.3);border-top-color:var(--al-mute)}
+.al-error{min-height:20px;margin:10px 0 0;font-size:13px;color:var(--al-err)}
+.al-error:empty{min-height:8px}
+.al-hint{margin:8px 0 0;font-size:12px;line-height:1.8;color:var(--al-mute)}
+.al-hint code{background:rgba(118,118,128,.12);padding:1px 6px;border-radius:5px;font-size:11.5px;color:var(--al-text)}
+.al-foot{display:flex;align-items:center;gap:5px;margin:22px 0 0;font-size:12px;color:var(--al-mute)}
+.al-copy{position:relative;font-size:12px;color:var(--al-mute)}
+@media (max-width:440px){.al-card{padding:36px 20px 22px;border-radius:24px}.al-card h1{font-size:26px}}
+@media (prefers-color-scheme:dark){.al-page{--al-bg:#000;--al-card:rgba(28,28,30,.78);--al-line:#3a3a3c;--al-text:#f5f5f7;--al-mute:#98989d;--al-focus:rgba(196,140,80,.32)}.al-card{border-color:rgba(255,255,255,.06)}.al-fields{background:#1c1c1e}.al-seg-thumb{background:#636366}.al-glow{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.al-card,.al-shake{animation:none}.al-seg-thumb,.al-field label{transition:none}}
