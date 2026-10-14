@@ -1,5 +1,5 @@
 'use client';
-import { Gift, LoaderCircle, Plus, ShoppingBag } from 'lucide-react';
+import { Gift, LoaderCircle, Plus, ShoppingBag, Tag } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { mediaSrc } from '@/lib/types';
@@ -23,7 +23,7 @@ export function BundleCard({ bundle, compact = false }: { bundle: BundleView; co
       {bundle.image && !bundle.parts.some(p => p.image === bundle.image)
         ? <img src={mediaSrc(bundle.image, 900)} alt={name} loading="lazy" />
         : <div className="bundle-parts-visual">{bundle.parts.map((p, i) => <span key={p.variantId}>{i > 0 && <i className="bundle-plus"><Plus size={14} /></i>}<img src={mediaSrc(p.image, 480)} alt={ar ? p.nameAr || p.name : p.name} loading="lazy" /></span>)}</div>}
-      {pct > 0 && <b className="bundle-save">{ar ? `وفّر ${pct}%` : `Save ${pct}%`}</b>}
+      {pct > 0 && <span className="ur-deal-badge"><Tag size={13} strokeWidth={2.4} /><span>{ar ? 'خصم' : 'Save'}</span><b dir="ltr">{pct}%</b></span>}
     </Link>
     <div className="bundle-body">
       <span className="bundle-eyebrow"><Gift size={13} /> {ar ? 'بكج' : 'Bundle'}</span>

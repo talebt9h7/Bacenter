@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Check, Gift, Plus, ShieldCheck, Truck } from 'lucide-react';
+import { BadgeCheck, Check, Gift, Plus, ShieldCheck, Tag, Truck } from 'lucide-react';
 import { mediaSrc, mediaSrcSet } from '@/lib/types';
 import type { BundlePart, BundleView } from '@/lib/bundles';
 import { track } from '@/lib/track';
@@ -35,7 +35,7 @@ export function BundleDetail({ bundle, parts, others }: { bundle: BundleView; pa
       <div className="product-gallery">
         <div className="product-main-image bundle-main-image">
           {gallery.length > 0 ? <img key={gallery[safe]} src={mediaSrc(gallery[safe], 1280)} srcSet={mediaSrcSet(gallery[safe], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" alt={name} fetchPriority="high" /> : null}
-          {pct > 0 && <span className="product-badge bundle-page-save">{ar ? `وفّر ${pct}%` : `Save ${pct}%`}</span>}
+          {pct > 0 && <span className="ur-deal-badge"><Tag size={14} strokeWidth={2.4} /><span>{ar ? 'خصم' : 'Save'}</span><b dir="ltr">{pct}%</b></span>}
         </div>
         {gallery.length > 1 && <div className="product-thumbnails">{gallery.map((image, i) => <button key={`${image}-${i}`} className={safe === i ? 'selected' : ''} onClick={() => setIndex(i)} aria-label={`${ar ? 'صورة' : 'Photo'} ${i + 1}`} aria-pressed={safe === i}><img src={mediaSrc(image, 160)} alt="" /></button>)}</div>}
       </div>
@@ -44,7 +44,10 @@ export function BundleDetail({ bundle, parts, others }: { bundle: BundleView; pa
         <div className="product-heading">
           <span className="bundle-eyebrow"><Gift size={14} /> {ar ? `بكج · ${parts.reduce((s, p) => s + p.quantity, 0)} قطع` : `Bundle · ${parts.reduce((s, p) => s + p.quantity, 0)} pieces`}</span>
           <h1>{name}</h1>
-          <div className="product-price on-sale"><span className="price-now">{moneyIqd(bundle.priceIqd)}</span>{bundle.savingIqd > 0 && <><s className="price-was">{moneyIqd(bundle.regularIqd)}</s><span className="price-save">{ar ? `وفّر ${moneyIqd(bundle.savingIqd)}` : `Save ${moneyIqd(bundle.savingIqd)}`}</span></>}</div>
+          <div className="bundle-price-block">
+            <div className="bundle-price-row"><strong className="bundle-price-now">{moneyIqd(bundle.priceIqd)}</strong>{bundle.savingIqd > 0 && <s className="bundle-price-was">{moneyIqd(bundle.regularIqd)}</s>}</div>
+            {bundle.savingIqd > 0 && <div className="ur-deal-strip"><span className="ur-deal-chip"><b dir="ltr">-{pct}%</b></span><span>{ar ? <>وفّرت <b>{moneyIqd(bundle.savingIqd)}</b> بهذا البكج</> : <>You save <b>{moneyIqd(bundle.savingIqd)}</b> with this bundle</>}</span></div>}
+          </div>
         </div>
 
         <div className="bundle-contents">
@@ -65,9 +68,9 @@ export function BundleDetail({ bundle, parts, others }: { bundle: BundleView; pa
         {!soldOut && bundle.available <= 5 && <p className="bundle-stock-note">{ar ? `بقي ${bundle.available} فقط من هذا البكج` : `Only ${bundle.available} left`}</p>}
         {description && <p className="product-description">{description}</p>}
         <ul className="bundle-perks">
-          {bundle.savingIqd > 0 && <li><Check size={16} /> {ar ? `أرخص بـ ${moneyIqd(bundle.savingIqd)} من شراء القطع لوحدها` : `${moneyIqd(bundle.savingIqd)} less than buying separately`}</li>}
-          <li><Truck size={16} /> {ar ? 'توصيل لكل العراق والدفع عند الاستلام' : 'Delivery across Iraq, cash on delivery'}</li>
-          <li><ShieldCheck size={16} /> {ar ? 'جلد طبيعي 100% وضمان على كل قطعة' : 'Natural leather, warranty on every piece'}</li>
+          <li><i><ShieldCheck size={18} /></i><span><b>{ar ? 'ضمان 3 سنوات' : '3-year warranty'}</b><small>{ar ? 'على كل قطعة' : 'On every piece'}</small></span></li>
+          <li><i><BadgeCheck size={18} /></i><span><b>{ar ? 'جلد طبيعي 100%' : '100% natural leather'}</b><small>{ar ? 'صناعة يدوية' : 'Handmade'}</small></span></li>
+          <li><i><Truck size={18} /></i><span><b>{ar ? 'توصيل لكل العراق' : 'Delivery across Iraq'}</b><small>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</small></span></li>
         </ul>
       </div>
     </div>

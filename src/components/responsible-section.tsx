@@ -11,7 +11,7 @@ export function Ziggurat({ size = 22 }: { size?: number }) {
 const fallback = [
   { title: 'Genuine leather', titleAr: 'جلد طبيعي 100%', text: 'Full-grain leather that ages beautifully.', textAr: 'جلد طبيعي يزداد جمالاً مع الاستخدام.' },
   { title: 'Handmade', titleAr: 'صناعة يدوية', text: 'Cut and stitched by Iraqi craftsmen.', textAr: 'بأيدي حرفيين عراقيين مهرة.' },
-  { title: '6-month warranty', titleAr: 'ضمان 6 أشهر', text: 'On stitching and materials.', textAr: 'على الخياطة وعيوب التصنيع.' },
+  { title: '3-year warranty', titleAr: 'ضمان 3 سنوات', text: 'On stitching and materials.', textAr: 'على الخياطة وعيوب التصنيع.' },
   { title: 'Delivery across Iraq', titleAr: 'توصيل لكل العراق', text: 'Cash on delivery.', textAr: 'والدفع عند الاستلام.' },
 ];
 
