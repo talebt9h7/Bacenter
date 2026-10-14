@@ -145,7 +145,7 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
         </div>
 
         <div className="buy-actions">
-          <button className="button button-orange product-add-to-cart" disabled={busy || soldOut} onClick={() => void addToCart(color.id, quantity)}>{soldOut ? t('Sold out in this color') : busy ? <><LoaderCircle size={17} className="spin" /> {t('Adding to your bag')}</> : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
+          <button className="button button-orange product-add-to-cart" disabled={soldOut} onClick={() => void addToCart(color.id, quantity, { variantId: color.id, productId: product.id, name: product.name, nameAr: product.nameAr || product.name, color: color.name, colorAr: color.nameAr || color.name, salePriceIqd: product.salePriceIqd, originalPriceIqd: product.originalPriceIqd, image: primaryImage(color), capacity: product.capacity ?? null, stock: color.stock })}>{soldOut ? t('Sold out in this color') : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
           <a
             className="button button-orange whatsapp-inquiry-button"
             href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أرغب بطلب:\n${displayName}\nالسعر: ${moneyIqd(product.salePriceIqd)}\nالكمية: ${quantity}\nاللون: ${displayColorName(color)}` : `Hello, I would like to place an order:\n${displayName}\nPrice: ${moneyIqd(product.salePriceIqd)}\nQuantity: ${quantity}\nColor: ${displayColorName(color)}`)}`}

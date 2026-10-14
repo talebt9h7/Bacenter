@@ -16,7 +16,7 @@ export const baseRegions: Region[] = [
 ];
 type Store = {
   cart: CartLine[]; loaded: boolean; busy: boolean; cartOpen: boolean; setCartOpen: (open: boolean) => void;
-  addToCart: (variantId: number, quantity?: number) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number) => Promise<boolean>;
+  addToCart: (variantId: number, quantity?: number, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number) => Promise<boolean>;
   updateQuantity: (id: number, quantity: number) => Promise<void>; refreshCart: () => Promise<void>;
   count: number; subtotal: number; region: Region; regions: Region[]; setRegion: (region: Region) => void;
   money: (price: number) => string; moneyIqd: (priceIqd: number) => string; notify: (message: string, error?: boolean) => void; settings: PublicSettings; freeShippingUsd: number;
@@ -42,19 +42,31 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   useEffect(() => { void refreshCart(); }, [refreshCart]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(null), 4500); return () => clearTimeout(timer); }, [toast]);
   function setRegion(next: Region) { writeLocalStorage(REGION_KEY, next.name); }
-  async function addToCart(variantId: number, quantity = 1) {
-    if (busy) return false;
-    setBusy(true);
+  /**
+   * Adds to the bag immediately: the line appears and the bag opens straight away (when a preview
+   * is given), then the server confirms. If the server refuses, the bag is put back and the reason shown.
+   */
+  async function addToCart(variantId: number, quantity = 1, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>) {
+    const before = cart;
+    if (preview) {
+      const existing = cart.find(item => item.variantId === variantId && !item.bundle);
+      setCart(existing ? cart.map(item => item === existing ? { ...item, quantity: Math.min(10, item.quantity + quantity) } : item) : [...cart, { ...preview, id: -1e9 - variantId, quantity, price: preview.salePriceIqd / settings.exchangeRate }]);
+      setCartOpen(true);
+      track.addToCart({ id: preview.productId, name: preview.name, variant: preview.color, price: preview.salePriceIqd, quantity });
+    } else setBusy(true);
     try {
       const response = await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variantId, quantity }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
-      setCart(data.items); setCartOpen(true);
-      const line = (data.items as CartLine[]).find(item => item.variantId === variantId);
-      if (line) track.addToCart({ id: line.productId, name: line.name, variant: line.color, price: line.salePriceIqd, quantity });
+      setCart(data.items);
+      if (!preview) {
+        setCartOpen(true);
+        const line = (data.items as CartLine[]).find(item => item.variantId === variantId);
+        if (line) track.addToCart({ id: line.productId, name: line.name, variant: line.color, price: line.salePriceIqd, quantity });
+      }
       return true;
-    } catch (error) { notify(error instanceof Error ? error.message : 'Please check your connection.', true); return false; }
-    finally { setBusy(false); }
+    } catch (error) { if (preview) setCart(before); notify(error instanceof Error ? error.message : 'Please check your connection.', true); return false; }
+    finally { if (!preview) setBusy(false); }
   }
   async function addBundleToCart(bundleId: number, quantity = 1) {
     if (busy) return false;

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Check, Gift, LoaderCircle, Plus, ShieldCheck, Truck } from 'lucide-react';
+import { Check, Gift, Plus, ShieldCheck, Truck } from 'lucide-react';
 import { mediaSrc, mediaSrcSet } from '@/lib/types';
 import type { BundlePart, BundleView } from '@/lib/bundles';
 import { track } from '@/lib/track';
@@ -60,7 +60,7 @@ export function BundleDetail({ bundle, parts, others }: { bundle: BundleView; pa
         </div>
 
         <div className="buy-actions">
-          <button className="button button-orange product-add-to-cart" disabled={busy || adding || soldOut} onClick={() => void add()}>{soldOut ? (ar ? 'نفد حالياً' : 'Sold out') : adding ? <><LoaderCircle size={17} className="spin" /> {ar ? 'جارٍ الإضافة' : 'Adding'}</> : <>{ar ? 'أضف البكج للسلة' : 'Add bundle to bag'}</>}</button>
+          <button className="button button-orange product-add-to-cart" disabled={busy || adding || soldOut} onClick={() => void add()}>{soldOut ? (ar ? 'نفد حالياً' : 'Sold out') : <>{ar ? 'أضف البكج للسلة' : 'Add bundle to bag'}</>}</button>
         </div>
         {!soldOut && bundle.available <= 5 && <p className="bundle-stock-note">{ar ? `بقي ${bundle.available} فقط من هذا البكج` : `Only ${bundle.available} left`}</p>}
         {description && <p className="product-description">{description}</p>}
