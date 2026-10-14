@@ -112,7 +112,7 @@ export const defaultSettings: StoreSettings = {
     ],
   }
 };
-const publicKeys: (keyof StoreSettings)[] = ['storeName', 'tagline', 'logoUrl', 'logoAlt', 'faviconUrl', 'metaTitle', 'metaDescription', 'canonicalBaseUrl', 'ogImage', 'seoIndex', 'seoFollow', 'announcement', 'announcementHref', 'supportEmail', 'supportPhone', 'whatsapp', 'instagram', 'youtube', 'facebook', 'address', 'footerTagline', 'copyrightText', 'exchangeRate', 'freeShippingThreshold', 'codFee', 'codEnabled', 'lowStockThreshold', 'orderPrefix', 'checkoutNote', 'homeHeadline', 'homeSubheadline', 'homeValues', 'navigation', 'footer', 'homepage'];
+const publicKeys: (keyof StoreSettings)[] = ['storeName', 'tagline', 'logoUrl', 'logoAlt', 'faviconUrl', 'metaTitle', 'metaDescription', 'canonicalBaseUrl', 'ogImage', 'seoIndex', 'seoFollow', 'announcement', 'announcementHref', 'supportEmail', 'supportPhone', 'whatsapp', 'instagram', 'youtube', 'facebook', 'address', 'footerTagline', 'copyrightText', 'exchangeRate', 'freeShippingThreshold', 'codFee', 'codEnabled', 'lowStockThreshold', 'orderPrefix', 'checkoutNote', 'homeHeadline', 'homeHeadlineAr', 'homeSubheadline', 'homeSubheadlineAr', 'homeValues', 'navigation', 'footer', 'homepage'];
 
 let bootstrapped: Promise<void> | null = null;
 

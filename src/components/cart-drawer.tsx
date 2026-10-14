@@ -58,7 +58,7 @@ export function CartDrawer() {
 
         <ul className="bag-items">
           {cart.map(item => {
-            const href = `/products/${item.productId}?color=${encodeURIComponent(item.color)}`;
+            const href = item.bundle ? '/bundles' : `/products/${item.productId}?color=${encodeURIComponent(item.color)}`;
             const max = Math.min(10, item.stock);
             return <li className="bag-item" key={item.id}>
               <Link href={href} onClick={close} className="bag-item-image"><img src={mediaSrc(item.image, 320)} alt={`${name(item)} — ${colorName(item)}`} /></Link>
@@ -67,10 +67,10 @@ export function CartDrawer() {
                   <Link href={href} onClick={close} className="bag-item-name">{name(item)}</Link>
                   <strong className="bag-item-price">{moneyIqd(item.salePriceIqd * item.quantity)}{item.originalPriceIqd && item.originalPriceIqd > item.salePriceIqd && <s className="price-was">{moneyIqd(item.originalPriceIqd * item.quantity)}</s>}</strong>
                 </div>
-                <p className="bag-item-meta">{colorName(item)}{item.capacity ? ` · ${item.capacity}` : ''}{item.quantity > 1 && <> · {moneyIqd(item.salePriceIqd)} {ar ? 'للقطعة' : 'each'}</>}</p>
+                {item.bundle ? <ul className="bag-bundle-parts">{item.bundle.parts.map(p => <li key={p.productId + p.color}>{p.quantity > 1 ? `${p.quantity}× ` : ''}{ar ? p.nameAr || p.name : p.name} — {ar ? p.colorAr || p.color : p.color}</li>)}</ul> : <p className="bag-item-meta">{colorName(item)}{item.capacity ? ` · ${item.capacity}` : ''}{item.quantity > 1 && <> · {moneyIqd(item.salePriceIqd)} {ar ? 'للقطعة' : 'each'}</>}</p>}
                 {item.quantity > item.stock
                   ? <p className="bag-item-note is-warning">{ar ? `المتوفر ${item.stock} فقط، قلّل الكمية` : `Only ${item.stock} available — reduce the quantity`}</p>
-                  : item.stock <= lowStock && <p className="bag-item-note">{ar ? `بقي ${item.stock} فقط بهذا اللون` : `Only ${item.stock} left in this colour`}</p>}
+                  : item.stock <= lowStock && <p className="bag-item-note">{item.bundle ? (ar ? `بقي ${item.stock} فقط من هذا البكج` : `Only ${item.stock} left of this bundle`) : (ar ? `بقي ${item.stock} فقط بهذا اللون` : `Only ${item.stock} left in this colour`)}</p>}
                 <div className="bag-item-actions">
                   <div className="bag-qty">
                     <button type="button" disabled={busy || item.quantity <= 1} aria-label={ar ? 'إنقاص الكمية' : 'Decrease quantity'} onClick={() => void updateQuantity(item.id, item.quantity - 1)}><Minus size={14} /></button>

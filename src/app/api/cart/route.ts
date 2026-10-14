@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
+  cartBundles,
   cartItems,
   productVariants,
   products,
 } from '@/db/schema';
+import { getBundleById, listBundles } from '@/lib/bundles';
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
 import { reservedByVariant, reservedForVariant } from '@/lib/reservations';
@@ -66,7 +68,8 @@ export async function readCart(
     .orderBy(cartItems.id);
 
   const [reserved, promos] = await Promise.all([reservedByVariant(), getUpcomingPromotions()]);
-  return rows.map((row) => { const promo = bestPromotion({ id: row.productId, category: row.category, salePriceIqd: row.salePriceIqd }, promos); const unit = promo?.price ?? row.salePriceIqd; return ({
+  const bundleLines = await readBundleLines(sessionId, settings.exchangeRate);
+  return [...rows.map((row) => { const promo = bestPromotion({ id: row.productId, category: row.category, salePriceIqd: row.salePriceIqd }, promos); const unit = promo?.price ?? row.salePriceIqd; return ({
     id: row.id,
     variantId: row.variantId,
     productId: row.productId,
@@ -93,7 +96,40 @@ export async function readCart(
     quantity: row.quantity,
     // What can still be bought: stock on hand minus units held by pending orders.
     stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)),
-  }); });
+  }); }), ...bundleLines];
+}
+
+async function readBundleLines(sessionId: string, rate: number): Promise<CartLine[]> {
+  const rows = await db.select().from(cartBundles).where(eq(cartBundles.sessionId, sessionId)).orderBy(cartBundles.id);
+  if (!rows.length) return [];
+  const all = new Map((await listBundles({ includeInactive: true })).map(b => [b.id, b]));
+  return rows.flatMap(row => {
+    const b = all.get(row.bundleId); if (!b) return [];
+    return [{ id: -row.id, variantId: 0, productId: `bundle-${b.slug}`, name: b.name, nameAr: b.nameAr || b.name, color: '', colorAr: '', price: b.priceIqd / rate, salePriceIqd: b.priceIqd, originalPriceIqd: b.regularIqd > b.priceIqd ? b.regularIqd : undefined, image: b.image ?? '', capacity: null, quantity: row.quantity, stock: b.active ? b.available : 0, bundle: { id: b.id, slug: b.slug, parts: b.parts.map(p => ({ productId: p.productId, name: p.name, nameAr: p.nameAr, color: p.color, colorAr: p.colorAr, image: p.image, quantity: p.quantity })) } }];
+  });
+}
+
+async function addBundle(sessionId: string, bundleId: number, quantity: number) {
+  const b = await getBundleById(bundleId);
+  if (!b || !b.active || !b.parts.length || !b.parts.every(p => p.published)) return NextResponse.json({ error: 'This bundle is no longer available.' }, { status: 404 });
+  const [existing] = await db.select({ quantity: cartBundles.quantity }).from(cartBundles).where(and(eq(cartBundles.sessionId, sessionId), eq(cartBundles.bundleId, bundleId)));
+  const requested = (existing?.quantity ?? 0) + quantity;
+  if (b.available <= 0) return NextResponse.json({ error: 'This bundle is sold out right now.' }, { status: 409 });
+  if (requested > b.available) return NextResponse.json({ error: `Only ${b.available} of this bundle left.` }, { status: 409 });
+  await db.insert(cartBundles).values({ sessionId, bundleId, quantity }).onConflictDoUpdate({ target: [cartBundles.sessionId, cartBundles.bundleId], set: { quantity: sql`LEAST(${cartBundles.quantity} + ${quantity}, 10)` } });
+  return NextResponse.json({ items: await readCart(sessionId) });
+}
+
+async function updateBundle(sessionId: string, rowId: number, quantity: number) {
+  const condition = and(eq(cartBundles.sessionId, sessionId), eq(cartBundles.id, rowId));
+  if (quantity === 0) await db.delete(cartBundles).where(condition);
+  else {
+    const [row] = await db.select({ bundleId: cartBundles.bundleId }).from(cartBundles).where(condition);
+    const b = row ? await getBundleById(row.bundleId) : null;
+    if (b && quantity > b.available) return NextResponse.json({ error: `Only ${b.available} of this bundle left.` }, { status: 409 });
+    await db.update(cartBundles).set({ quantity }).where(condition);
+  }
+  return NextResponse.json({ items: await readCart(sessionId) });
 }
 
 export async function GET() {
@@ -125,8 +161,14 @@ export async function POST(
   try {
     const {
       variantId,
+      bundleId,
       quantity = 1,
     } = await request.json();
+
+    if (bundleId !== undefined) {
+      if (!Number.isInteger(bundleId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) return NextResponse.json({ error: 'Please choose a valid bundle and quantity.' }, { status: 400 });
+      return await addBundle(await getSession(), bundleId, quantity);
+    }
 
     if (
       !Number.isInteger(variantId) ||
@@ -276,6 +318,8 @@ export async function PATCH(
       id,
       quantity,
     } = await request.json();
+
+    if (Number.isInteger(id) && id < 0 && Number.isInteger(quantity) && quantity >= 0 && quantity <= 10) return await updateBundle(await getSession(), -id, quantity);
 
     if (
       !Number.isInteger(id) ||

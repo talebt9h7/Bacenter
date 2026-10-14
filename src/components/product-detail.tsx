@@ -12,13 +12,17 @@ import { PromoCountdown, usePromoLive } from './promo-price';
 import { track } from '@/lib/track';
 import { Modal, ModalHeading } from './modal';
 import { ProductVideo } from './product-video';
+import { BundleCard } from './bundle-card';
+import { ProductReviews, RatingLink } from './product-reviews';
+import type { ReviewSummary } from '@/lib/reviews';
+import type { BundleView } from '@/lib/bundles';
 import type { ProductPageBanner } from '@/lib/product-page-banner';
 import { formatDimensions, formatWarranty, formatWeight, pick, pickList, type HighlightIcon } from '@/lib/product-details';
 import { BadgeCheck, Coins, CreditCard as CardIcon, Droplets, Feather, Gift, Hand, KeyRound, Laptop, Lock, Magnet, Nfc, RulerDimensionLine, Smartphone, Zap } from 'lucide-react';
 
 const HIGHLIGHT_ICON_COMPONENTS: Record<HighlightIcon, typeof CardIcon> = { cards: CardIcon, cash: Banknote, coins: Coins, rfid: Nfc, slim: Feather, size: RulerDimensionLine, leather: Layers, handmade: Hand, magnet: Magnet, lock: Lock, key: KeyRound, phone: Smartphone, laptop: Laptop, water: Droplets, weight: Feather, warranty: BadgeCheck, gift: Gift, quick: Zap };
 
-export function ProductDetail({ product, related, initialColor, banner }: { product: Product; related: Product[]; initialColor?: string; banner?: ProductPageBanner | null }) {
+export function ProductDetail({ product, related, initialColor, banner, bundles = [], reviews }: { product: Product; related: Product[]; initialColor?: string; banner?: ProductPageBanner | null; bundles?: BundleView[]; reviews?: ReviewSummary }) {
   const { language } = useLanguage();
   const displayColorName = (item: ProductColor) => language === 'ar' ? (item.nameAr || item.name) : item.name;
   // ?color= may hold the English or the Arabic colour name (links are built in either language).
@@ -115,6 +119,7 @@ export function ProductDetail({ product, related, initialColor, banner }: { prod
       <div className="product-buy-box">
         <div className="product-heading">
           <h1>{displayName}</h1>
+          {reviews && <RatingLink summary={reviews} />}
           {promoLive ? <div className="product-price on-sale"><span className="price-now">{moneyIqd(product.salePriceIqd)}</span><s className="price-was">{moneyIqd(product.originalPriceIqd!)}</s><span className="price-save">{language === 'ar' ? `وفّر ${moneyIqd(product.originalPriceIqd! - product.salePriceIqd)}` : `Save ${moneyIqd(product.originalPriceIqd! - product.salePriceIqd)}`}</span></div> : <div className="product-price">{moneyIqd(product.originalPriceIqd ?? product.salePriceIqd)}</div>}
           {promoLive && product.promotion && <div className="promo-panel"><span className="promo-panel-name">{(language === 'ar' ? product.promotion.badgeAr || product.promotion.nameAr : product.promotion.badge || product.promotion.name) || `−${product.promotion.percentOff}%`}</span>{product.promotion.showCountdown && <PromoCountdown endsAt={product.promotion.endsAt} language={language} refreshOnEnd />}</div>}
         </div>
@@ -181,6 +186,7 @@ export function ProductDetail({ product, related, initialColor, banner }: { prod
           <div><p>{materials}</p><Link href="/info/our-materials">{t('A closer look at our materials')}</Link></div>
         </details>}
         <details className="product-accordion"><summary>{t('Shipping & returns')}</summary><div>{language === 'ar' ? <>نوصل إلى جميع محافظات العراق مع الدفع عند الاستلام. يصل الطلب إلى بغداد عادة خلال 1–2 يوم عمل، وإلى باقي المحافظات خلال 2–5 أيام. الطلبات فوق {moneyIqd(settings.freeShippingThreshold)} تحصل على توصيل مجاني. <Link href="/info/shipping">{t('Find out more.')}</Link></> : <>We deliver to all 18 governorates of Iraq with cash on delivery. Baghdad usually arrives in 1–2 business days, other governorates in 2–5. Orders over {moneyIqd(settings.freeShippingThreshold)} ship free. <Link href="/info/shipping">{t('Find out more.')}</Link></>}</div></details>
+        {bundles.length > 0 && <section className="product-bundles" aria-label={language === 'ar' ? 'وفّر ضمن بكج' : 'Save with a bundle'}><h3>{language === 'ar' ? 'وفّر أكثر ضمن بكج' : 'Save more with a bundle'}</h3>{bundles.map(b => <BundleCard key={b.id} bundle={b} compact />)}</section>}
       </div>
     </div>
 
@@ -197,6 +203,7 @@ export function ProductDetail({ product, related, initialColor, banner }: { prod
       const picture = <picture>{banner.mobileImage && <source media="(max-width: 700px)" srcSet={mediaSrc(banner.mobileImage, 960)} />}<img src={mediaSrc(banner.image, 1920)} alt={alt} loading="lazy" /></picture>;
       return <section className="product-page-banner" aria-label={alt}>{banner.href ? <Link href={banner.href}>{picture}</Link> : picture}</section>;
     })()}
+    {reviews && <ProductReviews productId={product.id} summary={reviews} />}
     {related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
     {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={mediaSrc(images[safeIndex], 1600)} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
     {product.colors.length > 0 && <link rel="prefetch" href={mediaSrc(primaryImage(color), 1280)} />}

@@ -1,9 +1,11 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { notifyNewOrder } from '@/lib/notify';
+import { requestUser, sendCapi } from '@/lib/meta-capi';
+import { getBundleById, splitBundlePrice } from '@/lib/bundles';
 import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { cartItems, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { cartBundles, cartItems, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
@@ -33,7 +35,8 @@ export async function POST(request: NextRequest) {
     const promos = await getUpcomingPromotions();
     const result = await db.transaction(async tx => {
       const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, category: products.category }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
-      if (!cart.length) throw new CheckoutError('Your bag is empty. Add something you love first.');
+      const bundleRows = await tx.select().from(cartBundles).where(eq(cartBundles.sessionId, sessionId));
+      if (!cart.length && !bundleRows.length) throw new CheckoutError('Your bag is empty. Add something you love first.');
       const rate = settings.exchangeRate;
       const reference = `${settings.orderPrefix || 'BR'}-${randomBytes(3).toString('hex').toUpperCase()}`;
       const items = [];
@@ -51,6 +54,24 @@ export async function POST(request: NextRequest) {
         // A live promotion sets the price actually charged; the regular price and the promotion are kept on the line for reports.
         const promo = bestPromotion({ id: line.productId, category: line.category, salePriceIqd: regular }, promos);
         items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: line.color, quantity: line.quantity, unitPrice: promo?.price ?? regular, listPrice: regular, promotionId: promo?.promotion.id ?? null, promotionName: promo?.promotion.name ?? null, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+      }
+      // Bundles: each component becomes its own line at its share of the bundle price.
+      const taken = new Map(cart.map(line => [line.variantId, line.quantity]));
+      for (const row of bundleRows) {
+        const bundle = await getBundleById(row.bundleId, tx);
+        if (!bundle || !bundle.active || !bundle.parts.length || !bundle.parts.every(p => p.published)) throw new CheckoutError(`${bundle?.name ?? 'A bundle in your bag'} is no longer available. Please remove it from your bag.`);
+        const prices = splitBundlePrice(bundle.priceIqd, bundle.parts);
+        for (const [index, part] of bundle.parts.entries()) {
+          const quantity = part.quantity * row.quantity;
+          const total = (taken.get(part.variantId) ?? 0) + quantity;
+          try { await assertAvailable(tx, part.variantId, total); }
+          catch (error) {
+            if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') throw new CheckoutError(`${bundle.name}: ${part.name} in ${part.color} doesn’t have enough stock any more. Please adjust your bag.`);
+            throw error;
+          }
+          taken.set(part.variantId, total);
+          items.push({ productId: part.productId, variantId: part.variantId, name: part.name, color: part.color, quantity, unitPrice: prices[index], listPrice: part.priceIqd, promotionId: null, promotionName: null, bundleId: bundle.id, bundleName: bundle.nameAr || bundle.name, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: part.image });
+        }
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
       let discount = 0; let freeShipping = subtotal >= settings.freeShippingThreshold; let appliedCoupon: string | null = null;
@@ -71,12 +92,17 @@ export async function POST(request: NextRequest) {
       const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: rate, subtotalCents: subtotal, shippingCents: shipping, discountCents: discount, codFeeCents: codFee, totalCents: total, profitIqd: 0, couponCode: appliedCoupon, paymentMethod: 'cod', paymentStatus: 'unpaid', status: 'pending', customerNote: note || null }).returning({ id: orders.id });
       await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Order placed · cash on delivery · ${zone.nameEn}` });
       await tx.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
+      await tx.delete(cartBundles).where(eq(cartBundles.sessionId, sessionId));
       return { orderId: created.id, order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
     });
     invalidateCatalog();
     // Tell the owner (Telegram / WhatsApp) after the response is sent, so checkout never waits on it.
     const origin = request.nextUrl.origin;
     after(() => notifyNewOrder(result.orderId, origin));
+    // Server-side Purchase for Meta (same event_id as the browser pixel, so it is counted once).
+    const capiUser = { ...requestUser(request.headers, request.cookies), phone, email, name, city, governorate: result.order.governorate, externalId: phone };
+    const o = result.order;
+    after(() => sendCapi([{ name: 'Purchase', eventId: o.reference, url: request.headers.get('referer') ?? `${origin}/checkout`, user: capiUser, custom: { currency: 'IQD', value: o.total, order_id: o.reference, content_type: 'product', content_ids: [...new Set(o.items.map(i => i.productId))], contents: o.items.map(i => ({ id: i.productId, quantity: i.quantity, item_price: i.unitPrice })), num_items: o.items.reduce((n, i) => n + i.quantity, 0) } }]).then(r => { if (!r.ok && !('skipped' in r)) console.error('CAPI Purchase failed', r.error); }));
     const { orderId: _orderId, ...response } = result; void _orderId;
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

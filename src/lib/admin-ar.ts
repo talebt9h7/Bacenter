@@ -16,7 +16,7 @@ export const ADMIN_AR: Record<string, string> = {
   'Order placed': 'تم استلام الطلب', 'Order confirmed': 'تم تأكيد الطلب', 'Order cancelled': 'تم إلغاء الطلب', 'Order delivered': 'تم توصيل الطلب', 'Order pending': 'رجع قيد الانتظار', 'Order shipped': 'تم شحن الطلب', 'Order processing': 'قيد التجهيز', 'Order returned': 'تم إرجاع الطلب', 'Order details updated': 'تم تعديل تفاصيل الطلب',
   // activity actions/entities
   create: 'إنشاء', update: 'تعديل', delete: 'حذف', backup: 'نسخ احتياطي', 'inventory.purchase': 'استلام مخزون', 'inventory.adjust': 'تعديل مخزون', 'inventory.batch_delete': 'حذف دفعة', 'settings.update': 'تعديل الإعدادات',
-  order: 'طلب', product: 'منتج', variant: 'لون', coupon: 'كوبون', promotion: 'عرض', content: 'محتوى', integrations: 'الإشعارات والتتبع', admin_user: 'عضو فريق', database: 'قاعدة البيانات', settings: 'الإعدادات', customer: 'عميل', inventory_batch: 'دفعة مخزون', category: 'تصنيف', banner: 'بانر', media: 'وسائط', supplier: 'مورد', purchase: 'شراء', expense: 'مصروف', redirect: 'تحويل',
+  order: 'طلب', bundle: 'بكج', review: 'تقييم', wholesale: 'جملة', payment: 'دفعة', credit: 'آجل', cash: 'نقد', product: 'منتج', variant: 'لون', coupon: 'كوبون', promotion: 'عرض', content: 'محتوى', integrations: 'الإشعارات والتتبع', admin_user: 'عضو فريق', database: 'قاعدة البيانات', settings: 'الإعدادات', customer: 'عميل', inventory_batch: 'دفعة مخزون', category: 'تصنيف', banner: 'بانر', media: 'وسائط', supplier: 'مورد', purchase: 'شراء', expense: 'مصروف', redirect: 'تحويل',
   // roles
   System: 'النظام', Owner: 'المالك', Accountant: 'محاسب', Sales: 'مبيعات', Manager: 'مدير', Inventory: 'مخزون', Content: 'محتوى', Viewer: 'مشاهد',
   // orders
@@ -60,6 +60,9 @@ export const ADMIN_AR: Record<string, string> = {
 export const ADMIN_AR_PATTERNS: [RegExp, string][] = [
   [/^Order placed · cash on delivery · (.+)$/, 'تم استلام الطلب · الدفع عند الاستلام · $1'],
   [/^Manual order · (.+)$/, 'طلب يدوي · $1'],
+  [/^Wholesale invoice · cash$/, 'فاتورة جملة · نقد'],
+  [/^Wholesale invoice · credit$/, 'فاتورة جملة · آجل'],
+  [/^Payment received · (\d+) IQD$/, 'دفعة مستلمة · $1 د.ع'],
   [/^Backup created \((\d+) tables\)$/, 'تم إنشاء نسخة احتياطية ($1 جدول)'],
   [/^(\d+) open$/, '$1 مفتوحة'],
   [/^Telegram (on|off) · WhatsApp (on|off) · Pixel (set|—) · GA4 (set|—) · Clarity (set|—)$/, 'تلكرام $1 · واتساب $2 · بكسل $3 · GA4 $4 · كلاريتي $5'],

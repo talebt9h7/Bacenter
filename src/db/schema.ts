@@ -25,6 +25,7 @@ export const products = pgTable('products', {
   descriptionAr: text('description_ar').notNull().default(''),
   priceCents: integer('price_cents').notNull(),
   salePriceIqd: integer('sale_price_iqd').notNull().default(0),
+  wholesalePriceIqd: integer('wholesale_price_iqd').notNull().default(0),
   category: text('category').notNull(),
   capacity: text('capacity'),
   badge: text('badge'),
@@ -164,6 +165,8 @@ export const orders = pgTable('orders', {
   sourceNote: text('source_note'),
   // Set when the order reaches 'delivered'; revenue and profit are recognised on this date.
   deliveredAt: timestamp('delivered_at'),
+  // Wholesale credit invoices: how much of the total has been received so far.
+  paidCents: integer('paid_cents').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [index('orders_status_idx').on(table.status), index('orders_phone_idx').on(table.phone)]);
@@ -395,3 +398,54 @@ export const adminLoginAttempts = pgTable('admin_login_attempts', {
   count: integer('count').notNull().default(0),
   lockedUntil: timestamp('locked_until').notNull(),
 });
+
+export type BundleItem = { variantId: number; quantity: number };
+export const bundles = pgTable('bundles', {
+  id: serial('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  nameAr: text('name_ar').notNull().default(''),
+  description: text('description').notNull().default(''),
+  descriptionAr: text('description_ar').notNull().default(''),
+  image: text('image'),
+  priceIqd: integer('price_iqd').notNull(),
+  items: jsonb('items').$type<BundleItem[]>().notNull().default([]),
+  active: boolean('active').notNull().default(true),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const cartBundles = pgTable('cart_bundles', {
+  id: serial('id').primaryKey(),
+  sessionId: text('session_id').notNull(),
+  bundleId: integer('bundle_id').notNull().references(() => bundles.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [uniqueIndex('cart_bundles_session_bundle').on(table.sessionId, table.bundleId)]);
+
+export const wholesalePayments = pgTable('wholesale_payments', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  amountIqd: integer('amount_iqd').notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [index('wholesale_payments_order_idx').on(table.orderId)]);
+
+export const reviews = pgTable('reviews', {
+  id: serial('id').primaryKey(),
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  orderId: integer('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  city: text('city').notNull().default(''),
+  phone: text('phone').notNull().default(''),
+  rating: integer('rating').notNull(),
+  title: text('title').notNull().default(''),
+  body: text('body').notNull().default(''),
+  image: text('image'),
+  verified: boolean('verified').notNull().default(false),
+  status: text('status').notNull().default('pending'),
+  reply: text('reply').notNull().default(''),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [index('reviews_product_idx').on(table.productId, table.status)]);

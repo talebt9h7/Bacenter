@@ -4,14 +4,23 @@
  * isn't configured or is blocked. Money is in IQD.
  */
 type Item = { id: string; name: string; price: number; quantity?: number; variant?: string; category?: string };
-type Win = Window & { fbq?: (...args: unknown[]) => void; gtag?: (...args: unknown[]) => void };
+type Win = Window & { fbq?: (...args: unknown[]) => void; gtag?: (...args: unknown[]) => void; __urCapi?: boolean };
 const CURRENCY = 'IQD';
 const w = () => (typeof window === 'undefined' ? null : window as Win);
 const ga4Items = (items: Item[]) => items.map(i => ({ item_id: i.id, item_name: i.name, item_variant: i.variant, item_category: i.category, price: i.price, quantity: i.quantity ?? 1 }));
 const value = (items: Item[]) => items.reduce((s, i) => s + i.price * (i.quantity ?? 1), 0);
+const newId = () => `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
 function send(fb: [string, Record<string, unknown>, Record<string, unknown>?] | null, ga: [string, Record<string, unknown>] | null) {
   const win = w(); if (!win) return;
-  try { if (fb && win.fbq) win.fbq('track', fb[0], fb[1], fb[2]); } catch { /* blocked */ }
+  // Every Meta event gets an id; the Conversions API copy (sent by the server) reuses it so Meta counts it once.
+  const eventID = (fb?.[2]?.eventID as string | undefined) ?? newId();
+  try { if (fb && win.fbq) win.fbq('track', fb[0], fb[1], { ...(fb[2] ?? {}), eventID }); } catch { /* blocked */ }
+  try {
+    if (fb && win.__urCapi && fb[0] !== 'Purchase') {
+      const payload = JSON.stringify({ name: fb[0], eventId: eventID, url: win.location.href, custom: fb[1] });
+      if (!navigator.sendBeacon?.('/api/track', new Blob([payload], { type: 'application/json' }))) void fetch('/api/track', { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json' }, keepalive: true });
+    }
+  } catch { /* offline */ }
   try { if (ga && win.gtag) win.gtag('event', ga[0], ga[1]); } catch { /* blocked */ }
 }
 export const track = {

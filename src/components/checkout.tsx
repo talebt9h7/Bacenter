@@ -141,7 +141,7 @@ export function Checkout() {
   const summary = <>
     <ul className="co-lines">{lines.map(item => <li key={item.id}>
       <div className="co-line-image"><img src={mediaSrc(item.image, 160)} alt={`${item.label} — ${item.colorLabel}`} /><span>{item.quantity}</span></div>
-      <div className="co-line-info"><strong>{item.label}</strong><span>{item.colorLabel}{item.capacity ? ` · ${item.capacity}` : ''}</span></div>
+      <div className="co-line-info"><strong>{item.label}</strong>{item.bundle ? <span>{item.bundle.parts.map(p => `${p.quantity > 1 ? `${p.quantity}× ` : ''}${ar ? p.nameAr || p.name : p.name}`).join(' + ')}</span> : <span>{item.colorLabel}{item.capacity ? ` · ${item.capacity}` : ''}</span>}</div>
       <span className="co-line-price">{iqd(item.unit * item.quantity)}{item.originalPriceIqd && item.originalPriceIqd > item.unit && <s className="price-was">{iqd(item.originalPriceIqd * item.quantity)}</s>}</span>
     </li>)}</ul>
     <button type="button" className="co-edit-bag" onClick={() => setCartOpen(true)}>{ar ? 'تعديل السلة' : 'Edit bag'}</button>

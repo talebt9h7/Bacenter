@@ -12,13 +12,13 @@ export type Integrations = {
   telegram: { enabled: boolean; botToken: string; chatIds: string[] };
   whatsapp: { enabled: boolean; phone: string; apiKey: string };
   notify: { newOrder: boolean; lowStock: boolean };
-  tracking: { metaPixelId: string; ga4Id: string; clarityId: string };
+  tracking: { metaPixelId: string; ga4Id: string; clarityId: string; metaCapiToken: string; metaTestCode: string };
 };
 export const defaultIntegrations: Integrations = {
   telegram: { enabled: false, botToken: '', chatIds: [] },
   whatsapp: { enabled: false, phone: '', apiKey: '' },
   notify: { newOrder: true, lowStock: true },
-  tracking: { metaPixelId: '', ga4Id: '', clarityId: '' },
+  tracking: { metaPixelId: '', ga4Id: '', clarityId: '', metaCapiToken: '', metaTestCode: '' },
 };
 const KEY = 'integrations';
 
@@ -45,7 +45,7 @@ export async function saveIntegrations(next: Integrations) {
 }
 
 // Formats published by each vendor; anything else is dropped so nothing odd reaches the page.
-export const trackingPatterns = { metaPixelId: /^\d{8,20}$/, ga4Id: /^G-[A-Z0-9]{4,16}$/, clarityId: /^[a-z0-9]{6,16}$/ } as const;
+export const trackingPatterns = { metaPixelId: /^\d{8,20}$/, ga4Id: /^G-[A-Z0-9]{4,16}$/, clarityId: /^[a-z0-9]{6,16}$/, metaCapiToken: /^[A-Za-z0-9_-]{30,400}$/, metaTestCode: /^TEST[A-Z0-9]{2,20}$/ } as const;
 /** Tracking IDs that are safe to render on the storefront. */
 export async function getPublicTracking() {
   const { tracking } = await getIntegrations();
@@ -53,6 +53,7 @@ export async function getPublicTracking() {
     metaPixelId: trackingPatterns.metaPixelId.test(tracking.metaPixelId) ? tracking.metaPixelId : '',
     ga4Id: trackingPatterns.ga4Id.test(tracking.ga4Id) ? tracking.ga4Id : '',
     clarityId: trackingPatterns.clarityId.test(tracking.clarityId) ? tracking.clarityId : '',
+    capi: Boolean(tracking.metaPixelId && tracking.metaCapiToken),
   };
 }
 export type PublicTracking = Awaited<ReturnType<typeof getPublicTracking>>;

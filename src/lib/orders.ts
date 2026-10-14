@@ -174,7 +174,7 @@ function customerOrderValue(subtotal: number, discount: number) {
   return Math.max(0, Math.round(subtotal) - Math.max(0, Math.round(discount)));
 }
 
-export type OrderItem = { productId?: string; variantId: number; name: string; color: string; quantity: number; unitPrice?: number; profitIqd?: number | null; purchaseCostCents?: number | null; purchaseUnitCost?: number | null; batchAllocations?: { batchId: number; quantity: number }[]; image?: string | null; listPrice?: number; promotionId?: number | null; promotionName?: string | null };
+export type OrderItem = { bundleId?: number | null; bundleName?: string | null; productId?: string; variantId: number; name: string; color: string; quantity: number; unitPrice?: number; profitIqd?: number | null; purchaseCostCents?: number | null; purchaseUnitCost?: number | null; batchAllocations?: { batchId: number; quantity: number }[]; image?: string | null; listPrice?: number; promotionId?: number | null; promotionName?: string | null };
 export type ProfitItem = { quantity?: number; unitPrice?: number; purchaseCostCents?: number | null };
 
 /**

@@ -30,6 +30,11 @@ export function IntegrationsManager({ initial, canManage }: { initial: Integrati
     setChats(data.chats);
     if (!data.chats.length) fail(new Error(tt('No chats yet. Open your bot in Telegram, press Start (or send any message), then try again.', 'ماكو محادثات بعد. افتح البوت بتيليكرام واضغط Start (أو ابعثله أي رسالة)، وبعدين جرّب مرة ثانية.')));
   });
+  const testMeta = () => run('test-meta', async () => {
+    await save(true);
+    const r = await api<{ received: number; testCode: string }>('/api/admin/integrations/test', { method: 'POST', json: { channel: 'meta' } });
+    success(r.testCode ? tt(`Meta received the test event. Check Events Manager → Test events (${r.testCode}).`, `ميتا استلمت الحدث التجريبي. شوفه بـ Events Manager ← Test events (${r.testCode}).`) : tt('Meta accepted the event. Add a test event code to see it live in Events Manager → Test events.', 'ميتا قبلت الحدث. حط كود Test event حتى تشوفه مباشرة بـ Events Manager ← Test events.'));
+  });
   const test = (channel: 'telegram' | 'whatsapp') => run(`test-${channel}`, async () => {
     await save(true);
     await api('/api/admin/integrations/test', { method: 'POST', json: { channel } });
@@ -93,6 +98,15 @@ export function IntegrationsManager({ initial, canManage }: { initial: Integrati
         <label className="admin-field"><span>Pixel ID</span><input dir="ltr" disabled={disabled} value={s.tracking.metaPixelId} onChange={e => set('tracking', { metaPixelId: e.target.value.replace(/\D/g, '') })} placeholder="1234567890123456" /></label>
         <p className="int-help">{tt('Events Manager → Data sources → your pixel → the number under its name.', 'Events Manager ← Data sources ← البكسل مالتك ← الرقم تحت الاسم.')}</p>
         <p className="int-events">PageView · ViewContent · AddToCart · InitiateCheckout · Purchase</p>
+        <div className="int-capi">
+          <h4>{tt('Conversions API (server)', 'Conversions API (من السيرفر)')} {s.tracking.metaCapiToken && <CheckCircle2 size={14} className="int-ok" />}</h4>
+          <p className="int-help">{tt('Sends the same events from the server, so purchases still reach Meta when the pixel is blocked (iPhone, ad blockers). Duplicates are removed by Meta automatically.', 'يبعث نفس الأحداث من السيرفر، فالمشتريات توصل لميتا حتى لو البكسل انمنع (آيفون، مانع إعلانات). ميتا تحذف المكرر تلقائياً.')}</p>
+          <label className="admin-field"><span>{tt('Access token', 'رمز الوصول (Access token)')}</span><input dir="ltr" disabled={disabled} type="password" autoComplete="off" value={s.tracking.metaCapiToken} onChange={e => set('tracking', { metaCapiToken: e.target.value.trim() })} placeholder="EAAG…" /></label>
+          <p className="int-help">{tt('Events Manager → your pixel → Settings → Conversions API → Generate access token.', 'Events Manager ← البكسل ← Settings ← Conversions API ← Generate access token.')}</p>
+          <label className="admin-field"><span>{tt('Test event code (optional)', 'كود الاختبار (اختياري)')}</span><input dir="ltr" disabled={disabled} value={s.tracking.metaTestCode} onChange={e => set('tracking', { metaTestCode: e.target.value.toUpperCase().trim() })} placeholder="TEST12345" /></label>
+          <p className="int-help">{tt('Only while testing: events with this code show in Test events and are not counted. Clear it when done.', 'بس وقت التجربة: الأحداث بهذا الكود تظهر بـ Test events وما تنحسب. امسحه بعد ما تخلص.')}</p>
+          <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={disabled || busy !== null || !s.tracking.metaPixelId || !s.tracking.metaCapiToken} onClick={() => void testMeta()}>{busy === 'test-meta' ? <LoaderCircle size={13} className="spin" /> : <Send size={13} />} {tt('Send test event', 'إرسال حدث تجريبي')}</button>
+        </div>
       </Card>
       <Card icon={<BarChart3 size={17} />} title={<>Google Analytics 4 {s.tracking.ga4Id && <CheckCircle2 size={15} className="int-ok" />}</>}>
         <p className="int-lead">{tt('Visitors, traffic sources and the full purchase funnel.', 'الزوار، مصادر الزيارات، ومسار الشراء كامل.')}</p>

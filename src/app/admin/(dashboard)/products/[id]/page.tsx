@@ -1,3 +1,6 @@
+import { eq } from 'drizzle-orm';
+import { products } from '@/db/schema';
+import { db } from '@/db';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { notFound, redirect } from 'next/navigation';
 import { getProductById } from '@/lib/products';
@@ -21,5 +24,6 @@ export default async function AdminProductPage({ params, searchParams }: Props) 
   const product = await getProductById(id, { includeUnpublished: true });
   if (!product) notFound();
   const language = normalizeLanguage((await cookies()).get('bellroy_lang')?.value);
-  return <><ProductEditor key={product.id} initial={product} initialColorId={color ? Number(color) : undefined} exchangeRate={exchangeRate} categories={categories.map(c => ({ id: c.id, name: c.name }))} /><ProductMovementLedger productId={product.id} language={language} /></>;
+  const [priceRow] = await db.select({ wholesalePriceIqd: products.wholesalePriceIqd }).from(products).where(eq(products.id, product.id));
+  return <><ProductEditor key={product.id} initial={product} wholesalePriceIqd={priceRow?.wholesalePriceIqd ?? 0} initialColorId={color ? Number(color) : undefined} exchangeRate={exchangeRate} categories={categories.map(c => ({ id: c.id, name: c.name }))} /><ProductMovementLedger productId={product.id} language={language} /></>;
 }

@@ -1,0 +1,38 @@
+/* UR Leather identity: leather browns, warm paper, Arabic type (IBM Plex Sans Arabic + Aref Ruqaa for the brand). */
+html:root{--orange:#8b5a2b;--orange-hover:#6f4520;--cream:#f6f1ea;--leather:#3b2a1c;--leather-2:#5a3e25;--tan:#c9a272;--gold:#b8892f;--ruqaa:'Aref Ruqaa',serif}
+::selection{background:#e8d7bd}
+.button-orange{background:var(--orange);border-color:var(--orange)}
+.button-orange:hover:not(:disabled){background:var(--orange-hover);border-color:var(--orange-hover)}
+.utility-bar{background:var(--leather);color:#efe3d0}
+.utility-bar a,.utility-bar button{color:#efe3d0}
+
+/* hero: Arabic titles in Ruqaa, warmer shade */
+[dir=rtl] .hero-heading h1,[dir=rtl] .hero-heading h2{font-family:var(--ruqaa);font-weight:700;letter-spacing:0;line-height:1.35}
+.hero-shade{background:linear-gradient(90deg,rgba(35,22,12,.55),rgba(35,22,12,.15) 55%,transparent)}
+[dir=rtl] .hero-shade{background:linear-gradient(270deg,rgba(35,22,12,.55),rgba(35,22,12,.15) 55%,transparent)}
+.hero-brand{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#f3e7d3;background:radial-gradient(120% 90% at 50% 20%,#6b4a2b 0%,#3b2a1c 55%,#24180f 100%)}
+.hero-brand::before,.brand-story::before{content:'';position:absolute;inset:0;opacity:.18;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.12 0 0 0 0 0.05 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero-brand>div{position:relative;display:grid;gap:12px;justify-items:center;padding:0 20px}
+.hero-brand h1{font-family:var(--ruqaa);font-size:clamp(54px,8vw,104px);line-height:1.2;margin:0;color:#f3e7d3;font-weight:700}
+.hero-brand p{margin:0;font-size:clamp(15px,1.6vw,19px);color:#e3d2b8}
+
+/* brand story band under the hero */
+.brand-story{position:relative;overflow:hidden;background:linear-gradient(135deg,#3b2a1c,#5a3e25 60%,#4a321e);color:#f1e5d2;padding:46px var(--page-gutter) 40px;text-align:center}
+.brand-story-inner{position:relative;max-width:1180px;margin:auto;display:grid;gap:18px;justify-items:center}
+.brand-latin{display:flex;align-items:center;gap:12px;letter-spacing:7px;font-size:12px;color:var(--tan);margin:0}
+.brand-story h2{font-family:var(--ruqaa);font-size:clamp(40px,5vw,64px);line-height:1.2;margin:0;font-weight:700;color:#f6ead6}
+.brand-story-line{margin:0;max-width:720px;font-size:clamp(15px,1.5vw,18px);line-height:1.8;color:#e6d6bd}
+.brand-values{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;width:100%}
+.brand-values li{display:grid;justify-items:center;gap:6px;padding:16px 12px;border:1px solid rgba(201,162,114,.35);border-radius:4px;background:rgba(0,0,0,.12)}
+.brand-values svg{color:var(--tan)}
+.brand-values b{font-size:15px;font-weight:600;color:#f6ead6}
+.brand-values span{font-size:12.5px;color:#d9c7aa;line-height:1.6}
+.brand-story .text-link{color:var(--tan)}
+@media (max-width:800px){.brand-values{grid-template-columns:repeat(2,minmax(0,1fr))}.brand-story{padding:34px 16px}}
+
+/* the UR mark that replaces the old owl */
+.ur-mark{display:inline-grid;place-items:center;font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:-1px;color:currentColor;line-height:1}
+
+/* warm details */
+.eyebrow{color:var(--orange)}
+.price-save,.promo-badge{background:var(--orange)}

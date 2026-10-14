@@ -13,6 +13,7 @@ import './admin-theme.css';
 import './typography.css';
 import './cart-checkout.css';
 import './product-card.css';
+import './ur-brand.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);
@@ -30,5 +31,5 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE)?.value);
-  return <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-scroll-behavior="smooth"><body><LanguageProvider initialLanguage={language}>{children}</LanguageProvider></body></html>;
+  return <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" /><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" /></head><body><LanguageProvider initialLanguage={language}>{children}</LanguageProvider></body></html>;
 }

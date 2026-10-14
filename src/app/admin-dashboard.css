@@ -424,3 +424,69 @@ a.dash-kpi:hover{transform:translateY(-2px);border-color:#d4d4cc;box-shadow:0 2p
 .int-events{font-size:11px;color:var(--a-success);background:#eef6f1;border-radius:8px;padding:6px 9px;margin:10px 0 0;direction:ltr;text-align:start}
 .int-ok{color:var(--a-success)}
 .dash-card-head h2 .dash-chip{margin-inline-start:6px}
+.int-capi{margin-top:14px;padding-top:14px;border-top:1px dashed var(--a-line);display:grid;gap:8px}
+.int-capi h4{font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;margin:0}
+/* bundles admin */
+.bundle-admin-list{display:grid;gap:10px}
+.bundle-admin-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:12px;border:1px solid var(--a-line);border-radius:14px;background:#fff}
+.bundle-admin-row.is-off{opacity:.6}
+.bundle-admin-thumbs{display:flex}.bundle-admin-thumbs img{width:48px;height:48px;object-fit:cover;border-radius:10px;border:2px solid #fff;background:#f4f4f1;margin-inline-start:-12px}.bundle-admin-thumbs img:first-child{margin-inline-start:0}
+.bundle-admin-main{display:grid;gap:4px;min-width:0}.bundle-admin-main small{color:var(--a-muted);font-size:12px}
+.bundle-admin-tags{display:flex;gap:6px;flex-wrap:wrap}
+.bundle-admin-price{display:grid;justify-items:end;gap:2px;font-size:12px}.bundle-admin-price b{font-size:15px}.bundle-admin-price s{color:var(--a-muted)}.bundle-admin-price em{color:var(--a-success);font-style:normal;font-weight:700}
+.bundle-admin-actions{display:flex;gap:6px}
+.bundle-editor{display:grid;grid-template-columns:1fr 1.1fr;gap:22px}
+.bundle-pick{display:grid;gap:6px;max-height:440px;overflow:auto;margin-top:10px}
+.bundle-pick button{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;text-align:start;padding:8px;border:1px solid var(--a-line);border-radius:12px;background:#fff;cursor:pointer;font:inherit}
+.bundle-pick button.on{border-color:var(--a-accent);background:var(--a-accent-soft)}
+.bundle-pick button:disabled{opacity:.45;cursor:not-allowed}
+.bundle-pick img,.bundle-chosen img{width:44px;height:44px;object-fit:cover;border-radius:9px;background:#f4f4f1}
+.bundle-pick span,.bundle-chosen span{display:grid;gap:2px;min-width:0}.bundle-pick small,.bundle-chosen small{color:var(--a-muted);font-size:11.5px;display:flex;align-items:center;gap:4px}
+.bundle-pick small i{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid #0002}
+.bundle-chosen{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.bundle-chosen li{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:8px;border-radius:12px;background:#fafaf7}
+.bundle-qty{display:flex;align-items:center;gap:8px}.bundle-qty button{width:26px;height:26px;border-radius:8px;border:1px solid var(--a-line);background:#fff;display:grid;place-items:center;cursor:pointer}
+.bundle-sum{display:grid;gap:8px;padding:12px;border-radius:14px;background:#fafaf7;border:1px solid var(--a-line);margin-bottom:16px}
+.bundle-sum>div{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.bundle-sum .good b{color:var(--a-success)}.bundle-sum .warn b{color:var(--a-danger)}
+@media (max-width:900px){.bundle-editor{grid-template-columns:1fr}.bundle-admin-row{grid-template-columns:auto 1fr}.bundle-admin-price{justify-items:start}}
+/* wholesale */
+.ws-owed{color:var(--a-danger)}
+.ws-clear{color:var(--a-success)}
+.ws-traders{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ws-traders li{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:#fafaf7}
+.ws-traders li>div:first-child{display:grid;gap:2px}.ws-traders small{color:var(--a-muted);font-size:11.5px}
+.ws-trader-nums{display:grid;justify-items:end;gap:2px;font-size:12.5px}
+.ws-editor{display:grid;grid-template-columns:1fr 1.2fr;gap:22px}
+.ws-lines{display:grid;gap:10px;margin-bottom:14px}
+.ws-line{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:start;padding:10px;border-radius:12px;border:1px solid var(--a-line);background:#fff}
+.ws-line.is-over{border-color:var(--a-danger);background:#fff6f4}
+.ws-line img{width:52px;height:52px;object-fit:cover;border-radius:10px;background:#f4f4f1}
+.ws-line-main{display:grid;gap:4px;min-width:0}.ws-line-main>small{color:var(--a-muted);font-size:12px}
+.ws-line-fields{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.ws-line-fields label{display:grid;gap:3px;font-size:11px;color:var(--a-muted)}
+.ws-line-fields input{width:104px;border:1px solid var(--a-line);border-radius:9px;padding:7px 9px;font:inherit;font-size:13px}
+.ws-line-fields .bundle-qty input{width:56px;text-align:center}
+.ws-profit{color:var(--a-success)!important;font-weight:600}
+.ws-remove{border:0;background:none;color:var(--a-danger);cursor:pointer;padding:4px}
+.ws-pay-type{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ws-pay-type button{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:11px;border:1px solid var(--a-line);background:#fff;font:inherit;font-size:13px;cursor:pointer}
+.ws-pay-type button.on{border-color:var(--a-accent);background:var(--a-accent-soft);color:var(--a-accent);font-weight:700}
+.ws-payments{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px;font-size:12.5px}
+.ws-payments li{display:flex;justify-content:space-between;padding:8px 10px;border-radius:9px;background:#fafaf7}
+.admin-table tr.is-muted{opacity:.5}
+@media (max-width:900px){.ws-editor{grid-template-columns:1fr}}
+/* reviews admin */
+.rv-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rv-item{padding:14px;border:1px solid var(--a-line);border-radius:14px;background:#fff;display:grid;gap:6px}
+.rv-item.is-pending{border-color:#e9c98a;background:#fffcf4}
+.rv-item.is-hidden{opacity:.6}
+.rv-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rv-head small{color:var(--a-muted);font-size:12px}.rv-date{margin-inline-start:auto}
+.rv-stars{color:#b8892f;letter-spacing:1px}
+.rv-product{font-size:12px;color:var(--a-accent)}
+.rv-item h4{margin:0;font-size:14px}
+.rv-item p{margin:0;line-height:1.7;font-size:13.5px;white-space:pre-line}
+.rv-phone{color:var(--a-muted);font-size:11.5px}
+.rv-reply{margin:0;padding:8px 12px;border-inline-start:3px solid #b8892f;background:#faf6f0;font-size:13px;border-radius:6px}
+.rv-actions{display:flex;gap:6px;flex-wrap:wrap}

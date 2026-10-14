@@ -51,7 +51,7 @@ async function shopperOrder(variantId, quantity, extra = {}) {
 (async () => {
   // Fake Telegram API for the notification check (server started with TELEGRAM_API_BASE=http://127.0.0.1:4599).
   global.__telegramMessages = [];
-  require('node:http').createServer((req, res) => { let body = ''; req.on('data', c => body += c); req.on('end', () => { try { global.__telegramMessages.push(JSON.parse(body)); } catch {} res.setHeader('content-type', 'application/json'); res.end('{"ok":true}'); }); }).listen(4599).unref();
+  require('node:http').createServer((req, res) => { let body = ''; req.on('data', c => body += c); req.on('end', () => { try { const parsed = JSON.parse(body); if (req.url.includes('/events')) (global.__capi = global.__capi || []).push({ url: req.url, body: parsed }); else global.__telegramMessages.push(parsed); } catch {} res.setHeader('content-type', 'application/json'); res.end('{"ok":true}'); }); }).listen(4599).unref();
   await db.connect();
   const admin = await owner();
   const variant = await one(`select v.id, v.product_id from product_variants v join products p on p.id=v.product_id where p.published and v.stock >= 10 order by v.id limit 1`);
@@ -295,6 +295,32 @@ async function shopperOrder(variantId, quantity, extra = {}) {
     assert.ok(!adminHtml.includes('G-TEST12345'), 'no tracking in the admin');
     await admin.call('/api/admin/integrations', { method: 'PUT', body: { telegram: { enabled: false, botToken: '', chatIds: [] }, whatsapp: { enabled: false, phone: '', apiKey: '' }, notify: { newOrder: true, lowStock: true }, tracking: { metaPixelId: '', ga4Id: '', clarityId: '' } } });
     await db.query(`update orders set status='cancelled' where status='pending'`);
+  });
+
+  await check('Meta Conversions API: server Purchase uses the order number as event_id and hashed phone', async () => {
+    const got = await json(await admin.call('/api/admin/integrations'));
+    const save = await admin.call('/api/admin/integrations', { method: 'PUT', body: { ...got.integrations, tracking: { ...got.integrations.tracking, metaPixelId: '1234567890123456', metaCapiToken: 'EAAG' + 'x'.repeat(60), metaTestCode: 'TEST123' } } });
+    assert.ok(save.ok, `save ${save.status} ${JSON.stringify(await json(save))}`);
+    const masked = await json(await admin.call('/api/admin/integrations'));
+    assert.ok(!JSON.stringify(masked).includes('x'.repeat(60)), 'CAPI token never sent back');
+    const order = await shopperOrder(variant.id, 1);
+    assert.equal(order.status, 201);
+    let hit;
+    for (let i = 0; i < 40 && !hit; i++) { hit = (global.__capi || []).find(c => c.body.data?.[0]?.event_id === order.data.order.reference); if (!hit) await new Promise(r => setTimeout(r, 250)); }
+    assert.ok(hit, 'CAPI Purchase received');
+    const ev = hit.body.data[0];
+    assert.equal(ev.event_name, 'Purchase'); assert.equal(ev.custom_data.currency, 'IQD'); assert.equal(ev.custom_data.value, order.data.order.total);
+    assert.equal(hit.body.test_event_code, 'TEST123');
+    assert.match(ev.user_data.ph[0], /^[a-f0-9]{64}$/, 'phone hashed');
+    assert.ok(!JSON.stringify(ev).includes('07701234567'), 'raw phone never sent');
+    assert.ok(hit.url.includes('/1234567890123456/events'), 'sent to the pixel');
+    const r = await fetch(`${base}/api/track`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'AddToCart', eventId: 'evt.1234567', url: base + '/', custom: { value: 1000, content_ids: ['x'] } }) });
+    assert.equal(r.status, 200);
+    const bad = await fetch(`${base}/api/track`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Purchase', eventId: 'evt.1234567' }) });
+    assert.equal(bad.status, 400, 'browser cannot fake a Purchase');
+    for (let i = 0; i < 20 && !(global.__capi || []).some(c => c.body.data?.[0]?.event_id === 'evt.1234567'); i++) await new Promise(r => setTimeout(r, 250));
+    assert.ok((global.__capi || []).some(c => c.body.data?.[0]?.event_name === 'AddToCart'), 'browser event mirrored');
+    await admin.call('/api/admin/integrations', { method: 'PUT', body: { ...masked.integrations, tracking: { ...masked.integrations.tracking, metaCapiToken: '', metaTestCode: '' } } });
   });
 
   await check('Delivered order: profit = discounted revenue − purchase cost, delivery excluded; delivered_at set', async () => {
