@@ -45,10 +45,10 @@ async function load(page: PageKey): Promise<KpiSpec[]> {
     case 'purchases': {
       const r = await one(sql`select
         (select count(*) from suppliers where active) suppliers,
-        (select count(*) from purchases) purchases,
-        (select coalesce(sum(total_cost_iqd),0) from purchases) spend,
+        (select count(*) from purchases where status <> 'cancelled') purchases,
+        (select coalesce(sum(total_cost_iqd),0) from purchases where status = 'received') spend,
         (select coalesce(sum(quantity),0) from purchase_items) units,
-        (select coalesce(sum(total_cost_iqd),0) from purchases where purchase_date >= date_trunc('month', now() at time zone 'Asia/Baghdad')) this_month,
+        (select coalesce(sum(total_cost_iqd),0) from purchases where status = 'received' and purchase_date >= date_trunc('month', now() at time zone 'Asia/Baghdad')) this_month,
         (select max(purchase_date) from purchases) last`);
       return [
         { icon: 'truck', tone: 'accent', en: 'Purchases', ar: 'عمليات الشراء', value: n(r.purchases), noteEn: r.last ? `last ${day(r.last)}` : 'none yet', noteAr: r.last ? `آخرها ${day(r.last)}` : 'لا يوجد بعد' },

@@ -330,6 +330,10 @@ export const suppliers = pgTable('suppliers', {
   country: text('country'),
   address: text('address'),
   notes: text('notes'),
+  contactPerson: text('contact_person'),
+  city: text('city'),
+  openingBalanceIqd: integer('opening_balance_iqd').notNull().default(0),
+  paymentTermsDays: integer('payment_terms_days').notNull().default(0),
   active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -343,9 +347,19 @@ export const purchases = pgTable('purchases', {
   totalCostIqd: integer('total_cost_iqd').notNull().default(0),
   purchaseDate: timestamp('purchase_date').defaultNow().notNull(),
   notes: text('notes'),
+  supplierInvoice: text('supplier_invoice'),
+  currency: text('currency').notNull().default('IQD'),
+  exchangeRate: integer('exchange_rate').notNull().default(0),
+  subtotalIqd: integer('subtotal_iqd').notNull().default(0),
+  extraCostsIqd: integer('extra_costs_iqd').notNull().default(0),
+  discountIqd: integer('discount_iqd').notNull().default(0),
+  dueDate: timestamp('due_date'),
+  receivedAt: timestamp('received_at'),
+  cancelledAt: timestamp('cancelled_at'),
+  createdBy: text('created_by'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [index('purchases_supplier_idx').on(table.supplierId), index('purchases_date_idx').on(table.purchaseDate)]);
+}, (table) => [index('purchases_supplier_idx').on(table.supplierId), index('purchases_date_idx').on(table.purchaseDate), index('purchases_status_idx').on(table.status)]);
 
 export const purchaseItems = pgTable('purchase_items', {
   id: serial('id').primaryKey(),
@@ -359,7 +373,23 @@ export const purchaseItems = pgTable('purchase_items', {
   salePriceIqd: integer('sale_price_iqd'),
   batchId: integer('batch_id').references(() => inventoryBatches.id, { onDelete: 'set null' }),
   notes: text('notes'),
+  /** Price per unit in the purchase currency (IQD dinars, or USD cents). */
+  unitCost: integer('unit_cost').notNull().default(0),
+  /** IQD per unit after spreading shipping/customs and the discount; this is what the batch carries. */
+  landedCostIqd: integer('landed_cost_iqd').notNull().default(0),
 }, (table) => [index('purchase_items_purchase_idx').on(table.purchaseId), index('purchase_items_variant_idx').on(table.variantId)]);
+
+export const supplierPayments = pgTable('supplier_payments', {
+  id: serial('id').primaryKey(),
+  supplierId: integer('supplier_id').notNull().references(() => suppliers.id, { onDelete: 'cascade' }),
+  purchaseId: integer('purchase_id').references(() => purchases.id, { onDelete: 'set null' }),
+  amountIqd: integer('amount_iqd').notNull(),
+  method: text('method').notNull().default('cash'),
+  paidAt: timestamp('paid_at').defaultNow().notNull(),
+  note: text('note'),
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [index('supplier_payments_supplier_idx').on(table.supplierId), index('supplier_payments_purchase_idx').on(table.purchaseId)]);
 
 
 export const storeLocations = pgTable('store_locations', {
