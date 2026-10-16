@@ -69,7 +69,7 @@
 .bag-empty p{margin:0 0 8px;color:var(--muted);font-size:13px}
 .bag-empty .bag-checkout{width:auto}
 @media(max-width:767px){
-  .bag-drawer .modal-panel{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}
+  .bag-drawer .modal-panel{width:min(420px,calc(100vw - 44px));height:100dvh;max-height:100dvh;border-radius:0;box-shadow:0 0 40px rgba(0,0,0,.25)}
   .bag-drawer .modal-heading{padding:18px 20px}
   .bag-delivery,.bag-items,.bag-picks{padding-inline:20px}
   .bag-footer{padding-inline:20px}
@@ -194,3 +194,20 @@
   .co-trust{justify-content:center;gap:10px 14px}
 }
 @media(prefers-reduced-motion:reduce){.bag-progress i,.bag-checkout,.co-primary{transition:none}}
+.bag-keep-shopping{display:block;margin:12px auto 0;background:none;border:0;padding:6px 10px;font:inherit;font-size:13.5px;color:#3b3b3b;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.bag-keep-shopping:hover{color:var(--orange)}
+.bag-checkout{justify-content:center}
+[dir=rtl] .drawer-overlay .modal-panel{animation-name:slide-in-rtl}
+@keyframes slide-in-rtl{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+.co-pay-options{display:grid;gap:10px}
+.co-pay{cursor:pointer;transition:border-color .15s,background .15s}
+.co-pay-options .co-pay{border:1.5px solid #e3dfd6;background:#fff}.co-pay-options .co-pay.is-on{border:2px solid var(--orange);background:#fffaf4}.co-pay-options .co-pay svg{color:var(--orange)}
+.co-pay input{accent-color:var(--orange)}
+.co-final{margin:18px 0 0;padding:0;border-top:1px solid #e6e2da}
+.co-final>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 2px;border-bottom:1px solid #eee9e1;font-size:14.5px}
+.co-final dt{display:grid;gap:2px;color:#3b3b3b}.co-final dt small{font-size:12px;color:#8a857a}
+.co-final dd{margin:0;font-weight:600;unicode-bidi:plaintext}
+.co-final .co-final-total{background:#e9e7e3;border:0;margin-top:10px;padding:16px 14px;border-radius:4px;font-size:16px}
+.co-final .co-final-total dt{font-weight:800;letter-spacing:.3px;color:#1f1f1f}
+.co-final .co-final-total dd{font-size:22px;font-weight:800;color:#1f1f1f}
+.co-place{justify-content:center}

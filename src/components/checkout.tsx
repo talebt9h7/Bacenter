@@ -2,7 +2,7 @@
 import { track } from '@/lib/track';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Banknote, Check, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
 import { useStore } from './store-provider';
 import { mediaSrc } from '@/lib/types';
 import { useLanguage } from './language-provider';
@@ -12,7 +12,7 @@ import { iraqPhonePattern, normalizeIraqPhone } from '@/lib/iraq';
 type Zone = { code: string; nameEn: string; nameAr: string; rate: number; minDays: number; maxDays: number };
 type Config = { zones: Zone[]; settings: { exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; supportPhone: string; whatsapp?: string | number } };
 type Coupon = { code: string; discount: number; freeShipping: boolean; description: string };
-type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone };
+type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone; payment?: 'cod' | 'electronic' };
 type Saved = { name?: string; phone?: string; altPhone?: string; email?: string; governorate?: string; city?: string; address?: string; landmark?: string };
 
 const SAVED_KEY = 'checkout-details-v1';
@@ -86,7 +86,8 @@ export function Checkout() {
   const freeShipping = freeByThreshold || Boolean(coupon?.freeShipping);
   const shipping = zone ? (freeShipping ? 0 : zone.rate) : 0;
   const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
-  const codFee = config?.settings.codFee ?? 0;
+  const [payment, setPayment] = useState<'cod' | 'electronic'>('cod');
+  const codFee = payment === 'cod' ? (config?.settings.codFee ?? 0) : 0;
   const total = Math.max(0, subtotal - discount) + shipping + codFee;
   const promoSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPriceIqd ?? item.salePriceIqd) - item.salePriceIqd) * item.quantity, 0);
   const savings = discount + promoSavings + (zone && freeShipping ? zone.rate : 0);
@@ -113,7 +114,7 @@ export function Checkout() {
       const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, coupon: coupon?.code ?? '' }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error);
       try { const { note: _note, payment: _payment, ...keep } = data; void _note; void _payment; localStorage.setItem(SAVED_KEY, JSON.stringify(keep)); } catch { /* storage unavailable */ }
-      setOrder({ ...result.order, zone });
+      setOrder({ ...result.order, zone, payment });
       track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping, coupon: coupon?.code }); await refreshCart(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) { setError(err instanceof Error ? err.message : (ar ? 'تحقق من الاتصال وحاول مرة أخرى.' : 'Please check your connection and try again.')); }
     finally { setSubmitting(false); }
@@ -127,7 +128,7 @@ export function Checkout() {
       <li className="is-done"><Check size={15} aria-hidden="true" /><div><strong>{ar ? 'استلمنا الطلب' : 'Order received'}</strong><span>{ar ? 'الآن' : 'Just now'}</span></div></li>
       <li><PhoneCall size={15} aria-hidden="true" /><div><strong>{ar ? 'نتصل بك للتأكيد' : 'We call to confirm'}</strong><span>{ar ? <>على الرقم <bdi>{order.phone}</bdi> قبل الشحن</> : <>On <bdi>{order.phone}</bdi> before dispatch</>}</span></div></li>
       <li><Truck size={15} aria-hidden="true" /><div><strong>{ar ? 'التوصيل' : 'Delivery'}</strong><span>{order.zone ? `${ar ? order.zone.nameAr : order.zone.nameEn} · ${deliveryWindow(order.zone, language)}` : (ar ? `إلى ${order.governorate}` : `To ${order.governorate} in ${order.eta}`)}</span></div></li>
-      <li><Banknote size={15} aria-hidden="true" /><div><strong>{ar ? `تدفع ${iqd(order.total)} عند الاستلام` : `Pay ${iqd(order.total)} on delivery`}</strong><span>{order.shipping === 0 ? (ar ? 'التوصيل مجاني' : 'Delivery is free') : (ar ? `يشمل ${iqd(order.shipping)} أجور التوصيل` : `Includes ${iqd(order.shipping)} delivery`)}</span></div></li>
+      <li><Banknote size={15} aria-hidden="true" /><div><strong>{order.payment === 'electronic' ? (ar ? `نرسل لك رابط دفع ${iqd(order.total)}` : `We will send a payment link for ${iqd(order.total)}`) : (ar ? `تدفع ${iqd(order.total)} عند الاستلام` : `Pay ${iqd(order.total)} on delivery`)}</strong><span>{order.shipping === 0 ? (ar ? 'التوصيل مجاني' : 'Delivery is free') : (ar ? `يشمل ${iqd(order.shipping)} أجور التوصيل` : `Includes ${iqd(order.shipping)} delivery`)}</span></div></li>
     </ol>
     <div className="co-success-actions">
       {whatsapp && <a className="co-secondary" href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(ar ? `مرحباً، بخصوص طلبي رقم ${order.reference}` : `Hi, about my order ${order.reference}`)}`} target="_blank" rel="noreferrer"><MessageCircle size={16} aria-hidden="true" /> {ar ? 'تابع طلبك على واتساب' : 'Follow up on WhatsApp'}</a>}
@@ -198,30 +199,30 @@ export function Checkout() {
         <fieldset className="co-section">
           <legend><span>2</span> {ar ? 'عنوان التوصيل' : 'Delivery address'}</legend>
           <div className="co-grid">
-            <div className="co-field full"><label htmlFor="governorate">{ar ? 'المحافظة' : 'Governorate'}</label><select id="governorate" name="governorate" required value={governorate} onChange={event => setGovernorate(event.target.value)}><option value="">{ar ? 'اختر المحافظة' : 'Choose your governorate'}</option>{config.zones.map(item => <option key={item.code} value={item.code}>{(ar ? item.nameAr : item.nameEn) + (freeShipping ? '' : ` — ${iqd(item.rate)}`)}</option>)}</select>
-              {zone && <p className="co-eta"><Truck size={15} aria-hidden="true" /><span>{ar ? 'التوصيل المتوقع' : 'Expected delivery'}: <strong>{deliveryWindow(zone, language)}</strong>{freeShipping ? null : <> · {iqd(zone.rate)}</>}</span></p>}
+            <div className="co-field full"><label htmlFor="governorate">{ar ? 'المحافظة' : 'Governorate'}</label><select id="governorate" name="governorate" required value={governorate} onChange={event => setGovernorate(event.target.value)}><option value="">{ar ? 'اختر المحافظة' : 'Choose your governorate'}</option>{config.zones.map(item => <option key={item.code} value={item.code}>{ar ? item.nameAr : item.nameEn}</option>)}</select>
             </div>
             <div className="co-field"><label htmlFor="city">{ar ? 'المدينة أو القضاء' : 'City / district'}</label><input id="city" name="city" autoComplete="address-level2" placeholder={ar ? 'مثال: الكرادة، المنصور' : 'e.g. Karrada, Mansour'} maxLength={120} required /></div>
             <div className="co-field"><label htmlFor="landmark">{ar ? 'أقرب نقطة دالة (اختياري)' : 'Nearest landmark (optional)'}</label><input id="landmark" name="landmark" placeholder={ar ? 'مثال: قرب جامع…' : 'e.g. near … mosque'} maxLength={200} /></div>
-            <div className="co-field full"><label htmlFor="address">{ar ? 'العنوان بالتفصيل' : 'Full address'}</label><input id="address" name="address" autoComplete="street-address" placeholder={ar ? 'المنطقة، الشارع، رقم الدار أو البناية' : 'Area, street, house or building number'} maxLength={300} minLength={5} required /></div>
-            <details className="co-field full co-more">
-              <summary>{ar ? 'إضافة بريد إلكتروني أو ملاحظة (اختياري)' : 'Add an email or a note (optional)'}</summary>
-              <div className="co-grid">
-                <div className="co-field full"><label htmlFor="email">{ar ? 'البريد الإلكتروني' : 'Email'}</label><input id="email" name="email" type="email" autoComplete="email" dir="ltr" maxLength={254} /></div>
-                <div className="co-field full"><label htmlFor="note">{ar ? 'ملاحظة للتوصيل' : 'Delivery note'}</label><textarea id="note" name="note" rows={3} maxLength={500} placeholder={ar ? 'وقت التوصيل المناسب، تغليف هدية…' : 'Best time to deliver, gift wrapping…'} /></div>
-              </div>
-            </details>
           </div>
         </fieldset>
 
         <fieldset className="co-section">
           <legend><span>3</span> {ar ? 'طريقة الدفع' : 'Payment'}</legend>
-          <label className="co-pay"><input type="radio" name="payment" value="cod" defaultChecked readOnly /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع نقداً عند الاستلام' : 'Cash on delivery'}</strong><small>{ar ? 'تدفع للمندوب بالدينار العراقي لما يوصلك الطلب.' : 'Pay the courier in Iraqi dinars when your order arrives.'}{codFee ? (ar ? ` تُضاف ${iqd(codFee)} رسوم دفع.` : ` A ${iqd(codFee)} handling fee applies.`) : ''}</small></div></label>
+          <div className="co-pay-options" role="radiogroup">
+            <label className={`co-pay ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong><small>{ar ? 'تدفع للمندوب نقداً لما يوصلك الطلب.' : 'Pay the courier in cash when your order arrives.'}{config?.settings.codFee ? (ar ? ` تُضاف ${iqd(config.settings.codFee)} رسوم.` : ` A ${iqd(config.settings.codFee)} fee applies.`) : ''}</small></div></label>
+            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع الإلكتروني' : 'Electronic payment'}</strong><small>{ar ? 'زين كاش أو بطاقة. نتواصل وياك ونرسل لك رابط الدفع بعد تأكيد الطلب.' : 'ZainCash or card. We send you a payment link once the order is confirmed.'}</small></div></label>
+          </div>
+          <dl className="co-final">
+            <div><dt>{ar ? 'مجموع الطلب' : 'Subtotal'}</dt><dd>{iqd(Math.max(0, subtotal - discount))}</dd></div>
+            <div><dt>{ar ? 'سعر التوصيل' : 'Delivery'}{zone ? <small>{ar ? zone.nameAr : zone.nameEn}</small> : null}</dt><dd>{!zone ? <span className="co-muted">{ar ? 'اختر المحافظة' : 'Choose governorate'}</span> : freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(shipping)}</dd></div>
+            {codFee > 0 && <div><dt>{t('Cash handling')}</dt><dd>{iqd(codFee)}</dd></div>}
+            <div className="co-final-total"><dt>{ar ? 'المجموع الكلي' : 'Order total'}</dt><dd>{iqd(total)}</dd></div>
+          </dl>
         </fieldset>
 
         {error && <p className="co-error co-error-box" role="alert">{error}</p>}
         <div className="co-submit">
-          <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'} · {iqd(total)}</>}</button>
+          <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
           <ul className="co-trust">
             <li><Banknote size={15} aria-hidden="true" /> {ar ? 'تدفع عند الاستلام' : 'Pay on delivery'}</li>
             <li><PhoneCall size={15} aria-hidden="true" /> {ar ? 'نتصل بك قبل الشحن' : 'We call before dispatch'}</li>

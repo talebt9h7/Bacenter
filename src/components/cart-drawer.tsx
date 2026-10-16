@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Banknote, Check, LoaderCircle, Minus, Plus, RotateCcw, ShoppingBag, Trash2, Truck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, LoaderCircle, Minus, Plus, RotateCcw, ShoppingBag, Trash2, Truck } from 'lucide-react';
 import { useStore } from './store-provider';
 import { mediaSrc, primaryImage, type Product } from '@/lib/types';
 import { useLanguage } from './language-provider';
@@ -27,7 +27,6 @@ export function CartDrawer() {
   const remaining = Math.max(0, threshold - subtotal);
   const progress = threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 100;
   const lowStock = settings.lowStockThreshold || 5;
-  const whatsapp = String(settings.whatsapp || '').replace(/\D/g, '');
 
   // "Complete the set": real products from the bestsellers collection that are not in the bag.
   const [suggestions, setSuggestions] = useState<Product[]>([]);
@@ -106,15 +105,8 @@ export function CartDrawer() {
         {promoSavings > 0 && <div className="bag-savings"><span>{ar ? 'وفّرت بالعروض' : 'You save with offers'}</span><strong>− {moneyIqd(promoSavings)}</strong></div>}
         <div className="bag-total"><span>{t('Subtotal')}</span><strong>{moneyIqd(subtotal)}</strong></div>
         <p className="bag-total-note">{remaining === 0 ? (ar ? 'التوصيل مجاني. تدفع عند الاستلام.' : 'Delivery is free. You pay on delivery.') : (ar ? 'أجور التوصيل تُحسب حسب المحافظة. تدفع عند الاستلام.' : 'Delivery is calculated by governorate. You pay on delivery.')}</p>
-        <Link className="bag-checkout" href="/checkout" onClick={close}>{ar ? 'إتمام الطلب' : 'Checkout'} <span aria-hidden="true">·</span> {moneyIqd(subtotal)} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</Link>
-        <ul className="bag-trust">
-          <li><Banknote size={15} aria-hidden="true" /> {ar ? 'الدفع نقداً عند الاستلام' : 'Cash on delivery'}</li>
-          <li><Truck size={15} aria-hidden="true" /> {ar ? 'لكل محافظات العراق' : 'All 18 governorates'}</li>
-        </ul>
-        <div className="bag-footer-links">
-          <button type="button" onClick={close}>{ar ? 'متابعة التسوق' : 'Keep shopping'}</button>
-          {whatsapp && <a href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(ar ? 'مرحباً، عندي سؤال عن طلبي قبل الإتمام.' : 'Hi, I have a question before I place my order.')}`} target="_blank" rel="noreferrer">{ar ? 'عندك سؤال؟ راسلنا واتساب' : 'Questions? WhatsApp us'}</a>}
-        </div>
+        <Link className="bag-checkout" href="/checkout" onClick={close}>{ar ? 'إتمام الطلب' : 'Checkout'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</Link>
+        <button type="button" className="bag-keep-shopping" onClick={close}>{ar ? 'متابعة التسوق' : 'Keep shopping'}</button>
       </div>
     </> : <div className="bag-empty">
       <ShoppingBag size={46} strokeWidth={1.1} aria-hidden="true" />

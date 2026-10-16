@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const text = (key: string, max = 200) => typeof body[key] === 'string' ? body[key].trim().slice(0, max) : '';
     const name = text('name', 100); const phone = normalizeIraqPhone(text('phone', 30)); const altPhone = normalizeIraqPhone(text('altPhone', 30));
-    const governorate = text('governorate', 40); const city = text('city', 120); const address = text('address', 300); const landmark = text('landmark', 200); const email = text('email', 254).toLowerCase(); const note = text('note', 500); const couponCode = text('coupon', 40).toUpperCase();
+    const governorate = text('governorate', 40); const city = text('city', 120); const address = text('address', 300); const payment = text('payment', 20) === 'electronic' ? 'electronic' : 'cod'; const landmark = text('landmark', 200); const email = text('email', 254).toLowerCase(); const note = text('note', 500); const couponCode = text('coupon', 40).toUpperCase();
     if (name.length < 2) return NextResponse.json({ error: 'Please enter the recipient’s full name.' }, { status: 400 });
     if (!iraqPhonePattern.test(phone)) return NextResponse.json({ error: 'Please enter a valid Iraqi mobile number (e.g. 0770 123 4567).' }, { status: 400 });
     if (altPhone && !iraqPhonePattern.test(altPhone)) return NextResponse.json({ error: 'The alternative phone number must be a valid Iraqi mobile number.' }, { status: 400 });
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Please enter a valid email address or leave it empty.' }, { status: 400 });
-    if (!city || address.length < 5) return NextResponse.json({ error: 'Please add the city/district and a detailed delivery address.' }, { status: 400 });
+    if (!city || city.length < 2) return NextResponse.json({ error: 'Please add the city or district.' }, { status: 400 });
     const settings = await getSettings();
     if (!settings.codEnabled) return NextResponse.json({ error: 'Cash on delivery is temporarily unavailable. Please try again later.' }, { status: 409 });
     const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, governorate));
@@ -84,12 +84,12 @@ export async function POST(request: NextRequest) {
         discount = check.discount; freeShipping = freeShipping || check.freeShipping; appliedCoupon = check.coupon.code;
       }
       const shipping = freeShipping ? 0 : zone.rate;
-      const codFee = settings.codFee;
+      const codFee = payment === 'cod' ? settings.codFee : 0;
       const total = Math.max(0, subtotal - discount) + shipping + codFee;
       const [customer] = await tx.insert(customers).values({ phone, name, email: email || null, governorate: zone.code, ordersCount: 1, totalSpent: Math.max(0, subtotal - discount), lastOrderAt: new Date() }).onConflictDoUpdate({ target: customers.phone, set: { name, email: sql`COALESCE(NULLIF(${email}, ''), ${customers.email})`, governorate: zone.code, ordersCount: sql`${customers.ordersCount} + 1`, totalSpent: sql`${customers.totalSpent} + ${Math.max(0, subtotal - discount)}`, lastOrderAt: new Date() } }).returning({ id: customers.id });
       // The order is pending at checkout, so realized financial profit stays at zero until delivery.
       // The item-level sale/purchase snapshot is kept for calculating the profit when it is delivered.
-      const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: rate, subtotalCents: subtotal, shippingCents: shipping, discountCents: discount, codFeeCents: codFee, totalCents: total, profitIqd: 0, couponCode: appliedCoupon, paymentMethod: 'cod', paymentStatus: 'unpaid', status: 'pending', customerNote: note || null }).returning({ id: orders.id });
+      const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: rate, subtotalCents: subtotal, shippingCents: shipping, discountCents: discount, codFeeCents: codFee, totalCents: total, profitIqd: 0, couponCode: appliedCoupon, paymentMethod: payment, paymentStatus: 'unpaid', status: 'pending', customerNote: note || null }).returning({ id: orders.id });
       await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Order placed · cash on delivery · ${zone.nameEn}` });
       await tx.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
       await tx.delete(cartBundles).where(eq(cartBundles.sessionId, sessionId));

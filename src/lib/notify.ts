@@ -73,7 +73,7 @@ export async function notifyNewOrder(orderId: number, origin: string) {
       '',
       `المنتجات: ${money(order.subtotalCents)}${order.discountCents ? `  | خصم: −${money(order.discountCents)}${order.couponCode ? ` (${escape(order.couponCode)})` : ''}` : ''}`,
       `التوصيل: ${order.shippingCents ? money(order.shippingCents) : 'مجاني'}`,
-      `💰 <b>المطلوب تحصيله: ${money(order.totalCents)}</b>`,
+      order.paymentMethod === 'electronic' ? `💳 <b>دفع إلكتروني — أرسل رابط الدفع: ${money(order.totalCents)}</b>` : `💰 <b>المطلوب تحصيله: ${money(order.totalCents)}</b>`,
       order.customerNote ? `📝 ${escape(order.customerNote)}` : '',
       `🔗 ${base}/admin/orders/${order.id}`,
     ];
