@@ -568,3 +568,10 @@ a.dash-kpi:hover{transform:translateY(-2px);border-color:#d4d4cc;box-shadow:0 2p
   .pr-tabs{width:100%}.pr-tabs button{flex:1;justify-content:center;padding:9px 8px}
   .pr-suppliers{grid-template-columns:1fr}
 }
+.admin-orders-scope{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px;font-size:12.5px;color:var(--a-muted)}.admin-orders-scope .admin-link{background:none;border:0;cursor:pointer;font:inherit;color:var(--a-accent)}
+.admin-publish-check{border:1px solid #f0d6b8;background:#fffaf3}
+.admin-publish-check.is-ready{border-color:#cfe5d6;background:#f4faf6}
+.admin-publish-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.admin-publish-head h2{margin:0;font-size:15px}.admin-publish-head span{font-size:12px;font-weight:700;color:var(--a-muted)}
+.admin-publish-check ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}
+.admin-publish-check li{display:flex;align-items:center;gap:6px;font-size:13px;color:#b3402a}.admin-publish-check li.ok{color:#2f6b4f}
+.admin-publish-check p{margin:10px 0 0;font-size:12.5px;color:var(--a-muted)}

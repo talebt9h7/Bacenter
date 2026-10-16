@@ -6,6 +6,7 @@ import { invalidateCatalog } from './cache-tags';
 import { cleanDetails, type ProductDetails } from './product-details';
 import { categories as legacyCategories } from './catalog';
 import { categories as categoryTable } from '@/db/schema';
+import { NotReadyError, publishChecklist } from './publish-checklist';
 
 // baseStock is the stock the editor loaded. Saving applies only the difference, so orders
 // placed while the editor was open are not overwritten.
@@ -56,7 +57,7 @@ export function validateProductInput(body: unknown): { data?: ProductInput; erro
     const baseStock = Number.isInteger(color.baseStock) && Number(color.baseStock) >= 0 ? Number(color.baseStock) : undefined;
     colors.push({ id: Number.isInteger(color.id) ? Number(color.id) : undefined, name: colorName, nameAr: colorNameAr, hex, stock, baseStock, images, primaryIndex });
   }
-  return { data: { id, name, nameAr, subtitle: typeof raw.subtitle === 'string' ? raw.subtitle.trim().slice(0, 200) : '', description: typeof raw.description === 'string' ? raw.description.trim().slice(0, 4000) : '', descriptionAr, price: Math.round((salePriceIqd / exchangeRate) * 100) / 100, salePriceIqd: Math.round(salePriceIqd), wholesalePriceIqd: Number.isFinite(Number(raw.wholesalePriceIqd)) && raw.wholesalePriceIqd !== undefined ? Math.max(0, Math.round(Number(raw.wholesalePriceIqd))) : undefined, purchasePriceUsd: purchasePriceUsd === null ? null : Math.round(purchasePriceUsd * 100) / 100, exchangeRate, category, capacity: typeof raw.capacity === 'string' && raw.capacity.trim() ? raw.capacity.trim().slice(0, 40) : null, badge: typeof raw.badge === 'string' && raw.badge.trim() ? raw.badge.trim().slice(0, 40).toUpperCase() : null, features: cleanList(raw.features, 12), specifications: cleanList(raw.specifications, 30), warranty: typeof raw.warranty === 'string' ? raw.warranty.trim().slice(0, 2000) : '', materials: typeof raw.materials === 'string' ? raw.materials.trim().slice(0, 2000) : '', storyImages: Array.isArray(raw.storyImages) ? raw.storyImages.filter(isImage).slice(0, 20) : [], dimensions: typeof raw.dimensions === 'string' ? raw.dimensions.trim().slice(0, 120) : '', dimensionsImage: isImage(raw.dimensionsImage) ? raw.dimensionsImage : '', tags: cleanList(raw.tags, 20).map(tag => tag.toLowerCase().replace(/\s+/g, '-')), published: raw.published !== false, colors,
+  return { data: { id, name, nameAr, subtitle: typeof raw.subtitle === 'string' ? raw.subtitle.trim().slice(0, 200) : '', description: typeof raw.description === 'string' ? raw.description.trim().slice(0, 4000) : '', descriptionAr, price: Math.round((salePriceIqd / exchangeRate) * 100) / 100, salePriceIqd: Math.round(salePriceIqd), wholesalePriceIqd: Number.isFinite(Number(raw.wholesalePriceIqd)) && raw.wholesalePriceIqd !== undefined ? Math.max(0, Math.round(Number(raw.wholesalePriceIqd))) : undefined, purchasePriceUsd: purchasePriceUsd === null ? null : Math.round(purchasePriceUsd * 100) / 100, exchangeRate, category, capacity: typeof raw.capacity === 'string' && raw.capacity.trim() ? raw.capacity.trim().slice(0, 40) : null, badge: typeof raw.badge === 'string' && raw.badge.trim() ? raw.badge.trim().slice(0, 40).toUpperCase() : null, features: cleanList(raw.features, 12), specifications: cleanList(raw.specifications, 30), warranty: typeof raw.warranty === 'string' ? raw.warranty.trim().slice(0, 2000) : '', materials: typeof raw.materials === 'string' ? raw.materials.trim().slice(0, 2000) : '', storyImages: Array.isArray(raw.storyImages) ? raw.storyImages.filter(isImage).slice(0, 20) : [], dimensions: typeof raw.dimensions === 'string' ? raw.dimensions.trim().slice(0, 120) : '', dimensionsImage: isImage(raw.dimensionsImage) ? raw.dimensionsImage : '', tags: cleanList(raw.tags, 20).map(tag => tag.toLowerCase().replace(/\s+/g, '-')), published: raw.published === true, colors,
     // Product-page content from the new editor. Absent from older clients, in which case it is left as it is.
     details: raw.details && typeof raw.details === 'object' ? { ...cleanDetails(raw.details), v: 1 as const } : undefined } };
 }
@@ -65,6 +66,14 @@ export async function saveProduct(data: ProductInput, { create = false } = {}) {
   const [categoryRow] = await db.select({ id: categoryTable.id }).from(categoryTable).where(eq(categoryTable.id, data.category)).limit(1);
   if (!categoryRow && !legacyCategories.some(item => item.id === data.category && item.id !== 'all')) throw new Error('INVALID_CATEGORY');
   const result = await db.transaction(async tx => {
+    // Going live for the first time (new product, or a draft being published) needs the full checklist.
+    if (data.published) {
+      const [before] = create ? [] : await tx.select({ published: products.published }).from(products).where(eq(products.id, data.id));
+      if (create || before?.published === false) {
+        const missing = publishChecklist({ name: data.name, nameAr: data.nameAr, salePriceIqd: data.salePriceIqd, description: data.description, descriptionAr: data.descriptionAr, featuresAr: data.details?.featuresAr, features: data.details?.features, colors: data.colors }).filter(i => !i.ok);
+        if (missing.length) throw new NotReadyError(missing);
+      }
+    }
     const values = { ...(data.wholesalePriceIqd !== undefined ? { wholesalePriceIqd: data.wholesalePriceIqd } : {}), name: data.name, nameAr: data.nameAr || data.name, subtitle: data.subtitle, subtitleAr: data.subtitleAr || data.subtitle, description: data.description, descriptionAr: data.descriptionAr || data.description, priceCents: Math.round(data.price * 100), salePriceIqd: data.salePriceIqd, category: data.category, capacity: data.capacity, badge: data.badge, features: data.features, specifications: data.specifications, warranty: data.warranty, materials: data.materials, storyImages: data.storyImages, dimensions: data.dimensions, dimensionsImage: data.dimensionsImage, tags: data.tags, published: data.published, updatedAt: new Date(), ...(data.details ? { details: data.details } : {}) };
     if (create) {
       const [existing] = await tx.select({ id: products.id }).from(products).where(eq(products.id, data.id));

@@ -6,6 +6,7 @@ import { Download, LoaderCircle, Minus, Plus, Search, Trash2, X } from 'lucide-r
 import { api, useFlash } from './ui';
 import { useLanguage } from '@/components/language-provider';
 import { catalogT } from '@/lib/i18n';
+import { availableUnits, stockLevel } from '@/lib/stock-level';
 
 export type InventoryRow = { variantId: number; productId: string; productName: string; category: string; color: string; hex: string; stock: number; reserved?: number; photos: number; image: string; price: number; priceIqd: number; published: boolean; knownCostIqd: number; unknownCostUnits: number };
 export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeRate }: { rows: InventoryRow[]; lowStockThreshold: number; exchangeRate: number }) {
@@ -24,8 +25,8 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
   const [newColors, setNewColors] = useState<Array<{ id: number; name: string; hex: string; quantity: string }>>([]);
   const [newColorDraft, setNewColorDraft] = useState({ name: '', hex: '#8b6f47', quantity: '' });
   const { flash, success, fail } = useFlash();
-  const visible = useMemo(() => rows.filter(row => (filter === 'all' || (filter === 'low' ? row.stock > 0 && row.stock <= lowStockThreshold : row.stock === 0)) && (!query || `${row.productName} ${row.color} ${row.productId} ${row.category}`.toLowerCase().includes(query.toLowerCase()))), [rows, filter, query, lowStockThreshold]);
-  const totals = useMemo(() => ({ units: rows.reduce((sum, row) => sum + row.stock, 0), knownCost: rows.reduce((sum, row) => sum + row.knownCostIqd, 0), unknownUnits: rows.reduce((sum, row) => sum + row.unknownCostUnits, 0), low: rows.filter(row => row.stock > 0 && row.stock <= lowStockThreshold).length, out: rows.filter(row => row.stock === 0).length }), [rows, lowStockThreshold]);
+  const visible = useMemo(() => rows.filter(row => (filter === 'all' || stockLevel(availableUnits(row.stock, row.reserved), lowStockThreshold) === filter) && (!query || `${row.productName} ${row.color} ${row.productId} ${row.category}`.toLowerCase().includes(query.toLowerCase()))), [rows, filter, query, lowStockThreshold]);
+  const totals = useMemo(() => ({ units: rows.reduce((sum, row) => sum + row.stock, 0), knownCost: rows.reduce((sum, row) => sum + row.knownCostIqd, 0), unknownUnits: rows.reduce((sum, row) => sum + row.unknownCostUnits, 0), low: rows.filter(row => stockLevel(availableUnits(row.stock, row.reserved), lowStockThreshold) === 'low').length, out: rows.filter(row => stockLevel(availableUnits(row.stock, row.reserved), lowStockThreshold) === 'out').length }), [rows, lowStockThreshold]);
   async function apply(row: InventoryRow, body: { delta?: number; set?: number }) {
     setBusy(row.variantId);
     try { const data = await api<{ stock: number }>('/api/admin/inventory', { method: 'POST', json: { variantId: row.variantId, reason, ...body } }); setRows(current => current.map(item => item.variantId === row.variantId ? { ...item, stock: data.stock } : item)); setDrafts(current => { const next = { ...current }; delete next[row.variantId]; return next; }); success(`${row.productName} · ${row.color} is now ${data.stock} in stock.`); router.refresh(); }

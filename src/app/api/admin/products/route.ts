@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NotReadyError } from '@/lib/publish-checklist';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { getAllProducts, getProductById } from '@/lib/products';
 import { saveProduct, validateProductInput } from '@/lib/admin-products';
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
   catch (err) {
     if (err instanceof Error && err.message === 'PURCHASE_PRICE_REQUIRED') return NextResponse.json({ error: 'Purchase cost is required when initial stock is greater than zero.' }, { status: 400 });
     if (err instanceof Error && err.message === 'INVALID_CATEGORY') return NextResponse.json({ error: 'Please choose a valid category.' }, { status: 400 });
+    if (err instanceof NotReadyError) { const ar = request.cookies.get('UR_lang')?.value !== 'en'; return NextResponse.json({ error: (ar ? 'المنتج غير جاهز للنشر. ناقص: ' : 'Not ready to publish. Missing: ') + err.missing.map(i => ar ? i.ar : i.en).join(ar ? '، ' : ', '), missing: err.missing.map(i => i.key) }, { status: 400 }); }
     if (err instanceof Error && err.message === 'DUPLICATE') return NextResponse.json({ error: 'A product with that URL handle already exists.' }, { status: 409 });
     console.error('Product create failed', err); return NextResponse.json({ error: 'The product could not be created.' }, { status: 500 });
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NotReadyError } from '@/lib/publish-checklist';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { getProductById } from '@/lib/products';
 import { deleteProducts, saveProduct, validateProductInput } from '@/lib/admin-products';
@@ -20,6 +21,7 @@ export async function PUT(request: NextRequest, { params }: Context) {
   try { await saveProduct(data); return NextResponse.json({ product: await getProductById(id, { includeUnpublished: true }) }); }
   catch (err) {
     if (err instanceof Error && err.message === 'INVALID_CATEGORY') return NextResponse.json({ error: 'Please choose a valid category.' }, { status: 400 });
+    if (err instanceof NotReadyError) { const ar = request.cookies.get('UR_lang')?.value !== 'en'; return NextResponse.json({ error: (ar ? 'المنتج غير جاهز للنشر. ناقص: ' : 'Not ready to publish. Missing: ') + err.missing.map(i => ar ? i.ar : i.en).join(ar ? '، ' : ', '), missing: err.missing.map(i => i.key) }, { status: 400 }); }
     if (err instanceof Error && err.message === 'NOT_FOUND') return NextResponse.json({ error: 'Product not found.' }, { status: 404 });
     console.error('Product update failed', err); return NextResponse.json({ error: 'The product could not be saved.' }, { status: 500 });
   }

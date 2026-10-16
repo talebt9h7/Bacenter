@@ -20,10 +20,10 @@ export default async function AdminProductPage({ params, searchParams }: Props) 
   const categories = await getCategories({ includeInactive: true });
   const settings = await getSettings();
   const exchangeRate = settings.exchangeRate;
-  if (id === 'new') return <ProductEditor initial={null} exchangeRate={exchangeRate} categories={categories.map(c => ({ id: c.id, name: c.name }))} />;
+  if (id === 'new') return <ProductEditor initial={null} lowStockThreshold={settings.lowStockThreshold} exchangeRate={exchangeRate} categories={categories.map(c => ({ id: c.id, name: c.name }))} />;
   const product = await getProductById(id, { includeUnpublished: true });
   if (!product) notFound();
-  const language = normalizeLanguage((await cookies()).get('bellroy_lang')?.value);
+  const language = normalizeLanguage((await cookies()).get('UR_lang')?.value);
   const [priceRow] = await db.select({ wholesalePriceIqd: products.wholesalePriceIqd }).from(products).where(eq(products.id, product.id));
-  return <><ProductEditor key={product.id} initial={product} wholesalePriceIqd={priceRow?.wholesalePriceIqd ?? 0} initialColorId={color ? Number(color) : undefined} exchangeRate={exchangeRate} categories={categories.map(c => ({ id: c.id, name: c.name }))} /><ProductMovementLedger productId={product.id} language={language} /></>;
+  return <><ProductEditor key={`${product.id}-${color ?? ''}`} initial={product} wholesalePriceIqd={priceRow?.wholesalePriceIqd ?? 0} initialColorId={color ? Number(color) : undefined} lowStockThreshold={settings.lowStockThreshold} exchangeRate={exchangeRate} categories={categories.map(c => ({ id: c.id, name: c.name }))} /><ProductMovementLedger productId={product.id} language={language} /></>;
 }
