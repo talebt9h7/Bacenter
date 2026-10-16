@@ -43,7 +43,6 @@ export function ProductEditor({ initial, initialColorId, exchangeRate, categorie
   const isNew = !initial;
   const active = state.colors.find(color => color.key === activeKey) ?? state.colors[0];
   const checklist = useMemo(() => publishChecklist({ name: state.name, nameAr: state.nameAr, salePriceIqd: Number(state.priceIqd) || 0, description: state.description, descriptionAr: state.descriptionAr, features: state.details?.features, featuresAr: state.details?.featuresAr, colors: state.colors.map(c => ({ name: c.name, images: c.images, stock: Number(c.stock) || 0 })) }), [state]);
-  const ready = checklist.every(item => item.ok);
   const totalStock = useMemo(() => state.colors.reduce((sum, color) => sum + (Number(color.stock) || 0), 0), [state.colors]);
   useEffect(() => { if (!dirty) return; const handler = (event: BeforeUnloadEvent) => { event.preventDefault(); }; window.addEventListener('beforeunload', handler); return () => window.removeEventListener('beforeunload', handler); }, [dirty]);
   useEffect(() => { if (!message || message.error) return; const timer = setTimeout(() => setMessage(null), 4000); return () => clearTimeout(timer); }, [message]);
@@ -89,11 +88,6 @@ export function ProductEditor({ initial, initialColorId, exchangeRate, categorie
     <div className="admin-page-heading"><div><Link href="/admin/products" className="admin-link"><ArrowLeft size={14} /> {tr('All products')}</Link><h1>{isNew ? tr('New product') : state.name || 'Untitled product'}</h1><p>{isNew ? 'Set up the basics, then add each color with its own stock and photos.' : <>{state.colors.length} color{state.colors.length === 1 ? '' : 's'} · {totalStock} units in stock · <a href={`/products/${state.id}`} target="_blank" rel="noreferrer" className="admin-link">{tr('View on storefront')} <ExternalLink size={12} /></a></>}</p></div><div className="admin-heading-actions"><label className="admin-switch"><input type="checkbox" checked={state.published} onChange={event => update({ published: event.target.checked })} /><span /> {state.published ? tr('Published') : tr('Draft')}</label><button className="admin-btn admin-btn-primary" onClick={save} disabled={saving}>{saving ? <LoaderCircle size={16} className="spin" /> : <Save size={16} />} {isNew ? tr('Create product') : tr('Save changes')}</button></div></div>
     {message && <div className={`admin-alert ${message.error ? 'error' : 'success'}`} role="status">{message.error ? <X size={16} /> : <Check size={16} />}{message.text}<button onClick={() => setMessage(null)} aria-label="Dismiss"><X size={14} /></button></div>}
     <div className="admin-editor-grid">
-      {(!wasPublished || !ready) && <section className={`admin-card admin-publish-check ${ready ? 'is-ready' : ''}`}>
-        <div className="admin-publish-head"><h2>{ready ? (language === 'ar' ? 'جاهز للنشر' : 'Ready to publish') : (language === 'ar' ? 'قبل النشر' : 'Before publishing')}</h2><span>{checklist.filter(i => i.ok).length}/{checklist.length}</span></div>
-        <ul>{checklist.map(item => <li key={item.key} className={item.ok ? 'ok' : ''}>{item.ok ? <Check size={14} /> : <X size={14} />} {language === 'ar' ? item.ar : item.en}</li>)}</ul>
-        {!wasPublished && <p>{state.published ? (ready ? (language === 'ar' ? 'راح يظهر بالمتجر بعد الحفظ.' : 'It will appear on the storefront when you save.') : (language === 'ar' ? 'ما ينحفظ منشور إلا يكمل الناقص. تكدر تحفظه مسودة.' : 'It can only be saved as published once everything is complete. You can save it as a draft.')) : (language === 'ar' ? 'محفوظ كمسودة: ما يظهر للزبائن لحد ما تفعّل «منشور».' : 'Saved as a draft: customers will not see it until you switch it to Published.')}</p>}
-      </section>}
       <section className="admin-card admin-product-details-card">
         <div className="admin-card-heading">
           <div>
