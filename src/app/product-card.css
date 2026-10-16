@@ -305,3 +305,20 @@ body:has(.product-page-banner){overflow-x:clip}
   .bundle-part-images{display:flex;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x mandatory}
   .bundle-part-images img{flex:0 0 46%;scroll-snap-align:start}
 }
+/* Home page reels */
+.reels-section{padding:clamp(36px,5vw,64px) var(--page-gutter,24px)}
+.reels-rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:4px 2px 10px;-webkit-overflow-scrolling:touch}
+.reels-rail::-webkit-scrollbar{display:none}
+.reels-rail.is-single{justify-content:center}
+.reel-card{flex:0 0 clamp(220px,24vw,320px);scroll-snap-align:start;display:grid;gap:10px}
+.reels-rail .reel-frame{aspect-ratio:9/16;width:100%;border-radius:16px;box-shadow:0 18px 40px -20px rgba(0,0,0,.5)}
+.reel-meta{display:grid;gap:4px;padding:0 4px;justify-items:start;text-align:start}
+.reel-meta h3{margin:0;font-size:15px;font-weight:600;line-height:1.4}
+.reel-meta a{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--orange)}
+@media (max-width:767px){
+  .reels-section{padding:32px 0}
+  .reels-section .section-heading{padding:0 16px}
+  .reels-rail{padding:4px 16px 10px;scroll-padding-inline:16px}
+  .reel-card{flex-basis:72%}
+  .reels-rail.is-single .reel-card{flex-basis:min(340px,86%)}
+}
