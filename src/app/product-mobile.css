@@ -1,0 +1,41 @@
+/*
+ * Mobile product page, matched to the reference (measured at 393px wide):
+ * 56px top bar · full-bleed square photo on a light grey page · 70px square thumbnails with 14px gaps
+ * · 14px side margins · 28px bold title, 19px price · 62px square colour tiles with the name under them.
+ * Loaded last so it wins over the older layered rules.
+ */
+@media (max-width:767px){
+  html body .site-header{height:56px!important;min-height:0!important}
+  html body .site-header .main-navigation{height:56px!important;padding:0 14px!important}
+
+  html body main.product-page{--pp-bg:#f4f4f2;--pp-side:14px;background:var(--pp-bg);padding:0 var(--pp-side) 40px!important;max-width:none}
+  html body main.product-page .product-detail-layout{gap:0!important;padding:0 0 28px!important}
+  html body main.product-page .product-gallery{margin-inline:calc(var(--pp-side) * -1);width:auto}
+  html body main.product-page .product-main-image{aspect-ratio:1/1!important;width:100%;background-color:var(--pp-bg)!important;border-radius:0!important;margin:0}
+  html body main.product-page .product-main-image img{width:100%;height:100%;object-fit:contain!important;mix-blend-mode:multiply}
+
+  html body main.product-page .product-thumbnails{display:flex!important;flex-wrap:nowrap!important;gap:14px!important;margin:14px 0 0!important;padding:0 var(--pp-side) 2px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+  html body main.product-page .product-thumbnails::-webkit-scrollbar{display:none}
+  html body main.product-page .product-thumbnails>button{flex:0 0 70px!important;width:70px!important;height:70px!important;padding:0!important;border:1px solid #c9c9c6!important;border-radius:3px!important;background:#fff!important;overflow:hidden;scroll-snap-align:start;opacity:1!important}
+  html body main.product-page .product-thumbnails>button.selected{border-color:var(--orange,#8b5a2b)!important;box-shadow:inset 0 0 0 1px var(--orange,#8b5a2b)}
+  html body main.product-page .product-thumbnails>button img{width:100%;height:100%;object-fit:cover}
+
+  html body main.product-page .product-buy-box{padding-top:14px}
+  html body main.product-page .product-heading{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;margin:0 0 26px!important}
+  html body main.product-page .product-heading h1{font-size:28px!important;font-weight:700!important;line-height:1.25!important;margin:0!important;letter-spacing:0}
+  html body main.product-page .product-heading .product-price{font-size:19px!important;justify-content:center}
+  html body main.product-page .product-heading .rating-link{justify-content:center}
+
+  html body main.product-page .material-label{font-size:14px!important;font-weight:700!important;margin:0 0 10px!important;color:#2b2b2b}
+  html body main.product-page .detail-swatches{display:flex!important;flex-wrap:wrap!important;gap:14px!important;margin:0 0 22px!important;justify-content:flex-start}
+  html body main.product-page .detail-swatch-wrap{min-width:62px!important;gap:6px!important}
+  html body main.product-page .detail-swatch-wrap>button{width:62px!important;height:62px!important;min-width:62px!important;border-radius:3px!important;border:1px solid #c9c9c6!important;background:#fff!important;padding:3px!important;box-shadow:none!important;transform:none!important}
+  html body main.product-page .detail-swatch-wrap>button img,html body main.product-page .detail-swatch-wrap>button .swatch-color-fill{border-radius:2px!important;object-fit:cover}
+  html body main.product-page .detail-swatch-wrap>button.selected{border-color:var(--orange,#8b5a2b)!important;box-shadow:inset 0 0 0 1px var(--orange,#8b5a2b)!important}
+  html body main.product-page .detail-swatch-wrap>span{font-size:12px!important;max-width:70px!important;color:#444!important;line-height:1.3!important}
+
+  html body main.product-page .buy-actions{gap:10px}
+  html body main.product-page .product-add-to-cart,html body main.product-page .whatsapp-inquiry-button{min-height:52px;border-radius:3px}
+  html body main.product-page.bundle-page .product-heading{align-items:flex-start;text-align:start}
+  html body main.product-page.bundle-page .product-heading h1{font-size:24px!important}
+}

@@ -14,6 +14,7 @@ import './typography.css';
 import './cart-checkout.css';
 import './product-card.css';
 import './ur-brand.css';
+import './product-mobile.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);
