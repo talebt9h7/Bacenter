@@ -61,7 +61,9 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
   const collections = [...homepage.collections].filter(item => item.active).sort((a, b) => a.sortOrder - b.sortOrder);
   const socialItems = [...homepage.social].filter(item => item.active).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const trending = products.slice(0, 8);
+  // "Bestsellers": products marked as bestsellers in the admin, in the manual product order; otherwise the first products.
+  const picked = products.filter(p => p.tags.includes('bestsellers'));
+  const trending = (picked.length ? picked : products).slice(0, 8);
   return <main>
     {enabled('hero') && <section className="hero" aria-roledescription="carousel" aria-label={language === 'ar' ? 'اكتشف المتجر' : `Discover ${settings.storeName}`} onTouchStart={event => { event.currentTarget.dataset.touchX = String(event.touches[0].clientX); }} onTouchEnd={event => { const start = Number(event.currentTarget.dataset.touchX); const delta = start - event.changedTouches[0].clientX; if (Math.abs(delta) > 50) changeSlide(slide + (delta > 0 ? 1 : -1)); }}>
       {!slides.length && <div className="hero-brand"><div><h1>أور للجلود</h1><p>{language === 'ar' ? 'جلد طبيعي عراقي — إرث سومري بروح معاصرة' : 'Natural Iraqi leather — Sumerian heritage, made for today'}</p><Link href="/products/category/all" className="button button-orange hero-cta">{language === 'ar' ? 'تسوق الآن' : 'Shop now'}<ArrowRight size={17} strokeWidth={1.5} /></Link></div></div>}
