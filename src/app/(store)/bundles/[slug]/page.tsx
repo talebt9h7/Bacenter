@@ -27,8 +27,7 @@ export default async function BundlePage({ params }: Props) {
   const byId = new Map(products.filter(Boolean).map(p => [p!.id, p!]));
   const parts: BundlePartProduct[] = bundle.parts.map(part => {
     const product = byId.get(part.productId);
-    const color = product?.colors.find(c => c.id === part.variantId);
-    return { ...part, images: color?.images?.length ? color.images : part.image ? [part.image] : [], subtitle: product?.subtitle ?? '', subtitleAr: product?.subtitleAr ?? '', description: product?.description ?? '', descriptionAr: product?.descriptionAr ?? '', features: product?.details ? product.details.features : [], featuresAr: product?.details ? product.details.featuresAr : [] };
+    return { ...part, subtitle: product?.subtitle ?? '', subtitleAr: product?.subtitleAr ?? '', description: product?.description ?? '', descriptionAr: product?.descriptionAr ?? '', features: product?.details ? product.details.features : [], featuresAr: product?.details ? product.details.featuresAr : [] };
   });
   const settings = await getSettings();
   const base = (settings.canonicalBaseUrl || '').replace(/\/$/, '');

@@ -451,8 +451,11 @@ export const cartBundles = pgTable('cart_bundles', {
   sessionId: text('session_id').notNull(),
   bundleId: integer('bundle_id').notNull().references(() => bundles.id, { onDelete: 'cascade' }),
   quantity: integer('quantity').notNull().default(1),
+  /** Colour picked per bundle item: { "<item index>": variantId }. Empty = the bundle's default colours. */
+  selection: jsonb('selection').$type<Record<string, number>>().notNull().default({}),
+  selectionKey: text('selection_key').notNull().default(''),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => [uniqueIndex('cart_bundles_session_bundle').on(table.sessionId, table.bundleId)]);
+}, (table) => [uniqueIndex('cart_bundles_session_bundle_sel').on(table.sessionId, table.bundleId, table.selectionKey)]);
 
 export const wholesalePayments = pgTable('wholesale_payments', {
   id: serial('id').primaryKey(),

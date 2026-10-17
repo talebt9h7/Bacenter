@@ -7,7 +7,7 @@ import {
   productVariants,
   products,
 } from '@/db/schema';
-import { getBundleById, listBundles } from '@/lib/bundles';
+import { getBundleById, listBundles, normalizeSelection, withSelection } from '@/lib/bundles';
 import { getSession } from '@/lib/session';
 import { getSettings } from '@/lib/settings';
 import { reservedByVariant, reservedForVariant } from '@/lib/reservations';
@@ -104,19 +104,23 @@ async function readBundleLines(sessionId: string, rate: number): Promise<CartLin
   if (!rows.length) return [];
   const all = new Map((await listBundles({ includeInactive: true })).map(b => [b.id, b]));
   return rows.flatMap(row => {
-    const b = all.get(row.bundleId); if (!b) return [];
-    return [{ id: -row.id, variantId: 0, productId: `bundle-${b.slug}`, name: b.name, nameAr: b.nameAr || b.name, color: '', colorAr: '', price: b.priceIqd / rate, salePriceIqd: b.priceIqd, originalPriceIqd: b.regularIqd > b.priceIqd ? b.regularIqd : undefined, image: b.image ?? '', capacity: null, quantity: row.quantity, stock: b.active ? b.available : 0, bundle: { id: b.id, slug: b.slug, parts: b.parts.map(p => ({ productId: p.productId, name: p.name, nameAr: p.nameAr, color: p.color, colorAr: p.colorAr, image: p.image, quantity: p.quantity })) } }];
+    const base = all.get(row.bundleId); if (!base) return [];
+    const b = withSelection(base, row.selection) ?? base;
+    return [{ id: -row.id, variantId: 0, productId: `bundle-${b.slug}`, name: b.name, nameAr: b.nameAr || b.name, color: '', colorAr: '', price: b.priceIqd / rate, salePriceIqd: b.priceIqd, originalPriceIqd: b.regularIqd > b.priceIqd ? b.regularIqd : undefined, image: b.image ?? '', capacity: null, quantity: row.quantity, stock: b.active ? b.available : 0, bundle: { id: b.id, slug: b.slug, selection: row.selection ?? {}, parts: b.parts.map(p => ({ productId: p.productId, name: p.name, nameAr: p.nameAr, color: p.color, colorAr: p.colorAr, image: p.image, quantity: p.quantity })) } }];
   });
 }
 
-async function addBundle(sessionId: string, bundleId: number, quantity: number) {
-  const b = await getBundleById(bundleId);
-  if (!b || !b.active || !b.parts.length || !b.parts.every(p => p.published)) return NextResponse.json({ error: 'This bundle is no longer available.' }, { status: 404 });
-  const [existing] = await db.select({ quantity: cartBundles.quantity }).from(cartBundles).where(and(eq(cartBundles.sessionId, sessionId), eq(cartBundles.bundleId, bundleId)));
+async function addBundle(sessionId: string, bundleId: number, quantity: number, rawSelection: unknown) {
+  const base = await getBundleById(bundleId);
+  if (!base || !base.active || !base.parts.length || !base.parts.every(p => p.published)) return NextResponse.json({ error: 'This bundle is no longer available.' }, { status: 404 });
+  const chosen = normalizeSelection(base, rawSelection);
+  if (!chosen) return NextResponse.json({ error: 'Please choose the colours again.' }, { status: 400 });
+  const b = withSelection(base, chosen.selection)!;
+  const [existing] = await db.select({ quantity: cartBundles.quantity }).from(cartBundles).where(and(eq(cartBundles.sessionId, sessionId), eq(cartBundles.bundleId, bundleId), eq(cartBundles.selectionKey, chosen.key)));
   const requested = (existing?.quantity ?? 0) + quantity;
-  if (b.available <= 0) return NextResponse.json({ error: 'This bundle is sold out right now.' }, { status: 409 });
-  if (requested > b.available) return NextResponse.json({ error: `Only ${b.available} of this bundle left.` }, { status: 409 });
-  await db.insert(cartBundles).values({ sessionId, bundleId, quantity }).onConflictDoUpdate({ target: [cartBundles.sessionId, cartBundles.bundleId], set: { quantity: sql`LEAST(${cartBundles.quantity} + ${quantity}, 10)` } });
+  if (b.available <= 0) return NextResponse.json({ error: 'This colour combination is sold out right now.' }, { status: 409 });
+  if (requested > b.available) return NextResponse.json({ error: `Only ${b.available} of this bundle left in these colours.` }, { status: 409 });
+  await db.insert(cartBundles).values({ sessionId, bundleId, quantity, selection: chosen.selection, selectionKey: chosen.key }).onConflictDoUpdate({ target: [cartBundles.sessionId, cartBundles.bundleId, cartBundles.selectionKey], set: { quantity: sql`LEAST(${cartBundles.quantity} + ${quantity}, 10)` } });
   return NextResponse.json({ items: await readCart(sessionId) });
 }
 
@@ -124,8 +128,9 @@ async function updateBundle(sessionId: string, rowId: number, quantity: number) 
   const condition = and(eq(cartBundles.sessionId, sessionId), eq(cartBundles.id, rowId));
   if (quantity === 0) await db.delete(cartBundles).where(condition);
   else {
-    const [row] = await db.select({ bundleId: cartBundles.bundleId }).from(cartBundles).where(condition);
-    const b = row ? await getBundleById(row.bundleId) : null;
+    const [row] = await db.select({ bundleId: cartBundles.bundleId, selection: cartBundles.selection }).from(cartBundles).where(condition);
+    const base = row ? await getBundleById(row.bundleId) : null;
+    const b = base ? withSelection(base, row?.selection) : null;
     if (b && quantity > b.available) return NextResponse.json({ error: `Only ${b.available} of this bundle left.` }, { status: 409 });
     await db.update(cartBundles).set({ quantity }).where(condition);
   }
@@ -163,11 +168,12 @@ export async function POST(
       variantId,
       bundleId,
       quantity = 1,
+      selection,
     } = await request.json();
 
     if (bundleId !== undefined) {
       if (!Number.isInteger(bundleId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) return NextResponse.json({ error: 'Please choose a valid bundle and quantity.' }, { status: 400 });
-      return await addBundle(await getSession(), bundleId, quantity);
+      return await addBundle(await getSession(), bundleId, quantity, selection);
     }
 
     if (

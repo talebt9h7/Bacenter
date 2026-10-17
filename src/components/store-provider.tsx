@@ -17,7 +17,7 @@ export const baseRegions: Region[] = [
 ];
 type Store = {
   cart: CartLine[]; loaded: boolean; busy: boolean; cartOpen: boolean; setCartOpen: (open: boolean) => void;
-  addToCart: (variantId: number, quantity?: number, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number) => Promise<boolean>;
+  addToCart: (variantId: number, quantity?: number, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number, selection?: Record<string, number>) => Promise<boolean>;
   updateQuantity: (id: number, quantity: number) => Promise<void>; refreshCart: () => Promise<void>;
   count: number; subtotal: number; region: Region; regions: Region[]; setRegion: (region: Region) => void;
   money: (price: number) => string; moneyIqd: (priceIqd: number) => string; notify: (message: string, error?: boolean) => void; settings: PublicSettings; freeShippingUsd: number;
@@ -70,11 +70,11 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
     } catch (error) { if (preview) setCart(before); notify(error instanceof Error ? error.message : 'Please check your connection.', true); return false; }
     finally { if (!preview) setBusy(false); }
   }
-  async function addBundleToCart(bundleId: number, quantity = 1) {
+  async function addBundleToCart(bundleId: number, quantity = 1, selection?: Record<string, number>) {
     if (busy) return false;
     setBusy(true);
     try {
-      const response = await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bundleId, quantity }) });
+      const response = await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bundleId, quantity, selection }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
       setCart(data.items); setCartOpen(true);

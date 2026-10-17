@@ -11,7 +11,7 @@ export type Product = {
   /** Product-page content (headline, highlights, features, specs, warranty, materials, photos). */
   details: ProductDetails;
 };
-export type CartBundleInfo = { id: number; slug: string; parts: { productId: string; name: string; nameAr: string; color: string; colorAr: string; image: string | null; quantity: number }[] };
+export type CartBundleInfo = { id: number; slug: string; selection?: Record<string, number>; parts: { productId: string; name: string; nameAr: string; color: string; colorAr: string; image: string | null; quantity: number }[] };
 /** A bag line. Bundle lines have a negative id (the cart_bundles row id, negated), variantId 0 and `bundle` set. */
 export type CartLine = { id: number; variantId: number; productId: string; name: string; nameAr: string; color: string; colorAr: string; price: number; salePriceIqd: number; image: string; capacity: string | null; quantity: number; stock: number; originalPriceIqd?: number; promotion?: AppliedPromotion | null; bundle?: CartBundleInfo | null };
 

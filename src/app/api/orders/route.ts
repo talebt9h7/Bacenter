@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { notifyNewOrder } from '@/lib/notify';
 import { requestUser, sendCapi } from '@/lib/meta-capi';
-import { getBundleById, splitBundlePrice } from '@/lib/bundles';
+import { getBundleById, splitBundlePrice, withSelection } from '@/lib/bundles';
 import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
       // Bundles: each component becomes its own line at its share of the bundle price.
       const taken = new Map(cart.map(line => [line.variantId, line.quantity]));
       for (const row of bundleRows) {
-        const bundle = await getBundleById(row.bundleId, tx);
+        const baseBundle = await getBundleById(row.bundleId, tx);
+        const bundle = baseBundle ? withSelection(baseBundle, row.selection) : null;
         if (!bundle || !bundle.active || !bundle.parts.length || !bundle.parts.every(p => p.published)) throw new CheckoutError(`${bundle?.name ?? 'A bundle in your bag'} is no longer available. Please remove it from your bag.`);
         const prices = splitBundlePrice(bundle.priceIqd, bundle.parts);
         for (const [index, part] of bundle.parts.entries()) {

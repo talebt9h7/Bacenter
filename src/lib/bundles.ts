@@ -11,7 +11,9 @@ import { reservedByVariant } from './reservations';
  * like single sales); the bundle price is split across the lines in proportion to their regular
  * prices, and every line keeps the bundle's id and name.
  */
-export type BundlePart = { variantId: number; quantity: number; productId: string; name: string; nameAr: string; color: string; colorAr: string; hex: string; image: string | null; priceIqd: number; available: number; published: boolean };
+/** Another colour of the same product the customer may pick for a bundle item. */
+export type BundleOption = { variantId: number; color: string; colorAr: string; hex: string; image: string | null; images: string[]; available: number };
+export type BundlePart = { variantId: number; quantity: number; productId: string; name: string; nameAr: string; color: string; colorAr: string; hex: string; image: string | null; images: string[]; priceIqd: number; available: number; published: boolean; options: BundleOption[] };
 export type BundleView = { id: number; slug: string; name: string; nameAr: string; description: string; descriptionAr: string; image: string | null; priceIqd: number; regularIqd: number; savingIqd: number; active: boolean; sortOrder: number; parts: BundlePart[]; available: number };
 
 type Row = typeof bundles.$inferSelect;
@@ -19,15 +21,21 @@ type Executor = Pick<typeof db, 'select'>;
 async function resolve(rows: Row[], ex: Executor = db): Promise<BundleView[]> {
   const ids = [...new Set(rows.flatMap(r => (r.items ?? []).map(i => i.variantId)))];
   if (!ids.length) return rows.map(r => view(r, []));
+  const base = await ex.select({ productId: productVariants.productId }).from(productVariants).where(inArray(productVariants.id, ids));
+  const productIds = [...new Set(base.map(b => b.productId))];
   const [variants, reserved] = await Promise.all([
-    ex.select({ variantId: productVariants.id, productId: products.id, name: products.name, nameAr: products.nameAr, color: productVariants.name, colorAr: productVariants.nameAr, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex, salePriceIqd: products.salePriceIqd, published: products.published })
-      .from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(inArray(productVariants.id, ids)),
+    ex.select({ variantId: productVariants.id, productId: products.id, name: products.name, nameAr: products.nameAr, color: productVariants.name, colorAr: productVariants.nameAr, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex, salePriceIqd: products.salePriceIqd, published: products.published, sortOrder: productVariants.sortOrder })
+      .from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(inArray(products.id, productIds)).orderBy(asc(productVariants.sortOrder), asc(productVariants.id)),
     reservedByVariant(ex as typeof db),
   ]);
   const byId = new Map(variants.map(v => [v.variantId, v]));
+  const avail = (v: typeof variants[number]) => Math.max(0, v.stock - (reserved.get(v.variantId) ?? 0));
+  const imagesOf = (v: typeof variants[number]) => { const list = v.images ?? []; const first = list[v.primaryIndex] ?? list[0]; return first ? [first, ...list.filter(i => i !== first)] : []; };
+  const optionsFor = (productId: string): BundleOption[] => variants.filter(v => v.productId === productId).map(v => ({ variantId: v.variantId, color: v.color, colorAr: v.colorAr || v.color, hex: v.hex, image: imagesOf(v)[0] ?? null, images: imagesOf(v), available: avail(v) }));
   return rows.map(r => view(r, (r.items ?? []).flatMap(i => {
     const v = byId.get(i.variantId); if (!v) return [];
-    return [{ variantId: v.variantId, quantity: i.quantity, productId: v.productId, name: v.name, nameAr: v.nameAr, color: v.color, colorAr: v.colorAr, hex: v.hex, image: v.images?.[v.primaryIndex] ?? v.images?.[0] ?? null, priceIqd: v.salePriceIqd, available: Math.max(0, v.stock - (reserved.get(v.variantId) ?? 0)), published: v.published }];
+    const imgs = imagesOf(v);
+    return [{ variantId: v.variantId, quantity: i.quantity, productId: v.productId, name: v.name, nameAr: v.nameAr || v.name, color: v.color, colorAr: v.colorAr || v.color, hex: v.hex, image: imgs[0] ?? null, images: imgs, priceIqd: v.salePriceIqd, available: avail(v), published: v.published, options: optionsFor(v.productId) }];
   })));
 }
 function view(r: Row, parts: BundlePart[]): BundleView {
@@ -76,4 +84,36 @@ export function cleanBundleItems(raw: unknown): BundleItem[] {
     if (Number.isInteger(v) && v > 0 && Number.isInteger(q) && q > 0 && q <= 10) merged.set(v, (merged.get(v) ?? 0) + q);
   }
   return [...merged].slice(0, 8).map(([variantId, quantity]) => ({ variantId, quantity }));
+}
+
+/**
+ * The bundle with the customer's colour choices applied ({ "<item index>": variantId }).
+ * A choice must be another colour of the same product; anything else returns null.
+ */
+export function withSelection(bundle: BundleView, selection: Record<string, number> | null | undefined): BundleView | null {
+  const sel = selection ?? {};
+  const parts: BundlePart[] = [];
+  for (const [index, part] of bundle.parts.entries()) {
+    const wanted = sel[String(index)];
+    if (wanted === undefined || wanted === part.variantId) { parts.push(part); continue; }
+    const option = part.options.find(o => o.variantId === Number(wanted));
+    if (!option) return null;
+    parts.push({ ...part, variantId: option.variantId, color: option.color, colorAr: option.colorAr, hex: option.hex, image: option.image, images: option.images, available: option.available });
+  }
+  const available = parts.length && parts.every(p => p.published) ? Math.min(...parts.map(p => Math.floor(p.available / Math.max(1, p.quantity)))) : 0;
+  return { ...bundle, parts, available };
+}
+/** Only the items whose colour differs from the bundle default, as a stable key for the bag line. */
+export function normalizeSelection(bundle: BundleView, raw: unknown): { selection: Record<string, number>; key: string } | null {
+  const sel: Record<string, number> = {};
+  if (raw && typeof raw === 'object') {
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      const index = Number(k), id = Number(v);
+      if (!Number.isInteger(index) || index < 0 || index >= bundle.parts.length || !Number.isInteger(id)) return null;
+      if (id !== bundle.parts[index].variantId) sel[String(index)] = id;
+    }
+  }
+  if (!withSelection(bundle, sel)) return null;
+  const key = Object.keys(sel).sort((a, b) => Number(a) - Number(b)).map(k => `${k}:${sel[k]}`).join('|');
+  return { selection: sel, key };
 }
