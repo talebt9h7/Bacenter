@@ -12,7 +12,7 @@
   html body main.product-page .product-detail-layout{gap:0!important;padding:0 0 28px!important}
   html body main.product-page .product-gallery{margin-inline:calc(var(--pp-side) * -1);width:auto}
   html body main.product-page .product-main-image{aspect-ratio:1/1!important;width:100%;background-color:var(--pp-bg)!important;border-radius:0!important;margin:0}
-  html body main.product-page .product-main-image img{width:100%;height:100%;object-fit:contain!important;mix-blend-mode:multiply}
+  html body main.product-page .product-main-image img{width:100%;height:100%;object-fit:contain!important;mix-blend-mode:normal!important}
 
   html body main.product-page .product-thumbnails{display:flex!important;flex-wrap:nowrap!important;gap:14px!important;margin:14px 0 0!important;padding:0 var(--pp-side) 2px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
   html body main.product-page .product-thumbnails::-webkit-scrollbar{display:none}

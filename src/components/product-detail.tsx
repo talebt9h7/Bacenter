@@ -106,7 +106,7 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
     <div className="product-detail-layout">
       <div className="product-gallery">
         <div className="product-main-image" style={loadedPhoto === `${color.id}-${safeIndex}` ? undefined : { backgroundImage: `url("${mediaSrc(images[safeIndex], 640)}")` }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
-          <img key={`${color.id}-${safeIndex}`} onLoad={() => setLoadedPhoto(`${color.id}-${safeIndex}`)} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
+          <img key={`${color.id}-${safeIndex}`} ref={img => { if (img?.complete && img.naturalWidth > 0 && loadedPhoto !== `${color.id}-${safeIndex}`) setLoadedPhoto(`${color.id}-${safeIndex}`); }} onLoad={() => setLoadedPhoto(`${color.id}-${safeIndex}`)} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
 
         </div>
