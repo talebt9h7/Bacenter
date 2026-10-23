@@ -9,7 +9,7 @@ const AR_ERRORS: Record<string, string> = {
 };
 
 /** Admin sign-in, Apple ID style: one calm card, grouped fields, arrow button inside the field. */
-export function LoginForm({ hint }: { hint: string | null }) {
+export function LoginForm() {
   const [mode, setMode] = useState<'owner' | 'team'>('owner');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -77,7 +77,6 @@ export function LoginForm({ hint }: { hint: string | null }) {
       </div>
       <p className="al-error" role="alert" aria-live="polite">{error}</p>
 
-      {mode === 'owner' && hint && <p className="al-hint">بيئة تجريبية: كلمة السر الافتراضية <code dir="ltr">{hint}</code>. غيّرها بإضافة <code dir="ltr">ADMIN_PASSWORD</code> في إعدادات الاستضافة.</p>}
 
       <p className="al-foot"><Lock size={12} /> اتصال آمن ومشفّر</p>
     </form>
