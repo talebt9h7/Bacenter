@@ -1,0 +1,21 @@
+/* Mobile/tablet header as a floating rounded bar with round icon buttons (matches the owner's reference). */
+@media (max-width:1279px){
+  html body .site-header{height:auto!important;background:transparent!important;border-bottom:0!important;padding:10px 12px 6px!important;box-shadow:none!important}
+  html body .site-header .main-navigation{height:64px!important;padding:0 8px!important;border-radius:999px!important;
+    background:linear-gradient(100deg,#fbf7f1 0%,#f6ece0 50%,#fbf7f1 100%)!important;border:1px solid #eadfce!important;
+    box-shadow:0 6px 20px rgba(120,90,50,.08)!important;position:relative;display:flex!important;align-items:center!important;justify-content:space-between!important;
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  html body .site-header .brand-logo{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:auto!important;margin:0!important}
+  html body .site-header .brand-logo img{width:52px!important;height:auto!important}
+  html body .site-header .navigation-left,html body .site-header .navigation-actions{display:flex!important;align-items:center!important;gap:8px!important;margin:0!important}
+  html body .site-header .main-navigation .icon-button{width:46px!important;height:46px!important;min-width:46px;border-radius:50%!important;background:#fff!important;
+    box-shadow:0 2px 8px rgba(80,60,30,.12)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;color:#2b2a27!important}
+  html body .site-header .main-navigation .icon-button svg{width:21px!important;height:21px!important}
+  html body .site-header .main-navigation .desktop-newsletter-trigger,html body .site-header .nav-stockists{display:none!important}
+  html body .site-header .bag-count{top:-4px!important;right:auto!important;left:-4px!important;min-width:20px!important;height:20px!important;font-size:11px!important;background:#8a6a3b!important;border:2px solid #fff;border-radius:999px!important}
+  html body .site-header .mega-menu{top:84px!important}
+}
+/* Product boxes: soft rounded corners, details unchanged. */
+html body .product-card{border-radius:16px!important;overflow:hidden!important}
+html body .catalog-grid{gap:12px!important}
+@media (max-width:767px){html body .catalog-grid{gap:10px!important;margin-inline:0!important}}
