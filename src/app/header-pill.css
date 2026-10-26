@@ -26,3 +26,22 @@ html body:has(.site-header){background-color:#f8f6f2!important;
 html body:has(.site-header) #main-content,html body:has(.site-header) #main-content>main,html body:has(.site-header) .catalog-page,html body:has(.site-header) .catalog-hero,html body:has(.site-header) .catalog-intro,html body:has(.site-header) .catalog-toolbar,html body:has(.site-header) .breadcrumb,html body:has(.site-header) .breadcrumbs{background:transparent!important}
 html body:has(.site-header) .catalog-toolbar select{background-color:transparent!important}
 html body .product-card{border:1px solid #ebe4d9!important}
+/* Mobile side menu in the same style as the floating header: sand gradient, rounded floating panel, round buttons. */
+html body .mobile-navigation-overlay{background:rgba(40,30,18,.28)!important;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html body .mobile-navigation-overlay .modal-panel{margin:10px!important;height:calc(100dvh - 20px)!important;max-height:none!important;width:min(86vw,380px)!important;max-width:calc(100vw - 20px)!important;
+  border-radius:28px!important;border:1px solid #eadfce!important;overflow:auto!important;
+  background:linear-gradient(170deg,#f6e9d9 0%,#fbf7f1 38%,#f8f6f2 100%)!important;box-shadow:0 20px 50px rgba(80,55,25,.22)!important}
+html body .mobile-navigation-overlay .modal-heading{border-bottom:0!important;padding:18px 18px 8px 22px!important;background:transparent!important;align-items:center}
+html body .mobile-navigation-overlay .modal-heading h2{font-size:24px!important;font-weight:600!important;color:#1f1d1a}
+html body .mobile-navigation-overlay .modal-heading .icon-button{width:44px!important;height:44px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 2px 8px rgba(80,60,30,.12)!important;display:inline-flex!important;align-items:center;justify-content:center}
+html body .mobile-navigation-overlay .modal-heading .icon-button svg{width:19px!important;height:19px!important}
+html body .mobile-navigation-overlay .mobile-navigation{padding:6px 14px 20px!important;display:flex;flex-direction:column;gap:8px}
+html body .mobile-navigation-overlay .mobile-nav-group{border:0!important;background:rgba(255,255,255,.72);border-radius:18px;overflow:hidden;box-shadow:0 1px 0 rgba(234,223,206,.9)}
+html body .mobile-navigation-overlay .mobile-nav-group>button{min-height:56px!important;height:auto!important;padding:0 18px!important;font-size:16.5px!important;font-weight:600!important;color:#1f1d1a!important;border:0!important;width:100%}
+html body .mobile-navigation-overlay .mobile-nav-group>button svg{color:#8a6a3b}
+html body .mobile-navigation-overlay .mobile-nav-group>div{padding:0 18px 12px!important;border:0!important}
+html body .mobile-navigation-overlay .mobile-nav-group>div a{border-color:#efe6d9!important;color:#4a443b!important}
+html body .mobile-navigation-overlay .mobile-navigation-bottom{border:0!important;margin-top:10px!important;padding:0!important;display:flex!important;flex-direction:column;gap:8px}
+html body .mobile-navigation-overlay .mobile-navigation-bottom>a,html body .mobile-navigation-overlay .mobile-navigation-bottom>button{display:flex!important;align-items:center;justify-content:space-between;min-height:48px;padding:0 18px!important;border-radius:999px;background:#fff;border:1px solid #eadfce!important;font:inherit!important;font-size:14.5px!important;color:#2b2a27!important;text-decoration:none!important}
+html body .mobile-navigation-overlay .mobile-navigation-bottom>a svg,html body .mobile-navigation-overlay .mobile-navigation-bottom>button svg{color:#8a6a3b}
+html body .mobile-navigation-overlay .mobile-navigation-bottom>span{text-align:center;font-size:12px!important;color:#9a8f80!important;margin-top:8px}

@@ -7,8 +7,8 @@ import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { usePromoLive } from './promo-price';
 
-const ROTATE_MS = 5500;
-const IDLE_AFTER_TOUCH_MS = 12000;
+const ROTATE_MS = 3000;
+const IDLE_AFTER_TOUCH_MS = 7000;
 
 /** Homepage hero: one bestseller at a time, large, with its colours. Rotates through the products marked "bestseller". */
 export function HeroSpotlight({ products }: { products: Product[] }) {
