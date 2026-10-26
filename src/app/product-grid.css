@@ -29,3 +29,9 @@ html body .product-card .product-swatches{margin:8px 0 0!important}
 html body .product-card .product-card-details{margin-top:6px!important}
 html body .product-rail{align-items:start!important}
 @media (max-width:767px){html body .trending-section .product-rail{grid-auto-columns:48%!important}}
+/* Equal-height boxes in every row/rail, with a soft warm-to-white gradient like the reference. */
+html body .product-rail,html body .catalog-grid{align-items:stretch!important}
+html body .product-card{display:flex!important;flex-direction:column!important;height:100%!important;
+  background:linear-gradient(180deg,#f5f0e9 0%,#faf7f3 55%,#ffffff 100%)!important;border:1px solid #ece4d8!important;box-shadow:0 6px 18px rgba(90,65,35,.06)!important}
+html body .product-card .product-image-wrap{background:transparent!important}
+html body .product-card .product-card-info{flex:1 1 auto!important;background:transparent!important}
