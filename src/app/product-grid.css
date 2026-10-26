@@ -22,3 +22,10 @@ html body .catalog-grid{gap:10px!important}
   html body .product-card .product-card-title,html body .product-card .product-card-price,html body .product-card .product-card-price .price-now{font-size:14.5px!important}
   html body .product-card .product-card-details{font-size:12.5px!important}
 }
+/* Shorter product boxes: square photo, tighter text block, no stretched empty space in rails. */
+html body .product-card .product-image-link{aspect-ratio:1/1!important}
+html body .product-card .product-card-info{padding:10px 12px 12px!important}
+html body .product-card .product-swatches{margin:8px 0 0!important}
+html body .product-card .product-card-details{margin-top:6px!important}
+html body .product-rail{align-items:start!important}
+@media (max-width:767px){html body .trending-section .product-rail{grid-auto-columns:48%!important}}
