@@ -55,7 +55,7 @@ function Slide({ product, colorId, onColor }: { product: Product; colorId?: numb
   const ar = language === 'ar';
   const color = product.colors.find(c => c.id === colorId) ?? product.colors.find(c => c.stock > 0) ?? product.colors[0];
   const name = ar ? (product.nameAr || product.name) : product.name;
-  const subtitle = ar ? (product.subtitleAr || product.subtitle) : product.subtitle;
+  const subtitle = ar ? product.subtitleAr : product.subtitle;
   const promoLive = usePromoLive(product.promotion) && !!product.originalPriceIqd;
   const price = promoLive ? product.salePriceIqd : (product.originalPriceIqd ?? product.salePriceIqd);
   const href = `/products/${product.id}${color ? `?color=${encodeURIComponent(color.name)}` : ''}`;

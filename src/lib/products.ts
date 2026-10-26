@@ -57,7 +57,8 @@ export async function getProductsFor(category?: string, collection?: string) {
   if (collection) { const filtered = result.filter(product => product.tags.includes(collection)); result = filtered.length ? filtered : result; }
   return result;
 }
-export function matchesQuery(product: Product, query: string) {
-  const haystack = [product.name, product.nameAr, product.subtitle, product.subtitleAr, product.description, product.descriptionAr, product.category, ...product.tags, ...product.colors.flatMap(color => [color.name, color.nameAr])].join(' ').toLowerCase();
+/** `extra` adds searchable text such as the category's English and Arabic names. */
+export function matchesQuery(product: Product, query: string, extra = '') {
+  const haystack = [extra, product.name, product.nameAr, product.subtitle, product.subtitleAr, product.description, product.descriptionAr, product.category, ...product.tags, ...product.colors.flatMap(color => [color.name, color.nameAr])].join(' ').toLowerCase();
   return haystack.includes(query.toLowerCase());
 }

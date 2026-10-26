@@ -15,7 +15,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
   const { language } = useLanguage();
   const t = (label: string) => storeT(label, language);
   const displayName = language === 'ar' ? (product.nameAr || product.name) : product.name;
-  const displaySubtitle = language === 'ar' ? (product.subtitleAr || product.subtitle) : product.subtitle;
+  const displaySubtitle = language === 'ar' ? product.subtitleAr : product.subtitle;
   async function add() { setAdding(true); await addToCart(color.id); setAdding(false); }
   // Both links share one URL so the page is prefetched once. `prefetch` loads the full page data
   // while the card is on screen, so opening the product needs no server round trip.

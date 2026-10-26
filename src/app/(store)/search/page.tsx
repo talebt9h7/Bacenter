@@ -1,4 +1,4 @@
-import { getCatalogNav } from '@/lib/categories';
+import { getCatalogNav, getCategories } from '@/lib/categories';
 import { CatalogView } from '@/components/catalog-view';
 import { getAllProducts, matchesQuery } from '@/lib/products';
 import { cookies } from 'next/headers';
@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic';
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = '' } = await searchParams;
   const query = q.trim().slice(0, 100);
-  const all = await getAllProducts();
-  const found = query ? all.filter(product => matchesQuery(product, query)) : all;
+  const [all, cats] = await Promise.all([getAllProducts(), query ? getCategories() : Promise.resolve([])]);
+  const categoryText = new Map(cats.map(c => [c.id, `${c.name} ${c.nameAr}`]));
+  const found = query ? all.filter(product => matchesQuery(product, query, categoryText.get(product.category))) : all;
   const language = normalizeLanguage((await cookies()).get('bellroy_lang')?.value);
   const title = query ? `Results for “${query}”` : 'Find your next companion';
   const titleAr = query ? `نتائج البحث عن «${query}»` : 'اعثر على ما يناسبك';
