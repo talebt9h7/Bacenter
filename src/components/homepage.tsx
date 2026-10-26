@@ -10,6 +10,7 @@ import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
 import { VideoStories } from './video-stories';
+import { HeroSpotlight } from './hero-spotlight';
 import { BundlesSection } from './bundle-card';
 import type { BundleView } from '@/lib/bundles';
 import type { HomepageConfig } from '@/lib/settings';
@@ -65,7 +66,8 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
   const picked = products.filter(p => p.tags.includes('bestsellers'));
   const trending = (picked.length ? picked : products).slice(0, 8);
   return <main>
-    {enabled('hero') && <section className="hero" aria-roledescription="carousel" aria-label={language === 'ar' ? 'اكتشف المتجر' : `Discover ${settings.storeName}`} onTouchStart={event => { event.currentTarget.dataset.touchX = String(event.touches[0].clientX); }} onTouchEnd={event => { const start = Number(event.currentTarget.dataset.touchX); const delta = start - event.changedTouches[0].clientX; if (Math.abs(delta) > 50) changeSlide(slide + (delta > 0 ? 1 : -1)); }}>
+    {enabled('hero') && picked.length > 0 && <HeroSpotlight products={picked.slice(0, 6)} />}
+    {enabled('hero') && !picked.length && <section className="hero" aria-roledescription="carousel" aria-label={language === 'ar' ? 'اكتشف المتجر' : `Discover ${settings.storeName}`} onTouchStart={event => { event.currentTarget.dataset.touchX = String(event.touches[0].clientX); }} onTouchEnd={event => { const start = Number(event.currentTarget.dataset.touchX); const delta = start - event.changedTouches[0].clientX; if (Math.abs(delta) > 50) changeSlide(slide + (delta > 0 ? 1 : -1)); }}>
       {!slides.length && <div className="hero-brand"><div><h1>أور للجلود</h1><p>{language === 'ar' ? 'جلد طبيعي عراقي — إرث سومري بروح معاصرة' : 'Natural Iraqi leather — Sumerian heritage, made for today'}</p><Link href="/products/category/all" className="button button-orange hero-cta">{language === 'ar' ? 'تسوق الآن' : 'Shop now'}<ArrowRight size={17} strokeWidth={1.5} /></Link></div></div>}
       {slides.map((item, index) => <div key={item.key} className={`hero-slide ${slide === index ? 'hero-slide-active' : ''}`} aria-hidden={slide !== index}>
         <picture><source media="(max-width: 600px)" srcSet={mediaSrc(item.mobileImage || item.image, 960)} /><img src={mediaSrc(item.image, 1600)} alt={item.alt} fetchPriority={index === 0 ? 'high' : 'auto'} /></picture>

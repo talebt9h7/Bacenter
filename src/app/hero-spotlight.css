@@ -1,0 +1,44 @@
+/* Homepage bestseller spotlight. Transparent so the storefront's sand gradient shows through. */
+.hs{position:relative;overflow:hidden;padding:4px 20px 26px;min-height:calc(100svh - 96px);display:flex;flex-direction:column;justify-content:center}
+.hs-glow{position:absolute;inset:-10% -20% auto;height:70%;background:radial-gradient(closest-side,rgba(255,255,255,.75),rgba(255,255,255,0));pointer-events:none}
+.hs-slide{position:relative;display:grid;gap:18px;align-items:center}
+.hs-media{position:relative;display:block;width:min(86vw,440px);aspect-ratio:1/1;margin:0 auto}
+.hs-media img{-webkit-mask-image:radial-gradient(closest-side,#000 70%,transparent 100%);mask-image:radial-gradient(closest-side,#000 70%,transparent 100%);position:relative;z-index:1;width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;animation:hs-in .7s cubic-bezier(.2,.7,.2,1) both}
+.hs-shadow{position:absolute;z-index:0;left:18%;right:18%;bottom:4%;height:9%;border-radius:50%;background:radial-gradient(closest-side,rgba(60,40,20,.28),rgba(60,40,20,0));filter:blur(6px)}
+.hs-copy{text-align:center;animation:hs-up .6s .08s cubic-bezier(.2,.7,.2,1) both}
+.hs-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;letter-spacing:.06em;color:#8a6a3b}
+.hs-eyebrow::before,.hs-eyebrow::after{content:'';width:26px;height:1px;background:#c9ad85}
+.hs-title{margin:8px 0 0;font-size:clamp(26px,7vw,40px);font-weight:600;line-height:1.25;color:#1f1d1a}
+.hs-sub{margin:6px auto 0;max-width:34ch;font-size:14px;line-height:1.6;color:#7a7266}
+.hs-price{margin-top:10px;font-size:18px;font-weight:600;color:#1f1d1a;display:flex;gap:10px;justify-content:center;align-items:baseline}
+.hs-price s{font-size:14px;font-weight:400;color:#9a9286}
+.hs-swatches{display:flex;gap:12px;justify-content:center;margin-top:14px}
+.hs-swatches button{width:26px;height:26px;border-radius:50%;padding:0;background:var(--sw);border:2px solid #fff;box-shadow:0 0 0 1px #d8cfc2;transition:box-shadow .2s,transform .2s;cursor:pointer}
+.hs-swatches button.on{box-shadow:0 0 0 2px #8a6a3b;transform:scale(1.06)}
+.hs-actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:20px}
+.hs-cta{display:inline-flex;align-items:center;justify-content:center;min-width:220px;height:52px;padding:0 30px;border-radius:999px;background:#7a5c34;color:#fff!important;font-size:15.5px;font-weight:600;box-shadow:0 8px 22px rgba(122,92,52,.28);transition:transform .2s,background .2s}
+.hs-cta:active{transform:scale(.98)}
+.hs-link{font-size:14px;color:#5d554a!important;text-decoration:underline;text-underline-offset:4px}
+.hs-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:22px}
+.hs-arrow{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.7);border:1px solid #e6dccd;color:#3b352d;cursor:pointer}
+.hs-dots{display:flex;gap:8px}
+.hs-dots button{width:22px;height:4px;padding:0;border-radius:4px;background:#e2d7c7;overflow:hidden;cursor:pointer;border:0}
+.hs-dots button.on{width:38px}
+.hs-dots button i{display:block;height:100%;width:0;background:#8a6a3b}
+.hs-dots button.on i{animation:hs-bar linear forwards}
+[dir=rtl] .hs-dots button i{margin-inline-start:0}
+@keyframes hs-in{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes hs-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes hs-bar{from{width:0}to{width:100%}}
+@media (min-width:900px){
+  .hs{min-height:640px;padding:30px 6vw 40px}
+  .hs-slide{grid-template-columns:1.1fr 1fr;gap:4vw}
+  .hs-media{width:100%;max-width:560px}
+  .hs-copy{text-align:start}
+  .hs-eyebrow::after{display:none}
+  .hs-sub{margin-inline:0}
+  .hs-price,.hs-swatches{justify-content:flex-start}
+  .hs-actions{flex-direction:row;gap:22px}
+  .hs-nav{justify-content:flex-start;padding-inline-start:calc(52% + 2vw)}
+}
+@media (prefers-reduced-motion:reduce){.hs-media img,.hs-copy{animation:none}.hs-dots button.on i{animation:none;width:100%}}

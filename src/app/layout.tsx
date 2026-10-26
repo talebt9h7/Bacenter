@@ -17,6 +17,7 @@ import './ur-brand.css';
 import './product-mobile.css';
 import './product-grid.css';
 import './header-pill.css';
+import './hero-spotlight.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);
