@@ -7,7 +7,7 @@ import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { cartBundles, cartItems, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
 import { getSession } from '@/lib/session';
-import { getSettings } from '@/lib/settings';
+import { getSettings, freeShippingFrom } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
 import { assertAvailable, claimCoupon, validateCoupon } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         }
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-      let discount = 0; let freeShipping = subtotal >= settings.freeShippingThreshold; let appliedCoupon: string | null = null;
+      let discount = 0; const freeFrom = freeShippingFrom(settings); let freeShipping = freeFrom > 0 && subtotal >= freeFrom; let appliedCoupon: string | null = null;
       if (couponCode) {
         // Validated inside the transaction and claimed atomically. Throwing (not returning)
         // rolls back the whole order if the coupon turns out to be invalid.

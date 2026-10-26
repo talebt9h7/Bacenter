@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { getSettings } from './settings';
+import { freeShippingFrom, getSettings } from './settings';
 
 /**
  * KPI tiles for admin pages that have no dashboard of their own (coupons, purchases, messages,
@@ -163,7 +163,7 @@ async function load(page: PageKey): Promise<KpiSpec[]> {
       return [
         { icon: 'map', tone: 'accent', en: 'Governorates open', ar: 'محافظات مفعلة', value: n(r.enabled), noteEn: `of ${n(r.total)}`, noteAr: `من ${n(r.total)}` },
         { icon: 'truck', tone: 'blue', en: 'Delivery rate', ar: 'أجور التوصيل', value: n(r.hi), format: 'iqd', noteEn: n(r.lo) !== n(r.hi) ? `from ${n(r.lo).toLocaleString('en-US')}` : 'same everywhere', noteAr: n(r.lo) !== n(r.hi) ? `من ${n(r.lo).toLocaleString('en-US')}` : 'نفس السعر لكل المحافظات' },
-        { icon: 'tag', tone: 'success', en: 'Free delivery from', ar: 'التوصيل المجاني من', value: s.freeShippingThreshold, format: 'iqd' },
+        { icon: 'tag', tone: 'success', en: 'Free delivery from', ar: 'التوصيل المجاني من', value: freeShippingFrom(s), format: 'iqd' },
         { icon: 'percent', tone: 'gold', en: 'Free-delivery orders (30 days)', ar: 'طلبات بتوصيل مجاني (30 يوم)', value: n(o.total) ? Math.round(n(o.free) / n(o.total) * 100) : 0, format: 'percent', noteEn: `${n(o.free)} of ${n(o.total)}`, noteAr: `${n(o.free)} من ${n(o.total)}` },
         { icon: 'coins', tone: 'violet', en: 'Delivery fees collected (30 days)', ar: 'أجور توصيل مستلمة (30 يوم)', value: n(o.fees), format: 'iqd' },
         { icon: 'clock', tone: 'danger', en: 'Typical max days', ar: 'أقصى مدة توصيل (معدل)', value: n(r.days) },
@@ -257,7 +257,7 @@ async function load(page: PageKey): Promise<KpiSpec[]> {
       const s = await getSettings();
       return [
         { icon: 'coins', tone: 'accent', en: 'Exchange rate (1 USD)', ar: 'سعر الصرف (1 دولار)', value: s.exchangeRate, noteEn: 'IQD', noteAr: 'دينار' },
-        { icon: 'tag', tone: 'success', en: 'Free delivery from', ar: 'التوصيل المجاني من', value: s.freeShippingThreshold, format: 'iqd', href: '/admin/shipping' },
+        { icon: 'tag', tone: 'success', en: 'Free delivery from', ar: 'التوصيل المجاني من', value: freeShippingFrom(s), format: 'iqd', href: '/admin/shipping' },
         { icon: 'wallet', tone: 'blue', en: 'Cash-on-delivery fee', ar: 'رسوم الدفع عند الاستلام', value: s.codFee, format: 'iqd' },
         { icon: 'alert', tone: 'gold', en: 'Low stock alert at', ar: 'تنبيه المخزون عند', value: s.lowStockThreshold, noteEn: 'units or less', noteAr: 'قطع أو أقل' },
       ];

@@ -104,7 +104,6 @@ export function CartDrawer() {
       <div className="bag-footer">
         {promoSavings > 0 && <div className="bag-savings"><span>{ar ? 'وفّرت بالعروض' : 'You save with offers'}</span><strong>− {moneyIqd(promoSavings)}</strong></div>}
         <div className="bag-total"><span>{t('Subtotal')}</span><strong>{moneyIqd(subtotal)}</strong></div>
-        <p className="bag-total-note">{remaining === 0 ? (ar ? 'التوصيل مجاني. تدفع عند الاستلام.' : 'Delivery is free. You pay on delivery.') : (ar ? 'أجور التوصيل تُحسب حسب المحافظة. تدفع عند الاستلام.' : 'Delivery is calculated by governorate. You pay on delivery.')}</p>
         <Link className="bag-checkout" href="/checkout" onClick={close}>{ar ? 'إتمام الطلب' : 'Checkout'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</Link>
         <button type="button" className="bag-keep-shopping" onClick={close}>{ar ? 'متابعة التسوق' : 'Keep shopping'}</button>
       </div>

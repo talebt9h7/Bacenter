@@ -13,5 +13,5 @@ export default async function AdminShippingPage() {
   if (!actor) redirect('/admin');
   await ensureStoreSeeded();
   const [zones, settings] = await Promise.all([resources['shipping-zones'].list(), getSettings()]);
-  return <main className="admin-page"><AdminPageHeader section="Delivery · Iraq" title="Delivery · Iraq" description="Cash-on-delivery courier rates and lead times for each of the 18 governorates." /><PageKpis items={await pageStats('shipping')} /><ShippingManager initial={zones as unknown as ZoneRow[]} settings={{ freeShippingThreshold: settings.freeShippingThreshold, codFee: settings.codFee, codEnabled: settings.codEnabled }} /></main>;
+  return <main className="admin-page"><AdminPageHeader section="Delivery · Iraq" title="Delivery · Iraq" description="Cash-on-delivery courier rates and lead times for each of the 18 governorates." /><PageKpis items={await pageStats('shipping')} /><ShippingManager initial={zones as unknown as ZoneRow[]} settings={{ freeShippingThreshold: settings.freeShippingThreshold, freeShippingEnabled: settings.freeShippingEnabled !== false, codFee: settings.codFee, codEnabled: settings.codEnabled }} /></main>;
 }

@@ -25,7 +25,7 @@ export type HomepageConfig = {
 export type StoreSettings = {
   storeName: string; tagline: string; logoUrl: string; logoAlt: string; faviconUrl: string; metaTitle: string; metaDescription: string; seoIndex: boolean; seoFollow: boolean; canonicalBaseUrl: string; ogImage: string; announcement: string; announcementHref: string;
   supportEmail: string; supportPhone: string; whatsapp: string; instagram: string; youtube: string; facebook: string; address: string; footerTagline: string; copyrightText: string;
-  exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; lowStockThreshold: number;
+  exchangeRate: number; freeShippingThreshold: number; freeShippingEnabled: boolean; codFee: number; codEnabled: boolean; lowStockThreshold: number;
   orderPrefix: string; checkoutNote: string; homeHeadline: string; homeHeadlineAr?: string; homeSubheadline: string; homeSubheadlineAr?: string; homeValues: { title: string; text: string; titleAr?: string; textAr?: string }[];
   navigation: NavigationGroup[];
   footer: FooterConfig;
@@ -35,7 +35,7 @@ export type StoreSettings = {
 export const defaultSettings: StoreSettings = {
   storeName: 'UR', tagline: 'Your final touch | لمستك الأخيرة.', logoUrl: '/images/UR-logo.svg', logoAlt: 'UR', faviconUrl: '/images/UR-logo.svg', seoIndex: true, seoFollow: true, canonicalBaseUrl: '', ogImage: '/images/UR-logo.svg', metaTitle: 'UR Leather | لمستك الأخيرة', metaDescription: 'اكتشف منتجات UR Leather المصنوعة من الجلد الطبيعي، بتصاميم تجمع بين الأناقة والاستخدام اليومي.', announcement: 'Free delivery across Iraq on orders over 150,000 IQD · Cash on delivery', announcementHref: '/info/shipping',
   supportEmail: '', supportPhone: '07700000000', whatsapp: '9647700000000', instagram: '', youtube: '', facebook: '', address: 'Iraq', footerTagline: 'Your final touch.\nلمستك الأخيرة.', copyrightText: 'UR Leather.',
-  exchangeRate: 1320, freeShippingThreshold: 150000, codFee: 0, codEnabled: true, lowStockThreshold: 5,
+  exchangeRate: 1320, freeShippingThreshold: 150000, freeShippingEnabled: true, codFee: 0, codEnabled: true, lowStockThreshold: 5,
   orderPrefix: 'UR', checkoutNote: 'Delivery across Iraq. Pay in cash when your order arrives.',
   homeHeadline: 'Natural leather. Timeless character.', homeHeadlineAr: 'نصمم منتجات تساعدك على التحرك بثقة في كل يوم.', homeSubheadline: 'Thoughtfully selected leather goods for everyday use.', homeSubheadlineAr: 'أينما كنت، جهّز نفسك بما يناسب رحلتك.',
   homeValues: [{ title: 'Natural leather', text: 'Made from natural leather with a character that develops over time.' }, { title: 'Everyday design', text: 'Practical pieces designed to fit into your daily routine.' }, { title: 'Six-month warranty', text: 'Products include a six-month warranty from the date of purchase.' }],
@@ -206,7 +206,10 @@ async function loadSettings(): Promise<StoreSettings> {
 // across requests and cleared by saveSettings()/invalidateSettings() on every admin change.
 const cachedSettings = unstable_cache(loadSettings, ['store-settings-v1'], { revalidate: 300, tags: [SETTINGS_TAG] });
 export const getSettings = cache(async function getSettings(): Promise<StoreSettings> { return cachedSettings(); });
-export const getPublicSettings = cache(async function getPublicSettings() { const all = await getSettings(); return Object.fromEntries(publicKeys.map(key => [key, all[key]])) as Omit<StoreSettings, 'adminPasswordHash'>; });
+/** The order subtotal that unlocks free delivery, or 0 when free delivery is switched off. */
+export function freeShippingFrom(s: Pick<StoreSettings, 'freeShippingThreshold' | 'freeShippingEnabled'>) { return s.freeShippingEnabled === false ? 0 : Math.max(0, s.freeShippingThreshold || 0); }
+// The storefront only sees the effective threshold: 0 means there is no free delivery.
+export const getPublicSettings = cache(async function getPublicSettings() { const all = await getSettings(); const out = Object.fromEntries(publicKeys.map(key => [key, all[key]])) as Omit<StoreSettings, 'adminPasswordHash'>; out.freeShippingThreshold = freeShippingFrom(all); return out; });
 export async function saveSettings(patch: Partial<StoreSettings>) {
   for (const [key, value] of Object.entries(patch)) await db.insert(settings).values({ key, value: value as object, updatedAt: new Date() }).onConflictDoUpdate({ target: settings.key, set: { value: value as object, updatedAt: new Date() } });
   invalidateSettings();

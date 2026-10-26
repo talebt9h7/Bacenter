@@ -184,6 +184,10 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  if (typeof body.freeShippingEnabled === 'boolean') {
+    patch.freeShippingEnabled = body.freeShippingEnabled;
+  }
+
   if (typeof body.codEnabled === 'boolean') {
     patch.codEnabled = body.codEnabled;
   }
