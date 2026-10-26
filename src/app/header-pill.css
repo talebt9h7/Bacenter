@@ -19,3 +19,10 @@
 html body .product-card{border-radius:16px!important;overflow:hidden!important}
 html body .catalog-grid{gap:12px!important}
 @media (max-width:767px){html body .catalog-grid{gap:10px!important;margin-inline:0!important}}
+/* Storefront background: warm sand glow at the top fading into an off-white page. */
+html body:has(.site-header){background-color:#f8f6f2!important;
+  background-image:radial-gradient(120% 520px at 50% 0,#f1dcc2 0%,#f6e9d9 38%,rgba(248,246,242,0) 100%),linear-gradient(180deg,#f7ece0 0,#f8f6f2 900px)!important;
+  background-repeat:no-repeat!important;background-size:100% 1100px!important}
+html body:has(.site-header) #main-content,html body:has(.site-header) #main-content>main,html body:has(.site-header) .catalog-page,html body:has(.site-header) .catalog-hero,html body:has(.site-header) .catalog-intro,html body:has(.site-header) .catalog-toolbar,html body:has(.site-header) .breadcrumb,html body:has(.site-header) .breadcrumbs{background:transparent!important}
+html body:has(.site-header) .catalog-toolbar select{background-color:transparent!important}
+html body .product-card{border:1px solid #ebe4d9!important}
