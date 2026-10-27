@@ -99,3 +99,20 @@ html body .bag-drawer .bag-delivery{padding:12px 14px!important}html body .bag-d
   html body .site-header .bag-count{min-width:18px!important;height:18px!important;font-size:10px!important}
   html body .site-header .mega-menu{top:70px!important}
 }
+/* Product page boxes in the reference style: soft rounded buttons, swatches, thumbnails and info cards. */
+html body main.product-page .buy-actions .product-add-to-cart,html body main.product-page .buy-actions .whatsapp-inquiry-button{height:60px!important;min-height:60px!important;border-radius:20px!important;border:0!important;font-size:17px!important;font-weight:600!important;transition:transform .15s,box-shadow .2s}
+html body main.product-page .buy-actions .product-add-to-cart{background:linear-gradient(100deg,#7d6040 0%,#a88a62 55%,#b89a72 100%)!important;color:#fff!important;box-shadow:0 10px 24px rgba(125,96,64,.25)!important}
+html body main.product-page .buy-actions .product-add-to-cart:disabled{background:#c9bcaa!important;box-shadow:none!important}
+html body main.product-page .buy-actions .whatsapp-inquiry-button{background:#5fcf73!important;color:#fff!important;box-shadow:0 8px 20px rgba(60,170,90,.2)!important}
+html body main.product-page .buy-actions .product-add-to-cart:active,html body main.product-page .buy-actions .whatsapp-inquiry-button:active{transform:scale(.985)}
+html body main.product-page .buy-actions{gap:12px!important}
+html body main.product-page .detail-swatches button,html body main.product-page .detail-swatch-wrap button{border-radius:16px!important;overflow:hidden}
+html body main.product-page .detail-swatches img{border-radius:12px!important}
+html body main.product-page .product-thumbnails button,html body main.product-page .product-thumbnails img{border-radius:14px!important;overflow:hidden}
+html body main.product-page .capacity-field select,html body main.product-page .capacity-field input{border-radius:16px!important}
+html body main.product-page .product-accordion{border-radius:18px!important;background:rgba(255,255,255,.6)!important;border:1px solid #efe7db!important;margin-bottom:10px!important;padding-inline:16px!important;overflow:hidden}
+html body main.product-page .promo-panel{border-radius:18px!important}
+html body main.product-page .detail-swatch-wrap>button{border-radius:16px!important;border-color:#e3d9cb!important}
+html body main.product-page .detail-swatch-wrap>button img,html body main.product-page .detail-swatch-wrap>button .swatch-color-fill{border-radius:12px!important}
+html body main.product-page .detail-swatch-wrap>button.selected{border-color:#8a6a3b!important;box-shadow:0 0 0 1px #8a6a3b!important}
+html body main.product-page .product-thumbnails>*{border-radius:14px!important;overflow:hidden}
