@@ -88,3 +88,14 @@ html body .search-overlay .search-all{border-radius:999px!important}
 html body .bag-drawer .bag-picks li{border-radius:14px!important;background:#fff!important;border-color:#eee5d8!important}html body .bag-drawer .bag-progress{margin:0 14px 10px!important;border-radius:16px!important}
 html body .bag-drawer .bag-delivery{margin:0 14px 10px!important;border-radius:18px!important;background:rgba(255,255,255,.72)!important;border:0!important}html body .bag-drawer .bag-progress{margin:8px 0 0!important}
 html body .bag-drawer .bag-delivery{padding:12px 14px!important}html body .bag-drawer .bag-delivery p{display:block!important;font-size:13.5px!important;line-height:1.6}html body .bag-drawer .bag-delivery p svg{display:inline-block;vertical-align:-3px;margin-inline-end:6px;color:#8a6a3b}
+/* Slimmer floating header on mobile. */
+@media (max-width:1279px){
+  html body .site-header{padding:8px 12px 4px!important}
+  html body .site-header .main-navigation{height:54px!important;padding:0 6px!important}
+  html body .site-header .main-navigation .icon-button{width:40px!important;height:40px!important;min-width:40px!important}
+  html body .site-header .main-navigation .icon-button svg{width:18px!important;height:18px!important}
+  html body .site-header .navigation-left,html body .site-header .navigation-actions{gap:6px!important}
+  html body .site-header .brand-logo img{width:44px!important}
+  html body .site-header .bag-count{min-width:18px!important;height:18px!important;font-size:10px!important}
+  html body .site-header .mega-menu{top:70px!important}
+}
