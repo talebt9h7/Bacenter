@@ -1,3 +1,4 @@
+import { variantPriceSql, variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { asc, eq, inArray } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
 import { db } from '@/db';
@@ -24,7 +25,7 @@ async function resolve(rows: Row[], ex: Executor = db): Promise<BundleView[]> {
   const base = await ex.select({ productId: productVariants.productId }).from(productVariants).where(inArray(productVariants.id, ids));
   const productIds = [...new Set(base.map(b => b.productId))];
   const [variants, reserved] = await Promise.all([
-    ex.select({ variantId: productVariants.id, productId: products.id, name: products.name, nameAr: products.nameAr, color: productVariants.name, colorAr: productVariants.nameAr, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex, salePriceIqd: products.salePriceIqd, published: products.published, sortOrder: productVariants.sortOrder })
+    ex.select({ variantId: productVariants.id, productId: products.id, name: products.name, nameAr: products.nameAr, color: variantNameSql, colorAr: variantNameArSql, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex, salePriceIqd: variantPriceSql, published: products.published, sortOrder: productVariants.sortOrder })
       .from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(inArray(products.id, productIds)).orderBy(asc(productVariants.sortOrder), asc(productVariants.id)),
     reservedByVariant(ex as typeof db),
   ]);

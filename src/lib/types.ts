@@ -1,7 +1,12 @@
 import type { ProductDetails } from './product-details';
 
 /** `stock` is what can still be sold (on hand − reserved by pending orders). `onHand` is physical stock. */
-export type ProductColor = { id: number; name: string; nameAr: string; hex: string; stock: number; onHand?: number; reserved?: number; images: string[]; primaryIndex: number };
+/**
+ * One sellable variant: a colour, optionally in a size. Products with sizes have one entry per
+ * colour × size (same colour name and photos, different size); `priceIqd` is that size's price
+ * (undefined/null = the product price) and `salePriceIqd`/`originalPriceIqd` hold it after promotions.
+ */
+export type ProductColor = { id: number; name: string; nameAr: string; hex: string; stock: number; onHand?: number; reserved?: number; images: string[]; primaryIndex: number; size?: string; sizeAr?: string; priceIqd?: number | null; salePriceIqd?: number; originalPriceIqd?: number };
 export type Product = {
   id: string; name: string; nameAr: string; subtitle: string; subtitleAr: string; description: string; descriptionAr: string; price: number; salePriceIqd: number; category: string;
   capacity?: string | null; badge?: string | null; features: string[]; specifications?: string[]; warranty?: string; materials?: string; storyImages?: string[]; dimensions: string; dimensionsImage?: string; tags: string[];

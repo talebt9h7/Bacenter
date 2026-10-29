@@ -1,3 +1,4 @@
+import { variantLabel } from '@/lib/variants';
 import { NextRequest, NextResponse } from 'next/server';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
@@ -35,6 +36,9 @@ export async function readCart(
       stock: productVariants.stock,
       images: productVariants.images,
       primaryIndex: productVariants.primaryIndex,
+      size: productVariants.size,
+      sizeAr: productVariants.sizeAr,
+      variantPriceIqd: productVariants.priceIqd,
       productId: products.id,
       name: products.name,
       nameAr: products.nameAr,
@@ -69,19 +73,20 @@ export async function readCart(
 
   const [reserved, promos] = await Promise.all([reservedByVariant(), getUpcomingPromotions()]);
   const bundleLines = await readBundleLines(sessionId, settings.exchangeRate);
-  return [...rows.map((row) => { const promo = bestPromotion({ id: row.productId, category: row.category, salePriceIqd: row.salePriceIqd }, promos); const unit = promo?.price ?? row.salePriceIqd; return ({
+  return [...rows.map((row) => { const base = row.variantPriceIqd || row.salePriceIqd; const promo = bestPromotion({ id: row.productId, category: row.category, salePriceIqd: base }, promos); const unit = promo?.price ?? base; return ({
     id: row.id,
     variantId: row.variantId,
     productId: row.productId,
     name: row.name,
     nameAr: row.nameAr,
-    color: row.color,
-    colorAr: row.colorAr,
+    // A size is shown with the colour ("Brown · Large") everywhere the bag line appears.
+    color: variantLabel(row.color, row.size),
+    colorAr: variantLabel(row.colorAr || row.color, row.sizeAr || row.size),
     price:
       unit /
       settings.exchangeRate,
     salePriceIqd: unit,
-    originalPriceIqd: promo ? row.salePriceIqd : undefined,
+    originalPriceIqd: promo ? base : undefined,
     promotion: promo?.promotion ?? null,
     image: primaryImage({
       id: row.variantId,
@@ -92,7 +97,7 @@ export async function readCart(
       images: row.images ?? [],
       primaryIndex: row.primaryIndex,
     }),
-    capacity: row.capacity,
+    capacity: row.size ? null : row.capacity,
     quantity: row.quantity,
     // What can still be bought: stock on hand minus units held by pending orders.
     stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)),

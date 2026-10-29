@@ -56,6 +56,11 @@ export const productVariants = pgTable('product_variants', {
   images: jsonb('images').$type<string[]>().notNull().default([]),
   primaryIndex: integer('primary_index').notNull().default(0),
   sortOrder: integer('sort_order').notNull().default(0),
+  /** Optional size ('' = no sizes). A sized product has one variant per colour × size. */
+  size: text('size').notNull().default(''),
+  sizeAr: text('size_ar').notNull().default(''),
+  /** Price of this size in IQD; null = the product price. */
+  priceIqd: integer('price_iqd'),
 }, (table) => [index('variants_product_idx').on(table.productId)]);
 
 export const inventoryBatches = pgTable('inventory_batches', {

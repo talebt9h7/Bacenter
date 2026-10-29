@@ -9,6 +9,7 @@ import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
 import { ProductCard } from './product-card';
 import { PromoCountdown, usePromoLive } from './promo-price';
+import { colorGroups, findVariant, hasSizes, sizeOptions, variantLabel, variantPricing } from '@/lib/variants';
 import { track } from '@/lib/track';
 import { Modal, ModalHeading } from './modal';
 import { ProductVideo } from './product-video';
@@ -22,12 +23,18 @@ import { BadgeCheck, Coins, CreditCard as CardIcon, Droplets, Feather, Gift, Han
 
 const HIGHLIGHT_ICON_COMPONENTS: Record<HighlightIcon, typeof CardIcon> = { cards: CardIcon, cash: Banknote, coins: Coins, rfid: Nfc, slim: Feather, size: RulerDimensionLine, leather: Layers, handmade: Hand, magnet: Magnet, lock: Lock, key: KeyRound, phone: Smartphone, laptop: Laptop, water: Droplets, weight: Feather, warranty: BadgeCheck, gift: Gift, quick: Zap };
 
-export function ProductDetail({ product, related, initialColor, banner, bundles = [], reviews }: { product: Product; related: Product[]; initialColor?: string; banner?: ProductPageBanner | null; bundles?: BundleView[]; reviews?: ReviewSummary }) {
+export function ProductDetail({ product, related, initialColor, initialSize, banner, bundles = [], reviews }: { product: Product; related: Product[]; initialColor?: string; initialSize?: string; banner?: ProductPageBanner | null; bundles?: BundleView[]; reviews?: ReviewSummary }) {
   const { language } = useLanguage();
   const displayColorName = (item: ProductColor) => language === 'ar' ? (item.nameAr || item.name) : item.name;
   // ?color= may hold the English or the Arabic colour name (links are built in either language).
   const wanted = initialColor?.trim().toLowerCase();
-  const startColor = product.colors.find(item => wanted && (item.name.toLowerCase() === wanted || (item.nameAr || '').toLowerCase() === wanted)) || product.colors.find(item => item.stock > 0) || product.colors[0];
+  const sized = hasSizes(product);
+  const sizes = sized ? sizeOptions(product) : [];
+  const swatches = sized ? colorGroups(product) : product.colors;
+  const wantedSize = initialSize?.trim().toLowerCase();
+  const startGroup = swatches.find(item => wanted && (item.name.toLowerCase() === wanted || (item.nameAr || '').toLowerCase() === wanted)) || swatches.find(item => item.stock > 0) || swatches[0];
+  // With sizes, the selection is a colour × size variant; ?size= may name the size in either language.
+  const startColor = sized ? (findVariant(product, startGroup.name, sizes.find(o => wantedSize && (o.size.toLowerCase() === wantedSize || o.sizeAr.toLowerCase() === wantedSize))?.size) ?? startGroup) : startGroup;
   const [color, setColor] = useState<ProductColor>(startColor);
   const [quantity, setQuantity] = useState(1);
   // Key of the main photo that has finished loading; until then a low-res copy shows behind it.
@@ -59,6 +66,9 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
   const story = details.story;
   const categoryName = categories.find(item => item.id === product.category)?.name || 'Products';
   const promoLive = usePromoLive(product.promotion) && !!product.originalPriceIqd;
+  const pricing = variantPricing(product, color);
+  const shownPrice = promoLive ? pricing.price : pricing.regular;
+  const displaySize = (item: ProductColor) => language === 'ar' ? (item.sizeAr || item.size || '') : (item.size || '');
   useEffect(() => { track.viewItem({ id: product.id, name: product.name, price: product.salePriceIqd, category: product.category }); }, [product.id, product.name, product.salePriceIqd, product.category]);
   const soldOut = color.stock <= 0; const lowStock = color.stock > 0 && color.stock <= 5;
   const maxQuantity = Math.max(1, Math.min(10, color.stock));
@@ -68,6 +78,7 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
   function syncUrl(nextColor: ProductColor, index: number) {
     const url = new URL(window.location.href);
     url.searchParams.set('color', nextColor.name);
+    if (nextColor.size) url.searchParams.set('size', nextColor.size); else url.searchParams.delete('size');
     url.hash = `slide-${index}`;
     window.history.replaceState(window.history.state, '', url);
   }
@@ -76,7 +87,11 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
     setImageIndex(next);
     syncUrl(color, next);
   }
-  function chooseColor(item: ProductColor) {
+  function chooseColor(picked: ProductColor) {
+    // Keep the chosen size when switching colour on a sized product.
+    selectVariant(sized ? (findVariant(product, picked.name, color.size) ?? picked) : picked);
+  }
+  function selectVariant(item: ProductColor) {
     const next = Math.min(safeIndex, Math.max(item.images.length - 1, 0));
     setColor(item);
     setImageIndex(next);
@@ -120,21 +135,26 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
         <div className="product-heading">
           <h1>{displayName}</h1>
           {reviews && <RatingLink summary={reviews} />}
-          {promoLive ? <div className="product-price on-sale"><span className="price-now">{moneyIqd(product.salePriceIqd)}</span><s className="price-was">{moneyIqd(product.originalPriceIqd!)}</s><span className="price-save">{language === 'ar' ? `وفّر ${moneyIqd(product.originalPriceIqd! - product.salePriceIqd)}` : `Save ${moneyIqd(product.originalPriceIqd! - product.salePriceIqd)}`}</span></div> : <div className="product-price">{moneyIqd(product.originalPriceIqd ?? product.salePriceIqd)}</div>}
+          {promoLive && pricing.regular > pricing.price ? <div className="product-price on-sale"><span className="price-now">{moneyIqd(pricing.price)}</span><s className="price-was">{moneyIqd(pricing.regular)}</s><span className="price-save">{language === 'ar' ? `وفّر ${moneyIqd(pricing.regular - pricing.price)}` : `Save ${moneyIqd(pricing.regular - pricing.price)}`}</span></div> : <div className="product-price">{moneyIqd(shownPrice)}</div>}
           {promoLive && product.promotion && <div className="promo-panel"><span className="promo-panel-name">{(language === 'ar' ? product.promotion.badgeAr || product.promotion.nameAr : product.promotion.badge || product.promotion.name) || `−${product.promotion.percentOff}%`}</span>{product.promotion.showCountdown && <PromoCountdown endsAt={product.promotion.endsAt} language={language} refreshOnEnd />}</div>}
         </div>
 
-        {product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
+        {sized && <div className="size-picker" role="radiogroup" aria-label={t('Size')}>
+          <div className="material-label">{language === 'ar' ? 'القياس' : 'Size'}{color.size ? <b> · {displaySize(color)}</b> : null}</div>
+          <div className="size-options">{sizes.map(option => { const v = findVariant(product, color.name, option.size); const exact = v && v.size === option.size ? v : undefined; const out = !exact || exact.stock <= 0; return <button key={option.size} type="button" role="radio" aria-checked={color.size === option.size} className={`${color.size === option.size ? 'selected' : ''} ${out ? 'is-out' : ''}`} onClick={() => { if (exact) selectVariant(exact); }} disabled={!exact}><span>{language === 'ar' ? option.sizeAr : option.size}</span>{exact && exact.priceIqd ? <small>{moneyIqd(variantPricing(product, exact).price)}</small> : null}{out && exact ? <small>{t('Sold out')}</small> : null}</button>; })}</div>
+        </div>}
+
+        {!sized && product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
 
         <div className="material-label">{language === 'ar' ? 'المادة واللون' : 'Material & color'}</div>
         <div className="detail-swatches" aria-label={t('Choose a color')}>
-          {product.colors.map(item => <div className="detail-swatch-wrap" key={item.id}>
+          {swatches.map(item => <div className="detail-swatch-wrap" key={item.id}>
             <button
               type="button"
               title={item.stock > 0 ? displayColorName(item) : `${displayColorName(item)} — ${t('Sold out')}`}
               aria-label={`${t('Choose a color')}: ${displayColorName(item)}`}
-              aria-pressed={color.id === item.id}
-              className={`${color.id === item.id ? 'selected' : ''} ${item.stock <= 0 ? 'swatch-sold-out' : ''}`}
+              aria-pressed={color.name === item.name}
+              className={`${color.name === item.name ? 'selected' : ''} ${item.stock <= 0 ? 'swatch-sold-out' : ''}`}
               style={{ '--swatch': item.hex } as React.CSSProperties}
               onClick={() => chooseColor(item)}
             >
@@ -145,10 +165,10 @@ export function ProductDetail({ product, related, initialColor, banner, bundles 
         </div>
 
         <div className="buy-actions">
-          <button className="button button-orange product-add-to-cart" disabled={soldOut} onClick={() => void addToCart(color.id, quantity, { variantId: color.id, productId: product.id, name: product.name, nameAr: product.nameAr || product.name, color: color.name, colorAr: color.nameAr || color.name, salePriceIqd: product.salePriceIqd, originalPriceIqd: product.originalPriceIqd, image: primaryImage(color), capacity: product.capacity ?? null, stock: color.stock })}>{soldOut ? t('Sold out in this color') : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
+          <button className="button button-orange product-add-to-cart" disabled={soldOut} onClick={() => void addToCart(color.id, quantity, { variantId: color.id, productId: product.id, name: product.name, nameAr: product.nameAr || product.name, color: variantLabel(color.name, color.size), colorAr: variantLabel(color.nameAr || color.name, color.sizeAr || color.size), salePriceIqd: pricing.price, originalPriceIqd: promoLive ? pricing.regular : undefined, image: primaryImage(color), capacity: sized ? null : product.capacity ?? null, stock: color.stock })}>{soldOut ? (sized ? (language === 'ar' ? 'نفد هذا القياس بهذا اللون' : 'Sold out in this size') : t('Sold out in this color')) : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
           <a
             className="button button-orange whatsapp-inquiry-button"
-            href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أرغب بطلب:\n${displayName}\nالسعر: ${moneyIqd(product.salePriceIqd)}\nالكمية: ${quantity}\nاللون: ${displayColorName(color)}` : `Hello, I would like to place an order:\n${displayName}\nPrice: ${moneyIqd(product.salePriceIqd)}\nQuantity: ${quantity}\nColor: ${displayColorName(color)}`)}`}
+            href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أرغب بطلب:\n${displayName}\nالسعر: ${moneyIqd(pricing.price)}\nالكمية: ${quantity}\nاللون: ${displayColorName(color)}${color.size ? `\nالقياس: ${displaySize(color)}` : ''}` : `Hello, I would like to place an order:\n${displayName}\nPrice: ${moneyIqd(pricing.price)}\nQuantity: ${quantity}\nColor: ${displayColorName(color)}${color.size ? `\nSize: ${displaySize(color)}` : ''}`)}`}
             target="_blank"
             rel="noreferrer"
           >

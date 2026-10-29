@@ -1,3 +1,4 @@
+import { variantNameSql } from '@/lib/variant-sql';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       for (const raw of rawItems) {
         const variantId = Number(raw.variantId), quantity = Number(raw.quantity), enteredPrice = Number(raw.unitPrice);
         if (!Number.isInteger(variantId) || !Number.isInteger(quantity) || quantity <= 0 || !Number.isInteger(enteredPrice) || enteredPrice < 0) throw new Error('INVALID_ITEM');
-        const [line] = await tx.select({ variantId: productVariants.id, productId: products.id, name: products.name, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(productVariants.id, variantId)).for('update', { of: productVariants });
+        const [line] = await tx.select({ variantId: productVariants.id, productId: products.id, name: products.name, color: variantNameSql, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(productVariants.id, variantId)).for('update', { of: productVariants });
         if (!line) throw new Error('PRODUCT_NOT_FOUND');
         const image = line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null;
         const alreadyInOrder = items.filter(item => item.variantId === variantId).reduce((sum, item) => sum + item.quantity, 0);

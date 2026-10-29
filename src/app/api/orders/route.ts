@@ -13,6 +13,7 @@ import { assertAvailable, claimCoupon, validateCoupon } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
 import { bestPromotion, getUpcomingPromotions } from '@/lib/promotions';
 import { startPayment } from '@/lib/payments';
+import { variantLabel } from '@/lib/variants';
 import { gatewayReady, getPaymentSettings } from '@/lib/payments/config';
 
 /** A checkout problem to show the shopper. Thrown inside the transaction so nothing is saved. */
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     const sessionId = await getSession();
     const promos = await getUpcomingPromotions();
     const result = await db.transaction(async tx => {
-      const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, category: products.category }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
+      const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, size: productVariants.size, variantPriceIqd: productVariants.priceIqd, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, category: products.category }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
       const bundleRows = await tx.select().from(cartBundles).where(eq(cartBundles.sessionId, sessionId));
       if (!cart.length && !bundleRows.length) throw new CheckoutError('Your bag is empty. Add something you love first.');
       const rate = settings.exchangeRate;
@@ -50,14 +51,15 @@ export async function POST(request: NextRequest) {
         try { await assertAvailable(tx, line.variantId, line.quantity); }
         catch (error) {
           if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') {
-            throw new CheckoutError(`${line.name} in ${line.color} doesn’t have ${line.quantity} available any more. Please adjust your bag.`);
+            throw new CheckoutError(`${line.name} in ${variantLabel(line.color, line.size)} doesn’t have ${line.quantity} available any more. Please adjust your bag.`);
           }
           throw error;
         }
-        const regular = line.salePriceIqd || roundIqd(line.priceCents / 100 * rate);
+        // A size with its own price is charged that price; otherwise the product price.
+        const regular = line.variantPriceIqd || line.salePriceIqd || roundIqd(line.priceCents / 100 * rate);
         // A live promotion sets the price actually charged; the regular price and the promotion are kept on the line for reports.
         const promo = bestPromotion({ id: line.productId, category: line.category, salePriceIqd: regular }, promos);
-        items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: line.color, quantity: line.quantity, unitPrice: promo?.price ?? regular, listPrice: regular, promotionId: promo?.promotion.id ?? null, promotionName: promo?.promotion.name ?? null, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
+        items.push({ productId: line.productId, variantId: line.variantId, name: line.name, color: variantLabel(line.color, line.size), quantity: line.quantity, unitPrice: promo?.price ?? regular, listPrice: regular, promotionId: promo?.promotion.id ?? null, promotionName: promo?.promotion.name ?? null, profitIqd: 0, purchaseCostCents: null, batchAllocations: [], image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null });
       }
       // Bundles: each component becomes its own line at its share of the bundle price.
       const taken = new Map(cart.map(line => [line.variantId, line.quantity]));

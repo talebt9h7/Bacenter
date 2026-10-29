@@ -50,6 +50,12 @@ export function applyPromotions(products: Product[], promos: PromotionRecord[], 
   if (!promos.length) return products;
   return products.map(product => {
     const best = bestPromotion(product, promos, now);
-    return best ? { ...product, salePriceIqd: best.price, originalPriceIqd: best.regular, promotion: best.promotion } : product;
+    // Sizes with their own price get the same promotion applied to their price.
+    const colors = product.colors.some(c => c.priceIqd) ? product.colors.map(c => {
+      if (!c.priceIqd) return c;
+      const own = bestPromotion({ id: product.id, category: product.category, salePriceIqd: c.priceIqd }, promos, now);
+      return own ? { ...c, salePriceIqd: own.price, originalPriceIqd: own.regular } : c;
+    }) : product.colors;
+    return best ? { ...product, colors, salePriceIqd: best.price, originalPriceIqd: best.regular, promotion: best.promotion } : { ...product, colors };
   });
 }

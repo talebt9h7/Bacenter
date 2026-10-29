@@ -1,3 +1,4 @@
+import { variantNameSql } from '@/lib/variant-sql';
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { activityLog, coupons, customers, inventoryBatches, inventoryMovements, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
@@ -283,7 +284,7 @@ export async function updateOrderDetails(orderId: number, input: {
       if (holds) for (const item of nextItems) await restoreInventoryBatches(tx, item, 'Order edited', order.reference);
       nextItems = [];
       for (const requestedItem of requested) {
-        const [line] = await tx.select({ variantId: productVariants.id, productId: products.id, name: products.name, color: productVariants.name, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(productVariants.id, requestedItem.variantId)).for('update', { of: productVariants });
+        const [line] = await tx.select({ variantId: productVariants.id, productId: products.id, name: products.name, color: variantNameSql, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(productVariants.id, requestedItem.variantId)).for('update', { of: productVariants });
         if (!line) throw new Error('PRODUCT_NOT_FOUND');
         const base = { productId: line.productId, variantId: requestedItem.variantId, name: line.name, color: line.color, quantity: requestedItem.quantity, unitPrice: requestedItem.unitPrice, image: line.image?.[line.primaryIndex] ?? line.image?.[0] ?? null };
         if (holds) {

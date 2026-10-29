@@ -1,3 +1,4 @@
+import { variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { inventoryBatches, inventoryMovements, productVariants, products, purchaseItems, purchases, supplierPayments, suppliers } from '@/db/schema';
@@ -97,7 +98,7 @@ export async function loadProcurement(ex: Exec = db) {
   const [supplierRows, purchaseRows, lineRows, paymentRows] = await Promise.all([
     ex.select().from(suppliers).orderBy(asc(suppliers.name)),
     ex.select({ p: purchases, supplierName: suppliers.name }).from(purchases).leftJoin(suppliers, eq(purchases.supplierId, suppliers.id)).orderBy(desc(purchases.purchaseDate), desc(purchases.id)).limit(500),
-    ex.select({ line: purchaseItems, productId: products.id, productName: products.name, productNameAr: products.nameAr, color: productVariants.name, colorAr: productVariants.nameAr, hex: productVariants.hex, images: productVariants.images, primaryIndex: productVariants.primaryIndex, remaining: inventoryBatches.quantityRemaining })
+    ex.select({ line: purchaseItems, productId: products.id, productName: products.name, productNameAr: products.nameAr, color: variantNameSql, colorAr: variantNameArSql, hex: productVariants.hex, images: productVariants.images, primaryIndex: productVariants.primaryIndex, remaining: inventoryBatches.quantityRemaining })
       .from(purchaseItems).innerJoin(productVariants, eq(purchaseItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).leftJoin(inventoryBatches, eq(purchaseItems.batchId, inventoryBatches.id)).orderBy(asc(purchaseItems.id)),
     ex.select({ pay: supplierPayments, supplierName: suppliers.name, purchaseRef: purchases.reference }).from(supplierPayments).innerJoin(suppliers, eq(supplierPayments.supplierId, suppliers.id)).leftJoin(purchases, eq(supplierPayments.purchaseId, purchases.id)).orderBy(desc(supplierPayments.paidAt), desc(supplierPayments.id)),
   ]);

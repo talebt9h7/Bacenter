@@ -135,3 +135,13 @@ html body main.product-page .product-thumbnails>*{border-radius:14px!important;o
 .pay-wait{display:inline-flex;align-items:center;gap:6px;margin-top:8px!important;font-size:13px!important;color:#8a6a3b!important}
 .pay-error{color:#b3402f!important;font-size:13.5px!important}
 .int-copy{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:6px 10px;border-radius:10px;border:1px dashed #cdbfa9;background:#fffaf2;font-size:12px;color:#5d4a2f;cursor:pointer;word-break:break-all;text-align:start}
+/* Size picker on the product page. */
+html body main.product-page .size-picker{margin:0 0 20px}
+html body main.product-page .size-picker .material-label b{font-weight:600}
+.size-options{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.size-options button{min-width:76px;min-height:48px;padding:8px 16px;border-radius:14px;border:1px solid #e3d9cb;background:#fff;color:#2b2a27;font:inherit;font-size:14.5px;font-weight:600;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.size-options button small{font-size:11.5px;font-weight:500;color:#7a7266}
+.size-options button.selected{border-color:#8a6a3b;box-shadow:0 0 0 1px #8a6a3b;background:#fffaf2}
+.size-options button.is-out{color:#a39a8c;background:#f7f4ef}
+.size-options button.is-out span{text-decoration:line-through}
+.size-options button:disabled{opacity:.45;cursor:not-allowed}

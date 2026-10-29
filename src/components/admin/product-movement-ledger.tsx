@@ -1,10 +1,11 @@
+import { variantNameSql } from '@/lib/variant-sql';
 import { eq, desc, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { inventoryMovements, inventoryBatches, productVariants } from '@/db/schema';
 import { catalogT } from '@/lib/i18n';
 
 export async function ProductMovementLedger({ productId, language='en' }: { productId:string; language?:'en'|'ar' }) {
-  const variants = await db.select({id:productVariants.id,name:productVariants.name,stock:productVariants.stock}).from(productVariants).where(eq(productVariants.productId,productId));
+  const variants = await db.select({id:productVariants.id,name:variantNameSql,stock:productVariants.stock}).from(productVariants).where(eq(productVariants.productId,productId));
   const ids = variants.map(v=>v.id);
   if (!ids.length) return <section className="admin-card"><div className="admin-card-heading"><h2>{catalogT('Material movement',language)}</h2></div><p className="admin-empty">{catalogT('No variants yet.',language)}</p></section>;
   const movements = await db.select({id:inventoryMovements.id,variantId:inventoryMovements.variantId,delta:inventoryMovements.delta,stockAfter:inventoryMovements.stockAfter,reason:inventoryMovements.reason,reference:inventoryMovements.reference,createdAt:inventoryMovements.createdAt}).from(inventoryMovements).where(inArray(inventoryMovements.variantId,ids)).orderBy(desc(inventoryMovements.createdAt)).limit(100);

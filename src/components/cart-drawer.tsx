@@ -38,7 +38,8 @@ export function CartDrawer() {
     return () => { cancelled = true; };
   }, [cartOpen]);
   const inBag = new Set(cart.map(item => item.productId));
-  const picks = suggestions.filter(product => !inBag.has(product.id) && product.colors.some(c => c.stock > 0)).slice(0, 3);
+  // Sized products need a size choice on their page, so they are not offered as one-tap picks.
+  const picks = suggestions.filter(product => !inBag.has(product.id) && !product.colors.some(c => c.size) && product.colors.some(c => c.stock > 0)).slice(0, 3);
 
   if (!cartOpen) return null;
   const name = (item: { name: string; nameAr: string }) => ar ? (item.nameAr || item.name) : item.name;

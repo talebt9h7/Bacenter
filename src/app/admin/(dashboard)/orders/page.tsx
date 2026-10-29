@@ -1,3 +1,4 @@
+import { variantPriceSql, variantNameSql } from '@/lib/variant-sql';
 import { reservedByVariant } from '@/lib/reservations';
 import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
@@ -49,7 +50,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const rows = await db.select().from(orders).where(where).orderBy(desc(orders.createdAt), desc(orders.id)).limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE);
   const stats = { byStatus: Object.fromEntries(statusRows.map(r => [r.status, { count: Number(r.count), total: Number(r.total) }])), today: { count: Number(todayRows[0]?.count ?? 0), total: Number(todayRows[0]?.total ?? 0) }, stalePending: Number(staleRows[0]?.count ?? 0) };
   const settings = await getSettings();
-  const catalogRows = await db.select({ variantId: productVariants.id, productId: products.id, productName: products.name, color: productVariants.name, stock: productVariants.stock, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, image: productVariants.images, primaryIndex: productVariants.primaryIndex, published: products.published }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).orderBy(products.name, productVariants.sortOrder);
+  const catalogRows = await db.select({ variantId: productVariants.id, productId: products.id, productName: products.name, color: variantNameSql, stock: productVariants.stock, priceCents: products.priceCents, salePriceIqd: variantPriceSql, image: productVariants.images, primaryIndex: productVariants.primaryIndex, published: products.published }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).orderBy(products.name, productVariants.sortOrder);
   const reserved = await reservedByVariant();
   // Products offered for manual orders show what can still be sold (on hand − pending reservations).
   const catalog = catalogRows.map(row => ({ ...row, stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)), salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));

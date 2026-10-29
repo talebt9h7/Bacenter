@@ -1,3 +1,4 @@
+import { variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { and, count, desc, gte, inArray, lte, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { activityLog, customers, expenses, inventoryBatches, newsletterSubscribers, orders, productVariants, products, shippingZones, supportMessages } from '@/db/schema';
@@ -37,7 +38,7 @@ export async function loadDashboard(period: DashboardPeriod, { finance }: { fina
     getSettings(),
     db.select().from(orders).where(ordersTouchingRange(windowFrom, to)).orderBy(desc(orders.createdAt)).limit(20000),
     db.select().from(orders).where(inArray(orders.status, [...OPEN])).orderBy(desc(orders.createdAt)).limit(5000),
-    db.select({ id: productVariants.id, productId: productVariants.productId, name: productVariants.name, nameAr: productVariants.nameAr, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants),
+    db.select({ id: productVariants.id, productId: productVariants.productId, name: variantNameSql, nameAr: variantNameArSql, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants),
     db.select({ id: products.id, name: products.name, nameAr: products.nameAr, category: products.category, salePriceIqd: products.salePriceIqd, published: products.published }).from(products),
     db.select({ variantId: inventoryBatches.variantId, quantityRemaining: inventoryBatches.quantityRemaining, purchaseCostIqd: inventoryBatches.purchaseCostIqd }).from(inventoryBatches),
     reservedByVariant(),

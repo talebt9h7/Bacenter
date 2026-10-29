@@ -10,7 +10,7 @@ import { NotReadyError, publishChecklist } from './publish-checklist';
 
 // baseStock is the stock the editor loaded. Saving applies only the difference, so orders
 // placed while the editor was open are not overwritten.
-export type VariantInput = { id?: number; name: string; nameAr?: string; hex: string; stock: number; baseStock?: number; images: string[]; primaryIndex: number };
+export type VariantInput = { id?: number; name: string; nameAr?: string; hex: string; stock: number; baseStock?: number; images: string[]; primaryIndex: number; size?: string; sizeAr?: string; priceIqd?: number | null };
 export type ProductInput = { id: string; name: string; nameAr?: string; subtitle: string; subtitleAr?: string; description: string; descriptionAr?: string; price: number; salePriceIqd: number; wholesalePriceIqd?: number; purchasePriceUsd: number | null; exchangeRate: number; category: string; capacity: string | null; badge: string | null; features: string[]; specifications: string[]; warranty: string; materials: string; storyImages: string[]; dimensions: string; dimensionsImage: string; tags: string[]; published: boolean; colors: VariantInput[]; details?: ProductDetails & { v: 1 } };
 
 const isImage = (value: unknown): value is string => typeof value === 'string' && value.length < 2000 && (/^\/(images|api\/media)\//.test(value) || /^https?:\/\//.test(value));
@@ -36,7 +36,7 @@ export function validateProductInput(body: unknown): { data?: ProductInput; erro
   if (!category || category === 'all') return { error: 'Please choose a valid category.' };
   const colorsRaw = Array.isArray(raw.colors) ? raw.colors : [];
   if (!colorsRaw.length) return { error: 'Add at least one color with its own stock and images.' };
-  if (colorsRaw.length > 24) return { error: 'A product can have up to 24 colors.' };
+  if (colorsRaw.length > 120) return { error: 'A product can have up to 120 colour and size combinations.' };
   const descriptionAr = typeof raw.descriptionAr === 'string' ? raw.descriptionAr.trim().slice(0, 4000) : (typeof raw.description === 'string' ? raw.description.trim().slice(0, 4000) : '');
   const subtitleAr = typeof raw.subtitleAr === 'string' ? raw.subtitleAr.trim().slice(0, 200) : (typeof raw.subtitle === 'string' ? raw.subtitle.trim().slice(0, 200) : '');
   const colors: VariantInput[] = [];
@@ -47,16 +47,24 @@ export function validateProductInput(body: unknown): { data?: ProductInput; erro
     const colorName = typeof color.name === 'string' ? color.name.trim() : '';
     const colorNameAr = typeof color.nameAr === 'string' ? color.nameAr.trim() : colorName;
     if (!colorName || colorName.length > 60) return { error: 'Every color needs a name (max 60 characters).' };
-    if (seen.has(colorName.toLowerCase())) return { error: `The color “${colorName}” is listed twice.` };
-    seen.add(colorName.toLowerCase());
+    const size = typeof color.size === 'string' ? color.size.trim().slice(0, 40) : '';
+    const sizeAr = typeof color.sizeAr === 'string' ? color.sizeAr.trim().slice(0, 40) : size;
+    const priceRaw = color.priceIqd;
+    const priceIqd = priceRaw === null || priceRaw === undefined || priceRaw === '' ? null : Math.round(Number(priceRaw));
+    if (priceIqd !== null && (!Number.isFinite(priceIqd) || priceIqd <= 0 || priceIqd > 1000000000)) return { error: `The price for size “${size}” must be above zero.` };
+    const seenKey = `${colorName.toLowerCase()}|${size.toLowerCase()}`;
+    if (seen.has(seenKey)) return { error: size ? `“${colorName}” in size “${size}” is listed twice.` : `The color “${colorName}” is listed twice.` };
+    seen.add(seenKey);
     const hex = typeof color.hex === 'string' && /^#[0-9a-f]{6}$/i.test(color.hex) ? color.hex.toLowerCase() : '#333333';
     const stock = Number(color.stock);
     if (!Number.isInteger(stock) || stock < 0 || stock > 1000000) return { error: `Stock for “${colorName}” must be a whole number of 0 or more.` };
     const images = Array.isArray(color.images) ? color.images.filter(isImage).slice(0, 12) : [];
     const primaryIndex = Number.isInteger(color.primaryIndex) ? Math.min(Math.max(Number(color.primaryIndex), 0), Math.max(images.length - 1, 0)) : 0;
     const baseStock = Number.isInteger(color.baseStock) && Number(color.baseStock) >= 0 ? Number(color.baseStock) : undefined;
-    colors.push({ id: Number.isInteger(color.id) ? Number(color.id) : undefined, name: colorName, nameAr: colorNameAr, hex, stock, baseStock, images, primaryIndex });
+    colors.push({ id: Number.isInteger(color.id) ? Number(color.id) : undefined, name: colorName, nameAr: colorNameAr, hex, stock, baseStock, images, primaryIndex, size, sizeAr: sizeAr || size, priceIqd: size ? priceIqd : null });
   }
+  // Either every variant has a size or none does.
+  if (colors.some(c => c.size) && colors.some(c => !c.size)) return { error: 'Every colour needs a stock for each size.' };
   return { data: { id, name, nameAr, subtitle: typeof raw.subtitle === 'string' ? raw.subtitle.trim().slice(0, 200) : '', description: typeof raw.description === 'string' ? raw.description.trim().slice(0, 4000) : '', descriptionAr, price: Math.round((salePriceIqd / exchangeRate) * 100) / 100, salePriceIqd: Math.round(salePriceIqd), wholesalePriceIqd: Number.isFinite(Number(raw.wholesalePriceIqd)) && raw.wholesalePriceIqd !== undefined ? Math.max(0, Math.round(Number(raw.wholesalePriceIqd))) : undefined, purchasePriceUsd: purchasePriceUsd === null ? null : Math.round(purchasePriceUsd * 100) / 100, exchangeRate, category, capacity: typeof raw.capacity === 'string' && raw.capacity.trim() ? raw.capacity.trim().slice(0, 40) : null, badge: typeof raw.badge === 'string' && raw.badge.trim() ? raw.badge.trim().slice(0, 40).toUpperCase() : null, features: cleanList(raw.features, 12), specifications: cleanList(raw.specifications, 30), warranty: typeof raw.warranty === 'string' ? raw.warranty.trim().slice(0, 2000) : '', materials: typeof raw.materials === 'string' ? raw.materials.trim().slice(0, 2000) : '', storyImages: Array.isArray(raw.storyImages) ? raw.storyImages.filter(isImage).slice(0, 20) : [], dimensions: typeof raw.dimensions === 'string' ? raw.dimensions.trim().slice(0, 120) : '', dimensionsImage: isImage(raw.dimensionsImage) ? raw.dimensionsImage : '', tags: cleanList(raw.tags, 20).map(tag => tag.toLowerCase().replace(/\s+/g, '-')), published: raw.published === true, colors,
     // Product-page content from the new editor. Absent from older clients, in which case it is left as it is.
     details: raw.details && typeof raw.details === 'object' ? { ...cleanDetails(raw.details), v: 1 as const } : undefined } };
@@ -90,7 +98,7 @@ export async function saveProduct(data: ProductInput, { create = false } = {}) {
     for (const [index, color] of data.colors.entries()) {
       // Stock is never written directly: it goes through the inventory ledger so purchase
       // batches stay consistent with stock and every change is logged as a movement.
-      const record = { productId: data.id, name: color.name, nameAr: color.nameAr || color.name, hex: color.hex, images: color.images, primaryIndex: color.primaryIndex, sortOrder: index };
+      const record = { productId: data.id, name: color.name, nameAr: color.nameAr || color.name, hex: color.hex, images: color.images, primaryIndex: color.primaryIndex, sortOrder: index, size: color.size || '', sizeAr: color.sizeAr || color.size || '', priceIqd: color.size ? color.priceIqd ?? null : null };
       if (color.id && existingStock.has(color.id)) {
         await tx.update(productVariants).set(record).where(and(eq(productVariants.id, color.id), eq(productVariants.productId, data.id)));
         keepIds.push(color.id);

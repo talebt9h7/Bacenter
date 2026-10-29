@@ -6,6 +6,7 @@ import { mediaSrc, mediaSrcSet, primaryImage, type Product } from '@/lib/types';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { usePromoLive } from './promo-price';
+import { colorGroups, hasSizes, priceFrom } from '@/lib/variants';
 
 const ROTATE_MS = 3000;
 const IDLE_AFTER_TOUCH_MS = 7000;
@@ -55,11 +56,14 @@ function Slide({ product, colorId, onColor }: { product: Product; colorId?: numb
   const { moneyIqd } = useStore();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const color = product.colors.find(c => c.id === colorId) ?? product.colors.find(c => c.stock > 0) ?? product.colors[0];
+  const sized = hasSizes(product);
+  const swatches = sized ? colorGroups(product) : product.colors;
+  const color = swatches.find(c => c.id === colorId) ?? swatches.find(c => c.stock > 0) ?? swatches[0];
   const name = ar ? (product.nameAr || product.name) : product.name;
   const subtitle = ar ? product.subtitleAr : product.subtitle;
   const promoLive = usePromoLive(product.promotion) && !!product.originalPriceIqd;
-  const price = promoLive ? product.salePriceIqd : (product.originalPriceIqd ?? product.salePriceIqd);
+  const from = priceFrom(product);
+  const price = sized ? from.min : promoLive ? product.salePriceIqd : (product.originalPriceIqd ?? product.salePriceIqd);
   const href = `/products/${product.id}${color ? `?color=${encodeURIComponent(color.name)}` : ''}`;
   const img = primaryImage(color);
 
@@ -72,9 +76,9 @@ function Slide({ product, colorId, onColor }: { product: Product; colorId?: numb
       <span className="hs-eyebrow">{ar ? 'الأكثر مبيعاً' : 'Bestseller'}</span>
       <h1 className="hs-title"><Link href={href}>{name}</Link></h1>
       {subtitle && <p className="hs-sub">{subtitle}</p>}
-      <div className="hs-price">{promoLive ? <><span>{moneyIqd(price)}</span><s>{moneyIqd(product.originalPriceIqd!)}</s></> : moneyIqd(price)}</div>
-      {product.colors.length > 1 && <div className="hs-swatches" role="group" aria-label={ar ? 'الألوان' : 'Colours'}>
-        {product.colors.map(c => <button type="button" key={c.id} title={ar ? (c.nameAr || c.name) : c.name} aria-label={ar ? (c.nameAr || c.name) : c.name} aria-pressed={c.id === color?.id} className={c.id === color?.id ? 'on' : ''} style={{ '--sw': c.hex } as React.CSSProperties} onClick={() => onColor(c.id)} />)}
+      <div className="hs-price">{sized && from.varies ? <>{ar ? 'من ' : 'From '}{moneyIqd(price)}</> : promoLive && !sized ? <><span>{moneyIqd(price)}</span><s>{moneyIqd(product.originalPriceIqd!)}</s></> : moneyIqd(price)}</div>
+      {swatches.length > 1 && <div className="hs-swatches" role="group" aria-label={ar ? 'الألوان' : 'Colours'}>
+        {swatches.map(c => <button type="button" key={c.id} title={ar ? (c.nameAr || c.name) : c.name} aria-label={ar ? (c.nameAr || c.name) : c.name} aria-pressed={c.id === color?.id} className={c.id === color?.id ? 'on' : ''} style={{ '--sw': c.hex } as React.CSSProperties} onClick={() => onColor(c.id)} />)}
       </div>}
       <div className="hs-actions">
         <Link href={href} prefetch className="hs-cta">{ar ? 'اطلبها الآن' : 'Shop this'}</Link>

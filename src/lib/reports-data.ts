@@ -1,3 +1,4 @@
+import { variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { and, desc, gte, lte } from 'drizzle-orm';
 import { db } from '@/db';
 import { customers, expenses, inventoryBatches, inventoryMovements, orders, productVariants, products, shippingZones } from '@/db/schema';
@@ -31,7 +32,7 @@ export async function loadReports(input: { period?: string; from?: string; to?: 
     getSettings(),
     db.select().from(orders).where(ordersTouchingRange(windowFrom, to)).orderBy(desc(orders.createdAt)).limit(30000),
     db.select({ id: products.id, name: products.name, nameAr: products.nameAr, category: products.category, salePriceIqd: products.salePriceIqd, published: products.published }).from(products),
-    db.select({ id: productVariants.id, productId: productVariants.productId, name: productVariants.name, nameAr: productVariants.nameAr, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants),
+    db.select({ id: productVariants.id, productId: productVariants.productId, name: variantNameSql, nameAr: variantNameArSql, hex: productVariants.hex, stock: productVariants.stock, images: productVariants.images, primaryIndex: productVariants.primaryIndex }).from(productVariants),
     db.select().from(inventoryBatches).orderBy(desc(inventoryBatches.receivedAt)),
     reservedByVariant(),
     db.select({ id: customers.id, name: customers.name, phone: customers.phone, governorate: customers.governorate, ordersCount: customers.ordersCount, totalSpent: customers.totalSpent, lastOrderAt: customers.lastOrderAt, createdAt: customers.createdAt, marketingOptIn: customers.marketingOptIn }).from(customers),
