@@ -20,7 +20,7 @@ export function PayView({ initial }: { initial: PublicPayment }) {
 
   // ZainCash: go straight to the provider's page the first time the shopper lands here.
   useEffect(() => {
-    if (p.status === 'pending' && p.provider === 'zaincash' && p.redirectUrl && !redirected.current && !sessionStorage.getItem(`pay-${p.token}`)) {
+    if (p.status === 'pending' && p.provider !== 'fib' && p.redirectUrl && !redirected.current && !sessionStorage.getItem(`pay-${p.token}`)) {
       redirected.current = true;
       try { sessionStorage.setItem(`pay-${p.token}`, '1'); } catch { /* ignore */ }
       window.location.assign(p.redirectUrl);
@@ -46,7 +46,7 @@ export function PayView({ initial }: { initial: PublicPayment }) {
     } catch (e) { setError(e instanceof Error && e.message ? e.message : tt('Could not start the payment. Try again.', 'تعذر بدء الدفع. حاول مرة ثانية.')); setBusy(false); }
   }
 
-  const provider = p.provider === 'fib' ? 'FIB' : tt('ZainCash', 'زين كاش');
+  const provider = p.provider === 'fib' ? 'FIB' : p.provider === 'alqaseh' ? tt('card', 'البطاقة') : tt('ZainCash', 'زين كاش');
   return <main className="pay-page">
     <section className="pay-card">
       {p.test && <span className="pay-test">{tt('Test mode — no real money', 'وضع تجريبي — بدون فلوس حقيقية')}</span>}
@@ -55,7 +55,7 @@ export function PayView({ initial }: { initial: PublicPayment }) {
 
       {p.status === 'paid' && <div className="pay-state ok"><CheckCircle2 size={54} strokeWidth={1.3} /><h1>{tt('Payment received, thank you!', 'تم الدفع، شكراً لك!')}</h1><p>{tt('Your order is confirmed and paid. We will call you before delivery.', 'طلبك مؤكد ومدفوع. راح نتصل بيك قبل التوصيل.')}</p><Link className="pay-btn" href="/">{tt('Back to the store', 'رجوع للمتجر')}</Link></div>}
 
-      {p.status === 'pending' && p.provider === 'zaincash' && <div className="pay-state"><LoaderCircle size={44} className="spin" strokeWidth={1.4} /><h1>{tt('Waiting for ZainCash…', 'بانتظار زين كاش…')}</h1><p>{tt('Complete the payment on the ZainCash page. This page updates by itself.', 'كمّل الدفع بصفحة زين كاش. هاي الصفحة تتحدث وحدها.')}</p>{p.redirectUrl && <a className="pay-btn" href={p.redirectUrl}><CreditCard size={18} /> {tt('Pay with ZainCash', 'ادفع بزين كاش')}</a>}</div>}
+      {p.status === 'pending' && p.provider !== 'fib' && <div className="pay-state"><LoaderCircle size={44} className="spin" strokeWidth={1.4} /><h1>{p.provider === 'alqaseh' ? tt('Waiting for your card payment…', 'بانتظار الدفع بالبطاقة…') : tt('Waiting for ZainCash…', 'بانتظار زين كاش…')}</h1><p>{p.provider === 'alqaseh' ? tt('Complete the payment on the secure card page. This page updates by itself.', 'كمّل الدفع بصفحة البطاقة الآمنة. هاي الصفحة تتحدث وحدها.') : tt('Complete the payment on the ZainCash page. This page updates by itself.', 'كمّل الدفع بصفحة زين كاش. هاي الصفحة تتحدث وحدها.')}</p>{p.redirectUrl && <a className="pay-btn" href={p.redirectUrl}><CreditCard size={18} /> {p.provider === 'alqaseh' ? tt('Pay by card', 'ادفع بالبطاقة') : tt('Pay with ZainCash', 'ادفع بزين كاش')}</a>}</div>}
 
       {p.status === 'pending' && p.provider === 'fib' && p.fib && <div className="pay-state">
         <h1>{tt('Pay with FIB', 'ادفع عبر FIB')}</h1>

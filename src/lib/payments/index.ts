@@ -9,6 +9,13 @@ import { checkWithProvider, FINAL, GatewayError, startWithProvider, type PayStat
 
 export type PaymentRow = typeof payments.$inferSelect;
 
+/** Display name of a provider. */
+export function providerName(provider: string, lang: 'ar' | 'en' = 'en') {
+  if (provider === 'fib') return 'FIB';
+  if (provider === 'alqaseh') return lang === 'ar' ? 'القاصة (بطاقة)' : 'Al Qaseh (card)';
+  return lang === 'ar' ? 'زين كاش' : 'ZainCash';
+}
+
 function siteBase(origin: string, canonical?: string) { return (canonical || origin).replace(/\/+$/, ''); }
 
 /**
@@ -31,11 +38,11 @@ export async function startPayment(orderId: number, origin: string, language: 'a
     const result = await startWithProvider(provider, config, {
       orderReference: order.reference, amountIqd: order.totalCents, externalRef, language,
       phone: order.phone ? `964${order.phone.replace(/^0/, '')}` : undefined,
-      returnUrl: `${base}/api/payments/zaincash/return?p=${token}`,
-      callbackUrl: `${base}/api/payments/fib/callback`,
+      returnUrl: provider === 'alqaseh' ? `${base}/api/payments/alqaseh/return?p=${token}` : `${base}/api/payments/zaincash/return?p=${token}`,
+      callbackUrl: provider === 'alqaseh' ? `${base}/api/payments/alqaseh/webhook` : `${base}/api/payments/fib/callback`,
     });
     await db.update(payments).set({ providerRef: result.providerRef || null, redirectUrl: result.redirectUrl, details: result.details, updatedAt: new Date() }).where(eq(payments.id, row.id));
-    await db.insert(orderEvents).values({ orderId, type: 'payment', message: `Electronic payment opened · ${provider === 'fib' ? 'FIB' : 'ZainCash'}${config.mode === 'test' ? ' (test)' : ''}` });
+    await db.insert(orderEvents).values({ orderId, type: 'payment', message: `Electronic payment opened · ${providerName(provider)}${config.mode === 'test' ? ' (test)' : ''}` });
     return { token, redirectUrl: result.redirectUrl };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gateway error';
@@ -74,13 +81,13 @@ export async function applyStatus(payment: PaymentRow, status: PayStatus, raw?: 
   if (!updated) return payment; // another request got there first
   if (status === 'paid') {
     const [order] = await db.update(orders).set({ paymentStatus: 'paid', paymentMethod: 'electronic', paidCents: payment.amountIqd, updatedAt: now }).where(eq(orders.id, payment.orderId)).returning();
-    await db.insert(orderEvents).values({ orderId: payment.orderId, type: 'payment', message: `Paid electronically · ${payment.provider === 'fib' ? 'FIB' : 'ZainCash'} · ${payment.amountIqd.toLocaleString('en-US')} IQD` });
+    await db.insert(orderEvents).values({ orderId: payment.orderId, type: 'payment', message: `Paid electronically · ${providerName(payment.provider)} · ${payment.amountIqd.toLocaleString('en-US')} IQD` });
     if (order) {
       const settings = await getSettings();
       const base = siteBase(origin ?? '', settings.canonicalBaseUrl);
       await broadcast([
         `💳 <b>تم الدفع إلكترونياً — ${order.reference}</b>`,
-        `${payment.provider === 'fib' ? 'FIB' : 'زين كاش'}${payment.mode === 'test' ? ' (تجريبي)' : ''} · ${payment.amountIqd.toLocaleString('en-US')} د.ع`,
+        `${providerName(payment.provider, 'ar')}${payment.mode === 'test' ? ' (تجريبي)' : ''} · ${payment.amountIqd.toLocaleString('en-US')} د.ع`,
         `👤 ${order.name} · ${order.phone}`,
         base ? `${base}/admin/orders/${order.id}` : '',
       ].filter(Boolean).join('\n')).catch(() => {});
@@ -98,7 +105,9 @@ export async function applyStatus(payment: PaymentRow, status: PayStatus, raw?: 
 export async function syncPayment(payment: PaymentRow, origin?: string) {
   if (!payment.providerRef || FINAL.includes(payment.status as PayStatus)) return payment;
   const config = await getPaymentSettings();
-  const { status, raw } = await checkWithProvider(payment.provider as PaymentProvider, config, payment.providerRef);
+  // Al Qaseh reports status by its request token (kept in details), the others by their payment id.
+  const ref = payment.provider === 'alqaseh' ? String((payment.details as Record<string, unknown>)?.token || payment.providerRef) : payment.providerRef;
+  const { status, raw } = await checkWithProvider(payment.provider as PaymentProvider, config, ref, payment.amountIqd);
   return applyStatus(payment, status, raw, origin);
 }
 

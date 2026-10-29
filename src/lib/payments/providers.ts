@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { baseUrl, type PaymentProvider, type PaymentSettings } from './config';
+import { alqasehAccess, baseUrl, type PaymentProvider, type PaymentSettings } from './config';
 
 /** Our own payment status, shared by both providers. */
 export type PayStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled' | 'refunded';
@@ -173,23 +173,84 @@ async function fibCancel(s: PaymentSettings, paymentId: string) {
   await call(`${baseUrl(s, 'fib')}/protected/v1/payments/${encodeURIComponent(paymentId)}/cancel`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
 }
 
+/* ---------------- Al Qaseh (cards, hosted payment page) ---------------- */
+
+function qsHeaders(s: PaymentSettings) {
+  const a = alqasehAccess(s);
+  return { Authorization: `Basic ${Buffer.from(`${a.clientId}:${a.clientSecret}`, 'utf8').toString('base64')}`, Accept: 'application/json' };
+}
+export function qsStatus(raw: unknown): PayStatus {
+  const v = str(raw).toLowerCase();
+  if (v === 'succeeded' || v === 'success') return 'paid';
+  if (v === 'failed' || v === 'declined' || v === 'duplicated') return 'failed';
+  if (v === 'expired') return 'expired';
+  if (v === 'revoked') return 'cancelled';
+  return 'pending'; // prepared, retried, pending, unknown
+}
+async function qsCreate(s: PaymentSettings, input: StartInput): Promise<StartResult> {
+  const a = alqasehAccess(s);
+  const body = await call(`${a.api}/egw/payments/create`, {
+    method: 'POST',
+    headers: { ...qsHeaders(s), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: input.amountIqd,
+      currency: 'IQD',
+      order_id: input.externalRef, // unique per attempt, so a retry never collides with an earlier one
+      description: `UR Leather order ${input.orderReference}`,
+      redirect_url: input.returnUrl,
+      transaction_type: 'Retail',
+      webhook_url: input.callbackUrl,
+      country: 'IQ',
+    }),
+  });
+  const paymentId = str(pick(body, ['payment_id', 'paymentId']));
+  const token = str(pick(body, ['token']));
+  if (!token) throw new GatewayError('Al Qaseh did not return a payment token.', 0, body);
+  return { providerRef: paymentId || token, redirectUrl: `${a.pay}/${encodeURIComponent(token)}`, details: { token, paymentId } };
+}
+/** Status by request token; the amount and currency must match the order before it counts as paid. */
+async function qsCheck(s: PaymentSettings, token: string, expectedIqd?: number) {
+  const a = alqasehAccess(s);
+  const body = await call(`${a.api}/egw/payments/info/${encodeURIComponent(token)}`, { method: 'GET', headers: qsHeaders(s) });
+  let status = qsStatus(pick(body, ['payment_status', 'status']));
+  if (status === 'paid' && expectedIqd !== undefined) {
+    const amount = Number(pick(body, ['amount']));
+    const currency = str(pick(body, ['currency'])).toUpperCase();
+    if (!(Math.round(amount) === expectedIqd && (!currency || currency === 'IQD'))) {
+      console.error('Al Qaseh amount mismatch', { amount, currency, expectedIqd });
+      status = 'failed';
+    }
+  }
+  return { status, raw: body };
+}
+async function qsRevoke(s: PaymentSettings, paymentId: string) {
+  const a = alqasehAccess(s);
+  await call(`${a.api}/egw/payments/revoke`, { method: 'POST', headers: { ...qsHeaders(s), 'Content-Type': 'application/json' }, body: JSON.stringify({ payment_id: paymentId, details: 'Cancelled by the store' }) });
+}
+
 /* ---------------- Provider-neutral entry points ---------------- */
 
 export type StartInput = { orderReference: string; amountIqd: number; externalRef: string; returnUrl: string; callbackUrl: string; phone?: string; language: 'ar' | 'en' };
 export type StartResult = { providerRef: string; redirectUrl: string | null; details: Record<string, unknown> };
 
 export function startWithProvider(provider: PaymentProvider, s: PaymentSettings, input: StartInput) {
-  return provider === 'fib' ? fibCreate(s, input) : zcInit(s, input);
+  return provider === 'fib' ? fibCreate(s, input) : provider === 'alqaseh' ? qsCreate(s, input) : zcInit(s, input);
 }
-export function checkWithProvider(provider: PaymentProvider, s: PaymentSettings, providerRef: string) {
-  return provider === 'fib' ? fibCheck(s, providerRef) : zcInquiry(s, providerRef);
+/** `ref` is the provider's id (Al Qaseh: the request token). `expectedIqd` guards against a wrong amount. */
+export function checkWithProvider(provider: PaymentProvider, s: PaymentSettings, ref: string, expectedIqd?: number) {
+  return provider === 'fib' ? fibCheck(s, ref) : provider === 'alqaseh' ? qsCheck(s, ref, expectedIqd) : zcInquiry(s, ref);
 }
 export async function cancelWithProvider(provider: PaymentProvider, s: PaymentSettings, providerRef: string) {
   if (provider === 'fib') await fibCancel(s, providerRef);
+  else if (provider === 'alqaseh') await qsRevoke(s, providerRef);
 }
 /** Gets an access token with the saved keys: proves the keys and host are right. */
 export async function testConnection(s: PaymentSettings, provider: PaymentProvider = s.provider) {
   tokens.clear();
-  if (provider === 'fib') await fibToken(s); else await zcToken(s);
+  if (provider === 'fib') await fibToken(s);
+  else if (provider === 'alqaseh') {
+    // No token endpoint: an authenticated history request proves the keys.
+    await call(`${alqasehAccess(s).api}/egw/payments/history?limit=1`, { method: 'GET', headers: qsHeaders(s) });
+  } else await zcToken(s);
   return { host: baseUrl(s, provider) };
 }

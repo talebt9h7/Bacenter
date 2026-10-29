@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest) {
   const current = await getPaymentSettings();
   const next: PaymentSettings = {
     enabled: body.enabled === true,
-    provider: body.provider === 'fib' ? 'fib' : 'zaincash',
+    provider: body.provider === 'fib' || body.provider === 'alqaseh' ? body.provider : 'zaincash',
     mode: body.mode === 'live' ? 'live' : 'test',
     zaincash: {
       clientId: str(body.zaincash?.clientId, 200),
@@ -34,8 +34,15 @@ export async function PUT(request: NextRequest) {
       clientSecret: keep(body.fib?.clientSecret, current.fib.clientSecret),
       liveBaseUrl: url(body.fib?.liveBaseUrl),
     },
+    alqaseh: {
+      clientId: str(body.alqaseh?.clientId, 200),
+      clientSecret: keep(body.alqaseh?.clientSecret, current.alqaseh.clientSecret),
+      liveBaseUrl: url(body.alqaseh?.liveBaseUrl),
+      livePayUrl: url(body.alqaseh?.livePayUrl),
+    },
   };
   if (str(body.zaincash?.liveBaseUrl) && !next.zaincash.liveBaseUrl) return NextResponse.json({ error: 'رابط زين كاش الحقيقي لازم يبدي بـ https://' }, { status: 400 });
+  if ((str(body.alqaseh?.liveBaseUrl) && !next.alqaseh.liveBaseUrl) || (str(body.alqaseh?.livePayUrl) && !next.alqaseh.livePayUrl)) return NextResponse.json({ error: 'روابط القاصة الحقيقية لازم تبدي بـ https://' }, { status: 400 });
   if (str(body.fib?.liveBaseUrl) && !next.fib.liveBaseUrl) return NextResponse.json({ error: 'رابط FIB الحقيقي لازم يبدي بـ https://' }, { status: 400 });
   const missing = missingFields(next);
   if (next.enabled && missing.length) return NextResponse.json({ error: `حتى تشغّل الدفع الإلكتروني أكمل الحقول: ${missing.join('، ')}` }, { status: 400 });
@@ -49,7 +56,7 @@ export async function POST(request: NextRequest) {
   if (!(await requireAdminSection('configuration', 'manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json().catch(() => ({})) as { provider?: string };
   const s = await getPaymentSettings();
-  const provider = body.provider === 'fib' ? 'fib' : body.provider === 'zaincash' ? 'zaincash' : s.provider;
+  const provider = body.provider === 'fib' || body.provider === 'zaincash' || body.provider === 'alqaseh' ? body.provider : s.provider;
   const missing = missingFields(s, provider).filter(f => f !== 'serviceType' && f !== 'apiKey');
   if (missing.length) return NextResponse.json({ ok: false, error: `احفظ هذي الحقول أول: ${missing.join('، ')}` }, { status: 400 });
   try {
