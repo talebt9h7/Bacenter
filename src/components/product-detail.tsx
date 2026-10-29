@@ -141,17 +141,16 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
 
         {sized && <label className="size-picker">
           <span className="material-label">{language === 'ar' ? 'القياس:' : 'Size:'}</span>
-          <span className="size-select"><select value={color.size} aria-label={t('Size')} onChange={event => { const v = findVariant(product, color.name, event.target.value); if (v) selectVariant(v); }}>
-            {sizes.map(option => { const v = product.colors.find(c => c.name === color.name && c.size === option.size); const out = !v || v.stock <= 0; return <option key={option.size} value={option.size} disabled={!v}>{language === 'ar' ? option.sizeAr : option.size}{v && v.priceIqd ? ` — ${moneyIqd(variantPricing(product, v).price)}` : ''}{out && v ? (language === 'ar' ? ' (نفد)' : ' (sold out)') : ''}</option>; })}
+          <span className="size-select"><select value={color.size} aria-label={t('Size')} onChange={event => { const size = event.target.value; const same = product.colors.find(c => c.name === color.name && c.size === size && c.images.length); const v = same ?? product.colors.find(c => c.size === size && c.images.length && c.stock > 0) ?? product.colors.find(c => c.size === size && c.images.length) ?? findVariant(product, color.name, size); if (v) selectVariant(v); }}>
+            {sizes.map(option => { const v = product.colors.find(c => c.name === color.name && c.size === option.size && c.images.length) ?? product.colors.find(c => c.size === option.size && c.images.length); const out = !v || v.stock <= 0; return <option key={option.size} value={option.size} disabled={!v}>{language === 'ar' ? option.sizeAr : option.size}{out && v ? (language === 'ar' ? ' (نفد)' : ' (sold out)') : ''}</option>; })}
           </select><ChevronDown size={20} aria-hidden="true" /></span>
         </label>}
 
         {!sized && product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
 
         <div className="material-label">{language === 'ar' ? 'المادة واللون:' : 'Material & color:'}</div>
-        {sized && (() => { const prices = product.colors.map(c => variantPricing(product, c).price); const lo = Math.min(...prices), hi = Math.max(...prices); return lo !== hi ? <p className="price-range-note">{language === 'ar' ? `السعر حسب القياس (${moneyIqd(lo)} – ${moneyIqd(hi)})` : `Price by size (${moneyIqd(lo)} – ${moneyIqd(hi)})`}</p> : null; })()}
         <div className="detail-swatches" aria-label={t('Choose a color')}>
-          {swatches.map(item => <div className="detail-swatch-wrap" key={item.id}>
+          {(sized ? swatches.filter(item => product.colors.some(c => c.name === item.name && c.size === color.size && c.images.length)) : swatches).map(item => <div className="detail-swatch-wrap" key={item.id}>
             <button
               type="button"
               title={item.stock > 0 ? displayColorName(item) : `${displayColorName(item)} — ${t('Sold out')}`}
