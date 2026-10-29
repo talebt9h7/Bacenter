@@ -9,7 +9,7 @@ export class GatewayError extends Error {
   constructor(message: string, public status = 0, public body: unknown = null) { super(message); }
 }
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 25000;
 async function call(url: string, init: RequestInit) {
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store' });
   const text = await response.text();
@@ -196,7 +196,7 @@ async function qsCreate(s: PaymentSettings, input: StartInput): Promise<StartRes
       amount: input.amountIqd,
       currency: 'IQD',
       order_id: input.externalRef, // unique per attempt, so a retry never collides with an earlier one
-      description: `UR Leather order ${input.orderReference}`,
+      description: `UR ${input.orderReference}`.slice(0, 32),
       redirect_url: input.returnUrl,
       transaction_type: 'Retail',
       webhook_url: input.callbackUrl,

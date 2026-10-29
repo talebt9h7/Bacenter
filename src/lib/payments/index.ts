@@ -31,7 +31,8 @@ export async function startPayment(orderId: number, origin: string, language: 'a
   const settings = await getSettings();
   const base = siteBase(origin, settings.canonicalBaseUrl);
   const token = randomBytes(16).toString('hex');
-  const externalRef = randomUUID();
+  // ZainCash wants a UUID; Al Qaseh's order_id column holds at most 32 characters.
+  const externalRef = config.provider === 'alqaseh' ? randomUUID().replace(/-/g, '') : randomUUID();
   const provider: PaymentProvider = config.provider;
   const [row] = await db.insert(payments).values({ orderId, token, provider, mode: config.mode, amountIqd: order.totalCents, externalRef }).returning();
   try {
