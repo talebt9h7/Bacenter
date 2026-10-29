@@ -88,6 +88,8 @@ export function Checkout() {
   const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
   const [payment, setPayment] = useState<'cod' | 'electronic'>('cod');
   const isCard = !!config?.gateway?.enabled && config.gateway.provider === 'alqaseh';
+  // Electronic payment with the gateway on: the button takes the shopper to the payment page.
+  const payOnline = payment === 'electronic' && !!config?.gateway?.enabled;
   const codFee = payment === 'cod' ? (config?.settings.codFee ?? 0) : 0;
   const total = Math.max(0, subtotal - discount) + shipping + codFee;
   const promoSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPriceIqd ?? item.salePriceIqd) - item.salePriceIqd) * item.quantity, 0);
@@ -229,7 +231,7 @@ export function Checkout() {
 
         {error && <p className="co-error co-error-box" role="alert">{error}</p>}
         <div className="co-submit">
-          <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
+          <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</> : payOnline ? <><LockKeyhole size={17} aria-hidden="true" /> {ar ? 'الانتقال إلى صفحة الدفع' : 'Continue to payment'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
           <ul className="co-trust">
             <li>{payment === 'electronic' && config?.gateway?.enabled ? <><ShieldCheck size={15} aria-hidden="true" /> {ar ? 'دفع آمن ومشفّر' : 'Secure, encrypted payment'}</> : <><Banknote size={15} aria-hidden="true" /> {ar ? 'تدفع عند الاستلام' : 'Pay on delivery'}</>}</li>
             <li><PhoneCall size={15} aria-hidden="true" /> {ar ? 'نتصل بك قبل الشحن' : 'We call before dispatch'}</li>
