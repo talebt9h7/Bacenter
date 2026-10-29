@@ -2,7 +2,7 @@
 import { track } from '@/lib/track';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShieldCheck, ShoppingBag, Tag, Truck, X } from 'lucide-react';
 import { useStore } from './store-provider';
 import { mediaSrc } from '@/lib/types';
 import { useLanguage } from './language-provider';
@@ -87,6 +87,7 @@ export function Checkout() {
   const shipping = zone ? (freeShipping ? 0 : zone.rate) : 0;
   const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
   const [payment, setPayment] = useState<'cod' | 'electronic'>('cod');
+  const isCard = !!config?.gateway?.enabled && config.gateway.provider === 'alqaseh';
   const codFee = payment === 'cod' ? (config?.settings.codFee ?? 0) : 0;
   const total = Math.max(0, subtotal - discount) + shipping + codFee;
   const promoSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPriceIqd ?? item.salePriceIqd) - item.salePriceIqd) * item.quantity, 0);
@@ -216,7 +217,7 @@ export function Checkout() {
           <legend><span>3</span> {ar ? 'طريقة الدفع' : 'Payment'}</legend>
           <div className="co-pay-options" role="radiogroup">
             <label className={`co-pay ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong><small>{ar ? 'تدفع للمندوب نقداً لما يوصلك الطلب.' : 'Pay the courier in cash when your order arrives.'}{config?.settings.codFee ? (ar ? ` تُضاف ${iqd(config.settings.codFee)} رسوم.` : ` A ${iqd(config.settings.codFee)} fee applies.`) : ''}</small></div></label>
-            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع الإلكتروني' : 'Electronic payment'}</strong><small>{config?.gateway?.enabled ? (config.gateway.provider === 'alqaseh' ? (ar ? 'ادفع الآن ببطاقة فيزا أو ماستر عبر صفحة القاصة الآمنة، مباشرة بعد تأكيد الطلب.' : 'Pay now by Visa or Mastercard on Al Qaseh’s secure page, right after you confirm.') : config.gateway.provider === 'fib' ? (ar ? 'ادفع الآن عبر تطبيق FIB (المصرف العراقي الأول) بعد تأكيد الطلب مباشرة.' : 'Pay now with the FIB app right after you confirm.') : (ar ? 'ادفع الآن عبر زين كاش، تتحول لصفحة الدفع بعد تأكيد الطلب مباشرة.' : 'Pay now with ZainCash — you go to the payment page right after you confirm.')) : (ar ? 'زين كاش أو بطاقة. نتواصل وياك ونرسل لك رابط الدفع بعد تأكيد الطلب.' : 'ZainCash or card. We send you a payment link once the order is confirmed.')}</small></div></label>
+            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong className="co-pay-title">{isCard ? (ar ? 'بطاقة' : 'Card') : (ar ? 'الدفع الإلكتروني' : 'Electronic payment')}{isCard && <span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span>}</strong><small>{config?.gateway?.enabled ? (config.gateway.provider === 'alqaseh' ? (ar ? 'تكتب معلومات البطاقة بصفحة دفع آمنة ومشفّرة بعد تأكيد الطلب. ما نحتفظ بأي معلومة من بطاقتك.' : 'You enter your card on a secure, encrypted payment page after confirming. We never store your card details.') : config.gateway.provider === 'fib' ? (ar ? 'ادفع الآن عبر تطبيق FIB (المصرف العراقي الأول) بعد تأكيد الطلب مباشرة.' : 'Pay now with the FIB app right after you confirm.') : (ar ? 'ادفع الآن عبر زين كاش، تتحول لصفحة الدفع بعد تأكيد الطلب مباشرة.' : 'Pay now with ZainCash — you go to the payment page right after you confirm.')) : (ar ? 'زين كاش أو بطاقة. نتواصل وياك ونرسل لك رابط الدفع بعد تأكيد الطلب.' : 'ZainCash or card. We send you a payment link once the order is confirmed.')}</small></div></label>
           </div>
           <dl className="co-final">
             <div><dt>{ar ? 'مجموع الطلب' : 'Subtotal'}</dt><dd>{iqd(Math.max(0, subtotal - discount))}</dd></div>
@@ -230,7 +231,7 @@ export function Checkout() {
         <div className="co-submit">
           <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
           <ul className="co-trust">
-            <li><Banknote size={15} aria-hidden="true" /> {ar ? 'تدفع عند الاستلام' : 'Pay on delivery'}</li>
+            <li>{payment === 'electronic' && config?.gateway?.enabled ? <><ShieldCheck size={15} aria-hidden="true" /> {ar ? 'دفع آمن ومشفّر' : 'Secure, encrypted payment'}</> : <><Banknote size={15} aria-hidden="true" /> {ar ? 'تدفع عند الاستلام' : 'Pay on delivery'}</>}</li>
             <li><PhoneCall size={15} aria-hidden="true" /> {ar ? 'نتصل بك قبل الشحن' : 'We call before dispatch'}</li>
           </ul>
           <p className="co-legal">{t('By continuing, you agree to our')} <Link href="/info/terms">{ar ? 'الشروط والأحكام' : 'terms & conditions'}</Link>. {whatsapp ? <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">{ar ? 'عندك سؤال؟ راسلنا واتساب' : 'Questions? WhatsApp us'}</a> : <><MapPin size={11} aria-hidden="true" /> {config.settings.supportPhone}</>}</p>
