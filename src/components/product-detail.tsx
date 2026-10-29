@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Banknote, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, ShieldCheck, ZoomIn } from 'lucide-react';
+import { ArrowRight, Banknote, ChevronDown, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, ShieldCheck, ZoomIn } from 'lucide-react';
 import { categories } from '@/lib/catalog';
 import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
 import { useStore } from './store-provider';
@@ -139,14 +139,17 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
           {promoLive && product.promotion && <div className="promo-panel"><span className="promo-panel-name">{(language === 'ar' ? product.promotion.badgeAr || product.promotion.nameAr : product.promotion.badge || product.promotion.name) || `−${product.promotion.percentOff}%`}</span>{product.promotion.showCountdown && <PromoCountdown endsAt={product.promotion.endsAt} language={language} refreshOnEnd />}</div>}
         </div>
 
-        {sized && <div className="size-picker" role="radiogroup" aria-label={t('Size')}>
-          <div className="material-label">{language === 'ar' ? 'القياس' : 'Size'}{color.size ? <b> · {displaySize(color)}</b> : null}</div>
-          <div className="size-options">{sizes.map(option => { const v = findVariant(product, color.name, option.size); const exact = v && v.size === option.size ? v : undefined; const out = !exact || exact.stock <= 0; return <button key={option.size} type="button" role="radio" aria-checked={color.size === option.size} className={`${color.size === option.size ? 'selected' : ''} ${out ? 'is-out' : ''}`} onClick={() => { if (exact) selectVariant(exact); }} disabled={!exact}><span>{language === 'ar' ? option.sizeAr : option.size}</span>{exact && exact.priceIqd ? <small>{moneyIqd(variantPricing(product, exact).price)}</small> : null}{out && exact ? <small>{t('Sold out')}</small> : null}</button>; })}</div>
-        </div>}
+        {sized && <label className="size-picker">
+          <span className="material-label">{language === 'ar' ? 'القياس:' : 'Size:'}</span>
+          <span className="size-select"><select value={color.size} aria-label={t('Size')} onChange={event => { const v = findVariant(product, color.name, event.target.value); if (v) selectVariant(v); }}>
+            {sizes.map(option => { const v = product.colors.find(c => c.name === color.name && c.size === option.size); const out = !v || v.stock <= 0; return <option key={option.size} value={option.size} disabled={!v}>{language === 'ar' ? option.sizeAr : option.size}{v && v.priceIqd ? ` — ${moneyIqd(variantPricing(product, v).price)}` : ''}{out && v ? (language === 'ar' ? ' (نفد)' : ' (sold out)') : ''}</option>; })}
+          </select><ChevronDown size={20} aria-hidden="true" /></span>
+        </label>}
 
         {!sized && product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
 
-        <div className="material-label">{language === 'ar' ? 'المادة واللون' : 'Material & color'}</div>
+        <div className="material-label">{language === 'ar' ? 'المادة واللون:' : 'Material & color:'}</div>
+        {sized && (() => { const prices = product.colors.map(c => variantPricing(product, c).price); const lo = Math.min(...prices), hi = Math.max(...prices); return lo !== hi ? <p className="price-range-note">{language === 'ar' ? `السعر حسب القياس (${moneyIqd(lo)} – ${moneyIqd(hi)})` : `Price by size (${moneyIqd(lo)} – ${moneyIqd(hi)})`}</p> : null; })()}
         <div className="detail-swatches" aria-label={t('Choose a color')}>
           {swatches.map(item => <div className="detail-swatch-wrap" key={item.id}>
             <button
@@ -158,7 +161,7 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
               style={{ '--swatch': item.hex } as React.CSSProperties}
               onClick={() => chooseColor(item)}
             >
-              {item.images[0] ? <img src={mediaSrc(item.images[0], 160)} alt="" aria-hidden="true" /> : <span className="swatch-color-fill" aria-hidden="true" />}
+              {(() => { const shown = sized ? (findVariant(product, item.name, color.size) ?? item) : item; const src = shown.images[shown.primaryIndex] ?? shown.images[0]; return src ? <img src={mediaSrc(src, 160)} alt="" aria-hidden="true" /> : <span className="swatch-color-fill" aria-hidden="true" />; })()}
             </button>
             <span>{displayColorName(item)}</span>
           </div>)}

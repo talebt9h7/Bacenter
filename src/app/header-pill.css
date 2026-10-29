@@ -145,3 +145,10 @@ html body main.product-page .size-picker .material-label b{font-weight:600}
 .size-options button.is-out{color:#a39a8c;background:#f7f4ef}
 .size-options button.is-out span{text-decoration:line-through}
 .size-options button:disabled{opacity:.45;cursor:not-allowed}
+/* Size dropdown (like the reference): label, full-width select with chevron, price range note. */
+html body main.product-page .size-picker{display:flex;flex-direction:column;gap:8px;margin:4px 0 18px}
+html body main.product-page .size-picker .material-label{margin:0}
+.size-select{position:relative;display:block}
+.size-select select{appearance:none;-webkit-appearance:none;width:100%;height:52px;padding:0 16px;padding-inline-end:44px;border:1.5px solid #1f1d1a;border-radius:14px;background:#fff;font:inherit;font-size:16px;color:#1f1d1a;cursor:pointer}
+.size-select svg{position:absolute;top:50%;inset-inline-end:14px;transform:translateY(-50%);pointer-events:none;color:#1f1d1a}
+html body main.product-page .price-range-note{margin:-4px 0 12px;font-size:14px;color:#5d554a}
