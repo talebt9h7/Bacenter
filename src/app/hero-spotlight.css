@@ -24,12 +24,12 @@
 .hs-dots{display:flex;gap:8px}
 .hs-dots button{width:22px;height:4px;padding:0;border-radius:4px;background:#e2d7c7;overflow:hidden;cursor:pointer;border:0}
 .hs-dots button.on{width:38px}
-.hs-dots button i{display:block;height:100%;width:0;background:#8a6a3b}
+.hs-dots button i{display:block;height:100%;width:100%;background:#8a6a3b;transform:scaleX(0);transform-origin:right center}
+[dir=ltr] .hs-dots button i{transform-origin:left center}
 .hs-dots button.on i{animation:hs-bar linear forwards}
-[dir=rtl] .hs-dots button i{margin-inline-start:0}
 @keyframes hs-in{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes hs-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@keyframes hs-bar{from{width:0}to{width:100%}}
+@keyframes hs-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media (min-width:900px){
   .hs{min-height:640px;padding:30px 6vw 40px}
   .hs-slide{grid-template-columns:1.1fr 1fr;gap:4vw}
@@ -41,4 +41,5 @@
   .hs-actions{flex-direction:row;gap:22px}
   .hs-nav{justify-content:flex-start;padding-inline-start:calc(52% + 2vw)}
 }
-@media (prefers-reduced-motion:reduce){.hs-media img,.hs-copy{animation:none}.hs-dots button.on i{animation:none;width:100%}}
+.hs-still .hs-media img,.hs-still .hs-copy{animation:none}
+@media (prefers-reduced-motion:reduce){.hs-media img,.hs-copy{animation:none}.hs-dots button.on i{animation:none;transform:none}}

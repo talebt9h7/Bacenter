@@ -15,6 +15,8 @@ export function HeroSpotlight({ products }: { products: Product[] }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const [index, setIndex] = useState(0);
+  // The first slide paints without an entrance animation so it shows (and counts as loaded) straight away.
+  const [moved, setMoved] = useState(false);
   const [colorIds, setColorIds] = useState<Record<string, number>>({});
   const holdUntil = useRef(0);
   const touchX = useRef<number | null>(null);
@@ -25,17 +27,17 @@ export function HeroSpotlight({ products }: { products: Product[] }) {
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = window.setInterval(() => {
       if (document.hidden || Date.now() < holdUntil.current) return;
-      setIndex(i => (i + 1) % count);
+      setMoved(true); setIndex(i => (i + 1) % count);
     }, ROTATE_MS);
     return () => window.clearInterval(timer);
   }, [count]);
 
   if (!count) return null;
   const hold = () => { holdUntil.current = Date.now() + IDLE_AFTER_TOUCH_MS; };
-  const go = (next: number) => { hold(); setIndex(((next % count) + count) % count); };
+  const go = (next: number) => { hold(); setMoved(true); setIndex(((next % count) + count) % count); };
   const product = products[index];
 
-  return <section className="hs" aria-roledescription="carousel" aria-label={ar ? 'الأكثر مبيعاً' : 'Bestsellers'}
+  return <section className={`hs${moved ? '' : ' hs-still'}`} aria-roledescription="carousel" aria-label={ar ? 'الأكثر مبيعاً' : 'Bestsellers'}
     onPointerDown={hold}
     onTouchStart={e => { touchX.current = e.touches[0].clientX; }}
     onTouchEnd={e => { if (touchX.current == null) return; const d = touchX.current - e.changedTouches[0].clientX; touchX.current = null; if (Math.abs(d) > 45) go(index + ((d > 0) === ar ? -1 : 1)); }}>

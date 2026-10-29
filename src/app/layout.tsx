@@ -1,3 +1,4 @@
+import { mediaSrc } from '@/lib/types';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
@@ -28,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: s.canonicalBaseUrl ? { canonical: '/' } : undefined,
     openGraph: { title: s.metaTitle, description: s.metaDescription, images: s.ogImage ? [s.ogImage] : undefined, siteName: s.storeName },
     twitter: { card: 'summary_large_image', title: s.metaTitle, description: s.metaDescription, images: s.ogImage ? [s.ogImage] : undefined },
-    icons: { icon: s.faviconUrl || s.logoUrl },
+    icons: { icon: mediaSrc(s.faviconUrl || s.logoUrl, 160) },
     robots: { index: s.seoIndex, follow: s.seoFollow },
   };
 }
