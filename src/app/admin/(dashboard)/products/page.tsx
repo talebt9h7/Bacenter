@@ -1,3 +1,4 @@
+import { priceFrom, variantLabel } from '@/lib/variants';
 import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
 import Link from 'next/link';
@@ -16,7 +17,7 @@ export default async function AdminProductsPage() {
   if (!actor) redirect('/admin');
   const products = await getAllProducts({ includeUnpublished: true });
   const categories = await getCategories({ includeInactive: true });
-  const rows = products.map(product => ({ id: product.id, name: product.name, image: primaryImage(product.colors[0]), category: categories.find(item => item.id === product.category)?.name ?? product.category, categoryId: product.category, price: product.salePriceIqd, published: product.published, stock: totalStock(product), colors: product.colors.map(color => ({ id: color.id, name: color.name, hex: color.hex, stock: color.stock, photos: color.images.length })) }));
+  const rows = products.map(product => ({ id: product.id, name: product.name, image: primaryImage(product.colors[0]), category: categories.find(item => item.id === product.category)?.name ?? product.category, categoryId: product.category, price: priceFrom(product).min, published: product.published, stock: totalStock(product), colors: product.colors.map(color => ({ id: color.id, name: variantLabel(color.name, color.size), hex: color.hex, stock: color.stock, photos: color.images.length })) }));
   const { lowStockThreshold } = await getSettings();
   const colors = products.flatMap(p => p.colors);
   const stats = { products: products.length, published: products.filter(p => p.published).length, colors: colors.length, soldOut: colors.filter(c => stockLevel(c.stock, lowStockThreshold) === 'out').length, low: colors.filter(c => stockLevel(c.stock, lowStockThreshold) === 'low').length, noPhotos: colors.filter(c => !c.images.length).length, units: colors.reduce((s, c) => s + c.stock, 0), lowThreshold: lowStockThreshold };
