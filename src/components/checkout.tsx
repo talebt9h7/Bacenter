@@ -10,7 +10,7 @@ import { storeT } from '@/lib/i18n';
 import { iraqPhonePattern, normalizeIraqPhone } from '@/lib/iraq';
 
 type Zone = { code: string; nameEn: string; nameAr: string; rate: number; minDays: number; maxDays: number };
-type Config = { zones: Zone[]; settings: { exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; supportPhone: string; whatsapp?: string | number } };
+type Config = { gateway?: { enabled: boolean; provider: 'zaincash' | 'fib' }; zones: Zone[]; settings: { exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; supportPhone: string; whatsapp?: string | number } };
 type Coupon = { code: string; discount: number; freeShipping: boolean; description: string };
 type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone; payment?: 'cod' | 'electronic' };
 type Saved = { name?: string; phone?: string; altPhone?: string; email?: string; governorate?: string; city?: string; address?: string; landmark?: string };
@@ -114,6 +114,12 @@ export function Checkout() {
       const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, coupon: coupon?.code ?? '' }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error);
       try { const { note: _note, payment: _payment, ...keep } = data; void _note; void _payment; localStorage.setItem(SAVED_KEY, JSON.stringify(keep)); } catch { /* storage unavailable */ }
+      // Online gateway: go to the payment page (ZainCash directly, FIB via our QR page).
+      if (payment === 'electronic' && result.payment?.url) {
+        track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping });
+        window.location.assign(result.payment.redirectUrl || result.payment.url);
+        return;
+      }
       setOrder({ ...result.order, zone, payment });
       track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping, coupon: coupon?.code }); await refreshCart(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) { setError(err instanceof Error ? err.message : (ar ? 'تحقق من الاتصال وحاول مرة أخرى.' : 'Please check your connection and try again.')); }
@@ -210,7 +216,7 @@ export function Checkout() {
           <legend><span>3</span> {ar ? 'طريقة الدفع' : 'Payment'}</legend>
           <div className="co-pay-options" role="radiogroup">
             <label className={`co-pay ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong><small>{ar ? 'تدفع للمندوب نقداً لما يوصلك الطلب.' : 'Pay the courier in cash when your order arrives.'}{config?.settings.codFee ? (ar ? ` تُضاف ${iqd(config.settings.codFee)} رسوم.` : ` A ${iqd(config.settings.codFee)} fee applies.`) : ''}</small></div></label>
-            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع الإلكتروني' : 'Electronic payment'}</strong><small>{ar ? 'زين كاش أو بطاقة. نتواصل وياك ونرسل لك رابط الدفع بعد تأكيد الطلب.' : 'ZainCash or card. We send you a payment link once the order is confirmed.'}</small></div></label>
+            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع الإلكتروني' : 'Electronic payment'}</strong><small>{config?.gateway?.enabled ? (config.gateway.provider === 'fib' ? (ar ? 'ادفع الآن عبر تطبيق FIB (المصرف العراقي الأول) بعد تأكيد الطلب مباشرة.' : 'Pay now with the FIB app right after you confirm.') : (ar ? 'ادفع الآن عبر زين كاش، تتحول لصفحة الدفع بعد تأكيد الطلب مباشرة.' : 'Pay now with ZainCash — you go to the payment page right after you confirm.')) : (ar ? 'زين كاش أو بطاقة. نتواصل وياك ونرسل لك رابط الدفع بعد تأكيد الطلب.' : 'ZainCash or card. We send you a payment link once the order is confirmed.')}</small></div></label>
           </div>
           <dl className="co-final">
             <div><dt>{ar ? 'مجموع الطلب' : 'Subtotal'}</dt><dd>{iqd(Math.max(0, subtotal - discount))}</dd></div>

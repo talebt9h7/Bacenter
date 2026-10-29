@@ -116,3 +116,22 @@ html body main.product-page .detail-swatch-wrap>button{border-radius:16px!import
 html body main.product-page .detail-swatch-wrap>button img,html body main.product-page .detail-swatch-wrap>button .swatch-color-fill{border-radius:12px!important}
 html body main.product-page .detail-swatch-wrap>button.selected{border-color:#8a6a3b!important;box-shadow:0 0 0 1px #8a6a3b!important}
 html body main.product-page .product-thumbnails>*{border-radius:14px!important;overflow:hidden}
+/* Electronic payment page. */
+.pay-page{min-height:70vh;display:flex;justify-content:center;padding:28px 16px 60px}
+.pay-card{width:min(460px,100%);background:linear-gradient(170deg,#f6e9d9 0%,#fbf7f1 35%,#fff 100%);border:1px solid #eadfce;border-radius:28px;box-shadow:0 20px 50px rgba(80,55,25,.12);padding:26px 22px 30px;text-align:center}
+.pay-test{display:inline-block;margin-bottom:12px;padding:5px 12px;border-radius:999px;background:#fff4e0;color:#9a5b00;font-size:12.5px;font-weight:600}
+.pay-ref{margin:0;color:#7a7266;font-size:14px}
+.pay-card .pay-amount{margin:6px 0 18px!important;font-size:30px!important;font-weight:700;color:#1f1d1a}
+.pay-state{display:flex;flex-direction:column;align-items:center;gap:10px;color:#3b352d}
+.pay-state h1{margin:4px 0 0;font-size:21px;font-weight:700;color:#1f1d1a}
+.pay-state p{margin:0;font-size:14.5px;line-height:1.7;color:#6b6358}
+.pay-state.ok>svg{color:#3f7a4a}.pay-state.bad>svg{color:#b3402f}
+.pay-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:220px;height:54px;margin-top:10px;padding:0 26px;border-radius:18px;border:0;background:linear-gradient(100deg,#7d6040 0%,#a88a62 55%,#b89a72 100%);color:#fff!important;font-size:16px;font-weight:600;box-shadow:0 10px 24px rgba(125,96,64,.25);cursor:pointer;text-decoration:none}
+.pay-btn.ghost{background:#fff;color:#3b352d!important;border:1px solid #e3d9cb;box-shadow:none}
+.pay-btn:disabled{opacity:.6}
+.pay-qr{width:220px;height:220px;border-radius:18px;background:#fff;padding:10px;border:1px solid #eadfce;margin-top:6px}
+.pay-code{font-size:15px}.pay-code strong{letter-spacing:.08em}
+.pay-apps{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pay-wait{display:inline-flex;align-items:center;gap:6px;margin-top:8px!important;font-size:13px!important;color:#8a6a3b!important}
+.pay-error{color:#b3402f!important;font-size:13.5px!important}
+.int-copy{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:6px 10px;border-radius:10px;border:1px dashed #cdbfa9;background:#fffaf2;font-size:12px;color:#5d4a2f;cursor:pointer;word-break:break-all;text-align:start}

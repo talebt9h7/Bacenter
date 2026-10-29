@@ -12,6 +12,8 @@ import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
 import { assertAvailable, claimCoupon, validateCoupon } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
 import { bestPromotion, getUpcomingPromotions } from '@/lib/promotions';
+import { startPayment } from '@/lib/payments';
+import { gatewayReady, getPaymentSettings } from '@/lib/payments/config';
 
 /** A checkout problem to show the shopper. Thrown inside the transaction so nothing is saved. */
 class CheckoutError extends Error {}
@@ -28,7 +30,9 @@ export async function POST(request: NextRequest) {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Please enter a valid email address or leave it empty.' }, { status: 400 });
     if (!city || city.length < 2) return NextResponse.json({ error: 'Please add the city or district.' }, { status: 400 });
     const settings = await getSettings();
-    if (!settings.codEnabled) return NextResponse.json({ error: 'Cash on delivery is temporarily unavailable. Please try again later.' }, { status: 409 });
+    const paySettings = payment === 'electronic' ? await getPaymentSettings() : null;
+    const online = !!paySettings && gatewayReady(paySettings);
+    if (!settings.codEnabled && !online) return NextResponse.json({ error: 'Cash on delivery is temporarily unavailable. Please try again later.' }, { status: 409 });
     const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, governorate));
     if (!zone || !zone.enabled) return NextResponse.json({ error: 'Please choose a governorate we currently deliver to.' }, { status: 400 });
     const sessionId = await getSession();
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
       // The order is pending at checkout, so realized financial profit stays at zero until delivery.
       // The item-level sale/purchase snapshot is kept for calculating the profit when it is delivered.
       const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: rate, subtotalCents: subtotal, shippingCents: shipping, discountCents: discount, codFeeCents: codFee, totalCents: total, profitIqd: 0, couponCode: appliedCoupon, paymentMethod: payment, paymentStatus: 'unpaid', status: 'pending', customerNote: note || null }).returning({ id: orders.id });
-      await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Order placed · cash on delivery · ${zone.nameEn}` });
+      await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Order placed · ${payment === 'electronic' ? 'electronic payment' : 'cash on delivery'} · ${zone.nameEn}` });
       await tx.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
       await tx.delete(cartBundles).where(eq(cartBundles.sessionId, sessionId));
       return { orderId: created.id, order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
@@ -104,8 +108,18 @@ export async function POST(request: NextRequest) {
     const capiUser = { ...requestUser(request.headers, request.cookies), phone, email, name, city, governorate: result.order.governorate, externalId: phone };
     const o = result.order;
     after(() => sendCapi([{ name: 'Purchase', eventId: o.reference, url: request.headers.get('referer') ?? `${origin}/checkout`, user: capiUser, custom: { currency: 'IQD', value: o.total, order_id: o.reference, content_type: 'product', content_ids: [...new Set(o.items.map(i => i.productId))], contents: o.items.map(i => ({ id: i.productId, quantity: i.quantity, item_price: i.unitPrice })), num_items: o.items.reduce((n, i) => n + i.quantity, 0) } }]).then(r => { if (!r.ok && !('skipped' in r)) console.error('CAPI Purchase failed', r.error); }));
+    // Electronic payment: open the gateway now and send the shopper to it. If the gateway refuses,
+    // the order still stands and the shop sends a payment link manually (as before the gateway).
+    let pay: { url: string; redirectUrl: string | null } | null = null; let payError = false;
+    if (online) {
+      try {
+        const lang = request.cookies.get('bellroy_lang')?.value === 'en' ? 'en' : 'ar';
+        const started = await startPayment(result.orderId, origin, lang);
+        if (started) pay = { url: `/pay/${started.token}`, redirectUrl: started.redirectUrl };
+      } catch { payError = true; }
+    }
     const { orderId: _orderId, ...response } = result; void _orderId;
-    return NextResponse.json(response, { status: 201 });
+    return NextResponse.json({ ...response, payment: pay, paymentError: payError }, { status: 201 });
   } catch (error) {
     if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: 409 });
     if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Some items just sold out. Please review your bag.' }, { status: 409 });

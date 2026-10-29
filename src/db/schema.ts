@@ -179,6 +179,25 @@ export const orderEvents = pgTable('order_events', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [index('events_order_idx').on(table.orderId)]);
 
+/** Electronic payment attempts (ZainCash / FIB). `token` is the public id used in the pay page URL. */
+export const payments = pgTable('payments', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  provider: text('provider').notNull(),
+  mode: text('mode').notNull().default('test'),
+  status: text('status').notNull().default('pending'),
+  amountIqd: integer('amount_iqd').notNull(),
+  externalRef: text('external_ref').notNull(),
+  providerRef: text('provider_ref'),
+  redirectUrl: text('redirect_url'),
+  details: jsonb('details').notNull().default({}),
+  error: text('error'),
+  paidAt: timestamp('paid_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [index('payments_order_idx').on(table.orderId), index('payments_provider_ref_idx').on(table.providerRef)]);
+
 export const shippingZones = pgTable('shipping_zones', {
   id: serial('id').primaryKey(),
   code: text('code').notNull().unique(),
