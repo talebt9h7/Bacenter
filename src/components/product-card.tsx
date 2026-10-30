@@ -7,7 +7,7 @@ import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n';
 import { PromoCountdown, usePromoLive } from './promo-price';
-import { colorGroups, hasSizes, priceFrom, sizeOptions } from '@/lib/variants';
+import { colorGroups, hasSizes, priceFrom } from '@/lib/variants';
 
 export function ProductCard({ product, compact = false }: { product: Product; compact?: boolean }) {
   // Sized products list each colour once here; the size is chosen on the product page.
@@ -47,7 +47,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
       {!compact && <div className="product-swatches" aria-label={`${displayName} colors`}>
         {swatches.map(item => <button key={item.id} title={item.stock > 0 ? (language === 'ar' ? (item.nameAr || item.name) : item.name) : `${language === 'ar' ? (item.nameAr || item.name) : item.name} (${language === 'ar' ? 'نفد المخزون' : 'sold out'})`} aria-label={`${displayName}: ${language === 'ar' ? (item.nameAr || item.name) : item.name}`} aria-pressed={color.id === item.id} className={`${color.id === item.id ? 'selected' : ''} ${item.stock <= 0 ? 'swatch-sold-out' : ''}`} style={{ '--swatch': item.hex } as React.CSSProperties} onClick={() => setColor(item)} />)}
       </div>}
-      <p className="product-card-details">{sized ? `${sizeOptions(product).map(o => language === 'ar' ? o.sizeAr : o.size).join(' / ')} · ` : product.capacity ? `${product.capacity} · ` : ''}{displaySubtitle}</p>
+      <p className="product-card-details">{!sized && product.capacity ? `${product.capacity} · ` : ''}{displaySubtitle}</p>
     </div>
   </article>;
 }
