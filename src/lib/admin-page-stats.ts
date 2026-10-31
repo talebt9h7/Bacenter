@@ -1,3 +1,4 @@
+import { memo } from './memo-cache';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { freeShippingFrom, getSettings } from './settings';
@@ -21,7 +22,7 @@ const n = (v: unknown) => Number(v ?? 0) || 0;
 const day = (v: unknown) => v ? new Date(String(v)).toISOString().slice(0, 10) : '';
 
 export async function pageStats(page: PageKey): Promise<KpiSpec[]> {
-  try { return await load(page); } catch (error) { console.error('pageStats', page, error); return []; }
+  try { return await memo(`stats:page:${page}`, 30_000, () => load(page)); } catch (error) { console.error('pageStats', page, error); return []; }
 }
 
 async function load(page: PageKey): Promise<KpiSpec[]> {

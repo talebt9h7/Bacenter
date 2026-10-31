@@ -5,6 +5,7 @@
  * so product names, customer data and codes are never touched.
  */
 export const ADMIN_AR: Record<string, string> = {
+  'Count correction': 'تصحيح جرد', 'Product editor': 'محرر المنتج', 'Found in storage': 'وُجد بالمخزن',
   'Full-width slideshow at the top of the homepage. Use a 1920×800 desktop image and a 714×936 mobile image. Line breaks in the title create separate lines.': 'عرض شرائح بعرض الشاشة أعلى الرئيسية. استخدم صورة 1920×800 للكمبيوتر و714×936 للموبايل. كل سطر جديد بالعنوان يظهر كسطر منفصل.',
   'Tip: the storefront switches colors while keeping the same photo position, so keep each color’s photos in the same order (front, detail, side…).': 'ملاحظة: المتجر يبدّل الألوان ويحافظ على نفس ترتيب الصور، فخلي صور كل لون بنفس الترتيب (أمام، تفاصيل، جانب…).',
   'Use /images/... or an HTTPS image URL. This controls the header, footer and favicon when configured.': 'استخدم /images/... أو رابط صورة HTTPS. هذا يتحكم بشعار الرأس والتذييل وأيقونة المتصفح.',

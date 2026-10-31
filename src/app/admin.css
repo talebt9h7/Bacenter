@@ -205,3 +205,27 @@ html body .admin-editor .admin-preview-image{width:100%}
 .cmdk-foot{display:flex;gap:16px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid #eeece6;font-size:12px;color:#8a857b}
 @media (max-width:640px){.cmdk-foot{display:none}.cmdk-overlay{padding-top:12px}.cmdk{max-height:86vh}}
 .admin-icon-only{padding:0!important;width:34px;min-height:34px;height:34px;justify-content:center;align-items:center;display:inline-flex}
+/* Orders: selection, bulk bar, export, WhatsApp. */
+.admin-check-col{width:34px;text-align:center}
+.admin-check-col input{width:17px;height:17px;cursor:pointer;accent-color:var(--a-accent,#c8502b)}
+.admin-orders-table tr.is-selected td{background:#fff7f1}
+.admin-orders-tools{display:flex;justify-content:flex-end;margin:-4px 0 8px}
+.admin-bulk-bar{position:sticky;top:8px;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;margin:0 0 10px;border-radius:12px;background:#1d1d1b;color:#fff;box-shadow:0 10px 26px rgba(0,0,0,.18)}
+.admin-bulk-bar b{font-size:13.5px;margin-inline-end:6px}
+.admin-bulk-bar label{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.admin-bulk-bar select{height:32px;border-radius:8px;border:0;padding:0 8px;font:inherit;font-size:13px}
+.admin-bulk-bar .admin-btn-ghost{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.18)}
+.admin-btn-whatsapp{display:inline-flex;align-items:center;gap:6px;background:#25d366;color:#fff!important;border:1px solid #25d366;border-radius:10px;padding:0 14px;height:38px;font-weight:600;font-size:13.5px;text-decoration:none}
+.admin-btn-whatsapp:hover{background:#1eb957}
+
+/* Collapsible sidebar groups */
+.admin-nav-group-head{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;padding:4px 12px 6px;cursor:pointer;color:#7f837c;font:inherit;text-align:start;border-radius:8px}
+.admin-nav-group-head>span{flex:1;font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:inherit}
+html[dir=rtl] .admin-nav-group-head>span{font-size:11px;letter-spacing:0;text-transform:none}
+.admin-nav-group-head svg{opacity:.55;transition:transform .2s ease}
+.admin-nav-group.folded .admin-nav-group-head svg{transform:rotate(-90deg)}
+html[dir=rtl] .admin-nav-group.folded .admin-nav-group-head svg{transform:rotate(90deg)}
+.admin-nav-group-head:hover{color:var(--admin-ink,#2b2620)}
+.admin-nav-group-head:hover svg{opacity:1}
+.admin-nav-group.folded{margin-bottom:4px}
+.media-more{display:flex;justify-content:center;padding:18px 0 4px}

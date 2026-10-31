@@ -2,29 +2,18 @@ import { variantPriceSql, variantNameSql } from '@/lib/variant-sql';
 import { reservedByVariant } from '@/lib/reservations';
 import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
-import { and, desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { orders, productVariants, products } from '@/db/schema';
 import { OrdersHeader, OrdersTable, type OrderRow } from '@/components/admin/orders-client';
 import { startOfBaghdadToday } from '@/lib/report-period';
 import { getSettings } from '@/lib/settings';
 import { orderStatuses, roundIqd } from '@/lib/iraq';
+import { searchFilter } from '@/lib/order-search';
 
 export const metadata = { title: 'Orders' };
 export const dynamic = 'force-dynamic';
 const PAGE_SIZE = 40;
-
-/** Search across every order (not a recent subset): reference, name, phone, email, governorate, city, address. */
-function searchFilter(q: string): SQL | undefined {
-  const term = q.trim().slice(0, 80);
-  if (!term) return undefined;
-  const like = `%${term.replace(/[\\%_]/g, m => `\\${m}`)}%`;
-  const digits = term.replace(/\D/g, '');
-  const parts: SQL[] = [ilike(orders.reference, like), ilike(orders.name, like), ilike(orders.email, like), ilike(orders.governorate, like), sql`${orders.address}->>'city' ilike ${like}`, sql`${orders.address}->>'line1' ilike ${like}`];
-  if (digits.length >= 3) parts.push(sql`regexp_replace(${orders.phone}, '\\D', '', 'g') like ${`%${digits.replace(/^0+/, '')}%`}`);
-  else parts.push(ilike(orders.phone, like));
-  return or(...parts);
-}
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; page?: string }> }) {
   const params = await searchParams;

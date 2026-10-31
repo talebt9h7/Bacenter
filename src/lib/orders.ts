@@ -1,3 +1,4 @@
+import { clearMemo } from './memo-cache';
 import { variantNameSql } from '@/lib/variant-sql';
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { db } from '@/db';
@@ -218,6 +219,7 @@ export function orderProductProfit(items: ProfitItem[], discount: number) {
   return Math.round(items.reduce((sum, item) => sum + lineProductProfit(item, items, discount), 0));
 }
 export async function transitionOrder(orderId: number, next: OrderStatus, extra: { trackingNumber?: string | null; courier?: string | null; adminNote?: string | null; paymentStatus?: string } = {}) {
+  clearMemo('stats:');
   const result = await db.transaction(async tx => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     if (!order) throw new Error('NOT_FOUND');

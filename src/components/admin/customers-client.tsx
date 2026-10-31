@@ -35,6 +35,7 @@ type Row = {
 
 type Props = { rows: Row[]; zones: { code:string; nameEn:string; nameAr?:string|null }[]; initialQuery:string; initialSegment:string };
 
+const EXPORT_CUSTOMERS = ['/api/admin/export', 'customers'].join('/');
 export function CustomersClient({ rows, zones, initialQuery, initialSegment }: Props) {
   const { language } = useLanguage();
   const t = T[language];
@@ -64,7 +65,7 @@ export function CustomersClient({ rows, zones, initialQuery, initialSegment }: P
   };
   const activeLabel = segmentOptions.find(x=>x[0]===segment)?.[1] ?? t.all;
   return <main className="admin-page">
-    <div className="admin-page-heading"><div><span className="admin-eyebrow">{t.eyebrow}</span><h1>{t.title}</h1><p>{t.desc}</p></div></div>
+    <div className="admin-page-heading"><div><span className="admin-eyebrow">{t.eyebrow}</span><h1>{t.title}</h1><p>{t.desc}</p></div><div className="admin-heading-actions"><a className="admin-btn admin-btn-ghost" href={EXPORT_CUSTOMERS} download>{language === 'ar' ? 'تصدير Excel' : 'Export Excel'}</a></div></div>
     <div className="admin-stats admin-stats-4">
       <div className="admin-stat"><Users size={18}/><span>{t.all}</span><strong>{counts.all}</strong></div>
       <div className="admin-stat"><WalletCards size={18}/><span>{t.wallets}</span><strong>{counts.wallets}</strong></div>

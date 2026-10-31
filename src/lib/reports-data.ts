@@ -1,3 +1,4 @@
+import { memo } from './memo-cache';
 import { variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { and, desc, gte, lte } from 'drizzle-orm';
 import { db } from '@/db';
@@ -20,7 +21,11 @@ const itemsOf = (o: OrderRow) => (Array.isArray(o.items) ? o.items : []) as { pr
  * operational figures use the date an order was placed. Each money figure also comes with
  * the previous period of the same length for comparison.
  */
-export async function loadReports(input: { period?: string; from?: string; to?: string }) {
+/** Report numbers, kept for 30 seconds per range so switching report tabs does not rerun every query. */
+export function loadReports(input: { period?: string; from?: string; to?: string }) {
+  return memo(`stats:reports:${input.period ?? ''}:${input.from ?? ''}:${input.to ?? ''}`, 30_000, () => computeReports(input));
+}
+async function computeReports(input: { period?: string; from?: string; to?: string }) {
   const now = new Date();
   const { from, to } = reportRange(input.period, input.from, input.to, now);
   const length = to.getTime() - from.getTime() + 1;
@@ -116,7 +121,7 @@ export async function loadReports(input: { period?: string; from?: string; to?: 
 
   // ---- inventory ----
   const valuation = inventoryValuation(variantRows, batchRows, reserved, v => productMap.get(v.productId ?? '')?.salePriceIqd ?? 0);
-  const inventoryTable = variantRows.map(v => { const p = productMap.get(v.productId); const res = Math.min(v.stock, reserved.get(v.id) ?? 0); const available = Math.max(0, v.stock - (reserved.get(v.id) ?? 0)); const perDay = (velocity.get(v.id) ?? 0) / 30; const known = batchRows.filter(b => b.variantId === v.id && b.purchaseCostIqd != null).reduce((s, b) => s + (b.purchaseCostIqd ?? 0) * b.quantityRemaining, 0); return { id: v.id, product: p?.name ?? v.productId, productAr: p?.nameAr || p?.name || v.productId, color: v.name, colorAr: v.nameAr || v.name, hex: v.hex, onHand: v.stock, reserved: res, available, costValue: known, retailValue: v.stock * (p?.salePriceIqd ?? 0), perDay, daysLeft: perDay > 0 ? Math.floor(available / perDay) : null, published: !!p?.published }; }).sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999) || b.onHand - a.onHand);
+  const inventoryTable = variantRows.map(v => { const p = productMap.get(v.productId); const res = Math.min(v.stock, reserved.get(v.id) ?? 0); const available = Math.max(0, v.stock - (reserved.get(v.id) ?? 0)); const perDay = (velocity.get(v.id) ?? 0) / 30; const known = batchRows.filter(b => b.variantId === v.id && b.purchaseCostIqd != null).reduce((s, b) => s + (b.purchaseCostIqd ?? 0) * b.quantityRemaining, 0); return { id: v.id, product: p?.name ?? v.productId, productAr: p?.nameAr || p?.name || v.productId, color: v.name, colorAr: v.nameAr || v.name, hex: v.hex, onHand: v.stock, reserved: res, available, costValue: known, retailValue: v.stock * (p?.salePriceIqd ?? 0), perDay, daysLeft: perDay > 0 ? Math.floor(available / perDay) : null, published: !!p?.published, unitCost: known && v.stock ? Math.round(known / v.stock) : null, price: p?.salePriceIqd ?? 0 }; }).sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999) || b.onHand - a.onHand);
   const movementSummary = new Map<string, { in: number; out: number }>();
   for (const m of movementRows) { const r = movementSummary.get(m.reason) ?? { in: 0, out: 0 }; if (m.delta > 0) r.in += m.delta; else r.out -= m.delta; movementSummary.set(m.reason, r); }
   const batches = batchRows.slice(0, 80).map(b => { const v = variantMap.get(b.variantId); const p = v ? productMap.get(v.productId) : undefined; return { id: b.id, batch: b.batchNumber, product: p?.name ?? '—', productAr: p?.nameAr || p?.name || '—', color: v?.name ?? '—', received: b.quantityReceived, remaining: b.quantityRemaining, cost: b.purchaseCostIqd, value: b.purchaseCostIqd == null ? null : b.purchaseCostIqd * b.quantityRemaining, receivedAt: b.receivedAt.toISOString() }; });
@@ -177,7 +182,7 @@ export async function loadReports(input: { period?: string; from?: string; to?: 
     placed: { count: placed.length, previous: placedPrev.length, cancelRate: placed.length ? statusCounts.cancelled / placed.length : 0, returnRate: placed.length ? statusCounts.returned / placed.length : 0, previousCancelRate: placedPrev.length ? placedPrev.filter(o => o.status === 'cancelled').length / placedPrev.length : 0 },
     series, bySource, byWeekday: byWeekday.map(d => ({ ...d, revenue: round(d.revenue) })), heatmap,
     productTable, variantTable, categoryTable,
-    inventory: { ...valuation, lowThreshold, table: inventoryTable, batches, movements: [...movementSummary.entries()].map(([reason, r]) => ({ reason, ...r })).sort((a, b) => (b.in + b.out) - (a.in + a.out)), lowCount: inventoryTable.filter(v => v.published && v.available > 0 && v.available <= lowThreshold).length, soldOutCount: inventoryTable.filter(v => v.published && v.available === 0).length },
+    inventory: { ...valuation, lowThreshold, ...stockAdvice(inventoryTable, lowThreshold), table: inventoryTable, batches, movements: [...movementSummary.entries()].map(([reason, r]) => ({ reason, ...r })).sort((a, b) => (b.in + b.out) - (a.in + a.out)), lowCount: inventoryTable.filter(v => v.published && v.available > 0 && v.available <= lowThreshold).length, soldOutCount: inventoryTable.filter(v => v.published && v.available === 0).length },
     customers: customerStats, topBuyers,
     statusCounts, funnel, avgDeliveryDays, ordersList, deliveredList,
     governorates,
@@ -186,3 +191,20 @@ export async function loadReports(input: { period?: string; from?: string; to?: 
 }
 
 export type ReportsData = Awaited<ReturnType<typeof loadReports>>;
+
+/** Days of stock to aim for when reordering, and the lead time a new batch usually needs. */
+const COVER_DAYS = 45, LEAD_DAYS = 14;
+type StockRow = { id: number; product: string; productAr: string; color: string; colorAr: string; hex: string; onHand: number; available: number; perDay: number; daysLeft: number | null; published: boolean; costValue: number; retailValue: number; unitCost: number | null; price: number };
+/**
+ * Reorder suggestions (selling colours that run out within the lead time + two weeks, or are under
+ * the low-stock line) and slow movers (stock sitting with little or no sale in the last 30 days).
+ */
+function stockAdvice(rows: StockRow[], lowThreshold: number) {
+  const reorder = rows.filter(v => v.published && v.perDay > 0 && (v.daysLeft === null || v.daysLeft <= LEAD_DAYS + 14 || v.available <= lowThreshold))
+    .map(v => { const qty = Math.max(1, Math.ceil(v.perDay * (COVER_DAYS + LEAD_DAYS) - v.available)); return { ...v, qty, budget: v.unitCost ? qty * v.unitCost : null }; })
+    .sort((a, b) => (a.daysLeft ?? 0) - (b.daysLeft ?? 0)).slice(0, 40);
+  const slow = rows.filter(v => v.onHand >= 3 && v.perDay * 30 <= 1)
+    .map(v => ({ ...v, tiedUp: v.costValue || v.retailValue }))
+    .sort((a, b) => b.tiedUp - a.tiedUp).slice(0, 40);
+  return { reorder, slow, coverDays: COVER_DAYS, leadDays: LEAD_DAYS, slowValue: slow.reduce((s, v) => s + v.tiedUp, 0) };
+}

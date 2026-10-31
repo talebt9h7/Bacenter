@@ -1,3 +1,4 @@
+import { memo } from './memo-cache';
 import { variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { and, count, desc, gte, inArray, lte, eq } from 'drizzle-orm';
 import { db } from '@/db';
@@ -26,7 +27,11 @@ const baghdadWeekday = (date: Date) => new Date(date.getTime() + 3 * 3600_000).g
  * Money follows finance.ts (revenue/profit recognised on delivery, delivery fees excluded).
  * Operational figures (orders placed, cancellations, heatmap) use the date an order was placed.
  */
-export async function loadDashboard(period: DashboardPeriod, { finance }: { finance: boolean }) {
+/** Dashboard numbers, kept for 30 seconds per period so reloads and quick navigation stay instant. */
+export function loadDashboard(period: DashboardPeriod, opts: { finance: boolean }) {
+  return memo(`stats:dashboard:${period}:${opts.finance ? 1 : 0}`, 30_000, () => computeDashboard(period, opts));
+}
+async function computeDashboard(period: DashboardPeriod, { finance }: { finance: boolean }) {
   const now = new Date();
   const { from, to } = reportRange(period, undefined, undefined, now);
   const prev = previousRange(from, to);
