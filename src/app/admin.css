@@ -177,3 +177,31 @@ html body .admin-editor .admin-preview-image{width:100%}
 .admin-color-tab[draggable]{cursor:grab}
 .admin-color-tab.is-dragging{opacity:.45}
 .admin-order-hint{margin:0 0 8px}
+/* Quick search (Ctrl/⌘K) and sidebar badges. */
+.admin-sidebar-search{display:flex;align-items:center;gap:8px;width:calc(100% - 24px);margin:4px 12px 12px;height:40px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:rgba(255,255,255,.72);font:inherit;font-size:13px;cursor:pointer;text-align:start}
+.admin-sidebar-search span{flex:1}
+.admin-sidebar-search kbd{font:inherit;font-size:10.5px;padding:2px 6px;border-radius:5px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.admin-sidebar-search:hover{background:rgba(255,255,255,.1);color:#fff}
+.admin-nav-group a{position:relative}
+.admin-nav-group a .admin-nav-label{flex:1}
+.admin-nav-badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-style:normal}
+.admin-nav-badge.hot{background:#e0533a}
+.admin-nav-badge.warn{background:#c98a1b}
+.cmdk-overlay{position:fixed;inset:0;z-index:200;background:rgba(15,15,14,.45);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:flex-start;padding:10vh 12px 12px}
+.cmdk{width:min(640px,100%);max-height:72vh;display:flex;flex-direction:column;background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;color:#1d1d1b}
+.cmdk-input{display:flex;align-items:center;gap:10px;padding:0 16px;height:56px;border-bottom:1px solid #eeece6;color:#77736a}
+.cmdk-input input{flex:1;border:0;outline:0;font:inherit;font-size:16px;background:transparent;color:#1d1d1b}
+.cmdk-input button{border:0;background:none;color:#77736a;cursor:pointer;display:inline-flex}
+.cmdk kbd{font:inherit;font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #e3e0d8;background:#f7f6f2;color:#5c5850}
+.cmdk-list{overflow:auto;padding:6px}
+.cmdk-heading{padding:10px 10px 4px;font-size:11.5px;font-weight:700;color:#8a857b;letter-spacing:.02em}
+.cmdk-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 10px;border:0;border-radius:10px;background:none;font:inherit;text-align:start;cursor:pointer;color:inherit}
+.cmdk-item.active{background:#f3f1ec}
+.cmdk-item svg{flex:none;color:#6b675e}
+.cmdk-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.cmdk-meta{flex:1;font-size:12.5px;color:#8a857b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmdk-enter{color:#b0aaa0!important}
+.cmdk-empty{padding:28px;text-align:center;color:#8a857b;font-size:14px;margin:0}
+.cmdk-foot{display:flex;gap:16px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid #eeece6;font-size:12px;color:#8a857b}
+@media (max-width:640px){.cmdk-foot{display:none}.cmdk-overlay{padding-top:12px}.cmdk{max-height:86vh}}
+.admin-icon-only{padding:0!important;width:34px;min-height:34px;height:34px;justify-content:center;align-items:center;display:inline-flex}
