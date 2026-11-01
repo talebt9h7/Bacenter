@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, GripVertical, ImageIcon, Plus, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, GripVertical, ImageIcon, LayoutGrid, Pin, Plus, Search, Trash2, X } from 'lucide-react';
 import { api, ImageField, useFlash } from '@/components/admin/ui';
 import { useLanguage } from '@/components/language-provider';
 
@@ -17,6 +17,11 @@ type Row = {
   productCount?: number;
   liveCount?: number;
   cover?: string;
+  // Page heading and banner (Admin → Categories → page)
+  eyebrow?: string; eyebrowAr?: string; headline?: string; headlineAr?: string;
+  bannerActive?: boolean; bannerImage?: string; bannerMobileImage?: string;
+  bannerTitle?: string; bannerTitleAr?: string; bannerSubtitle?: string; bannerSubtitleAr?: string;
+  bannerCta?: string; bannerCtaAr?: string; bannerHref?: string;
 };
 type Filter = 'all' | 'visible' | 'hidden' | 'empty';
 
@@ -26,7 +31,7 @@ const slugify = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-'
  * Categories, laid out like an iOS / macOS settings list: drag (or use the arrows) to set the
  * storefront order, flip the switch to show or hide, tap a row to edit it in a side sheet.
  */
-export function CategoryManager({ initial }: { initial: Row[] }) {
+export function CategoryManager({ initial, shopAll: initialShopAll = null }: { initial: Row[]; shopAll?: Row | null }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -38,6 +43,7 @@ export function CategoryManager({ initial }: { initial: Row[] }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [shopAll, setShopAll] = useState<Row | null>(initialShopAll);
 
   const counts = useMemo(() => ({
     all: rows.length,
@@ -81,6 +87,12 @@ export function CategoryManager({ initial }: { initial: Row[] }) {
   }
 
   async function toggle(row: Row) {
+    if (row.id === 'all') {
+      setShopAll(r => (r ? { ...r, active: !r.active } : r));
+      try { await api('/api/admin/categories', { method: 'PUT', json: { ...row, active: !row.active } }); }
+      catch (e) { setShopAll(r => (r ? { ...r, active: row.active } : r)); fail(e); }
+      return;
+    }
     setRows(list => list.map(r => (r.id === row.id ? { ...r, active: !r.active } : r)));
     try { await api('/api/admin/categories', { method: 'PUT', json: { ...row, active: !row.active } }); }
     catch (e) { setRows(list => list.map(r => (r.id === row.id ? { ...r, active: row.active } : r))); fail(e); }
@@ -93,7 +105,8 @@ export function CategoryManager({ initial }: { initial: Row[] }) {
   async function save(draft: Row & { isNew?: boolean }) {
     const data = await api<{ category: Row }>('/api/admin/categories', { method: draft.isNew ? 'POST' : 'PUT', json: { ...draft, image: draft.image || '' } });
     const saved = { ...data.category, productCount: draft.productCount ?? 0, liveCount: draft.liveCount ?? 0, cover: draft.cover };
-    setRows(list => (draft.isNew ? [...list, saved] : list.map(r => (r.id === saved.id ? saved : r))));
+    if (saved.id === 'all') setShopAll(saved);
+    else setRows(list => (draft.isNew ? [...list, saved] : list.map(r => (r.id === saved.id ? saved : r))));
     setEditing(null);
     success(draft.isNew ? L('انضاف التصنيف', 'Category added') : L('انحفظت التعديلات', 'Changes saved'));
   }
@@ -119,6 +132,25 @@ export function CategoryManager({ initial }: { initial: Row[] }) {
 
     {canReorder && rows.length > 1 && <p className="cat-tip">{savingOrder ? L('جارٍ حفظ الترتيب…', 'Saving order…') : L('اسحب من المقبض لتغيير ترتيب الأقسام بالمتجر.', 'Drag a row by its handle to change the storefront order.')}</p>}
 
+    {shopAll && !q && filter === 'all' && <ul className="cat-list cat-list-pinned">
+      <li className={`cat-row${shopAll.active ? '' : ' is-hidden'}`}>
+        <span className="cat-handle cat-pin" aria-hidden="true"><Pin size={14} /></span>
+        <button type="button" className="cat-open" onClick={() => setEditing(shopAll)} aria-label={L('تعديل صفحة الكل', 'Edit the Shop all page')}>
+          <span className="cat-thumb cat-thumb-all">{shopAll.bannerActive && shopAll.bannerImage ? <img src={shopAll.bannerImage} alt="" /> : <LayoutGrid size={20} />}</span>
+          <span className="cat-text">
+            <strong>{ar ? shopAll.nameAr || 'تسوق الكل' : shopAll.name || 'Shop all'}</strong>
+            <small data-raw>{L('كل المنتجات بصفحة وحدة · ثابت بأول القائمة', 'Every product on one page · always first')}</small>
+          </span>
+          {shopAll.bannerActive && shopAll.bannerImage && <span className="cat-tag">{L('بانر', 'Banner')}</span>}
+          <span className="cat-count">{L(`${shopAll.productCount ?? 0} منتج`, `${shopAll.productCount ?? 0} products`)}</span>
+        </button>
+        <label className="cat-switch" title={L('إظهار زر الكل بالمتجر', 'Show the Shop all pill')}>
+          <input type="checkbox" checked={shopAll.active} onChange={() => void toggle(shopAll)} aria-label={L('إظهار الكل بالمتجر', 'Show Shop all in store')} /><span />
+        </label>
+        {(ar ? <ChevronLeft size={16} className="cat-chevron" aria-hidden="true" /> : <ChevronRight size={16} className="cat-chevron" aria-hidden="true" />)}
+      </li>
+    </ul>}
+
     {shown.length === 0 ? <div className="cat-empty"><ImageIcon size={28} /><h3>{rows.length ? L('ماكو نتائج', 'No matches') : L('بعد ماكو تصنيفات', 'No categories yet')}</h3><p>{rows.length ? L('جرّب كلمة ثانية أو بدّل الفلتر.', 'Try another word or filter.') : L('أضف أول تصنيف حتى تقدر تربط المنتجات بيه.', 'Add your first category to start grouping products.')}</p>{!rows.length && <button type="button" className="admin-btn admin-btn-primary" onClick={startNew}><Plus size={16} />{L('تصنيف جديد', 'New category')}</button>}</div>
       : <ul className="cat-list">
         {shown.map((row, index) => {
@@ -139,6 +171,7 @@ export function CategoryManager({ initial }: { initial: Row[] }) {
                 <strong>{title}</strong>
                 <small data-raw>{subtitle && subtitle !== title ? `${subtitle} · ` : ''}<span dir="ltr">/{row.id}</span></small>
               </span>
+              {row.bannerActive && row.bannerImage && <span className="cat-tag">{L('بانر', 'Banner')}</span>}
               <span className={`cat-count${row.productCount ? '' : ' zero'}`}>{row.productCount ? L(`${row.productCount} منتج`, `${row.productCount} product${row.productCount === 1 ? "" : "s"}`) : L('فارغ', 'Empty')}</span>
             </button>
             {canReorder && <span className="cat-move">
@@ -174,9 +207,10 @@ function CategorySheet({ draft, ar, onClose, onSave, onDelete }: { draft: Row & 
     return () => { cancelAnimationFrame(frame); document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow; };
   }, [onClose]);
 
+  const isAll = form.id === 'all';
   const slug = form.isNew ? (slugTouched ? slugify(form.id) : slugify(form.name)) : form.id;
   const thumb = form.image || form.cover;
-  const valid = !!form.name.trim() && !!form.nameAr.trim() && !!slug && slug !== 'all';
+  const valid = !!form.name.trim() && !!form.nameAr.trim() && (isAll || (!!slug && slug !== 'all'));
 
   async function submit() {
     if (!valid) { setError(L('اكتب الاسم بالعربي والإنكليزي.', 'Enter both the Arabic and English name.')); return; }
@@ -194,7 +228,7 @@ function CategorySheet({ draft, ar, onClose, onSave, onDelete }: { draft: Row & 
     <aside className="sheet" role="dialog" aria-modal="true" aria-label={form.isNew ? L('تصنيف جديد', 'New category') : L('تعديل التصنيف', 'Edit category')}>
       <header className="sheet-head">
         <button type="button" className="sheet-text-btn" onClick={onClose}>{L('إلغاء', 'Cancel')}</button>
-        <h2>{form.isNew ? L('تصنيف جديد', 'New category') : L('تعديل التصنيف', 'Edit category')}</h2>
+        <h2>{form.isNew ? L('تصنيف جديد', 'New category') : isAll ? L('صفحة الكل', 'Shop all page') : L('تعديل التصنيف', 'Edit category')}</h2>
         <button type="button" className="sheet-text-btn strong" onClick={() => void submit()} disabled={busy || !valid}>{busy ? L('جارٍ الحفظ…', 'Saving…') : L('حفظ', 'Save')}</button>
       </header>
 
@@ -209,27 +243,58 @@ function CategorySheet({ draft, ar, onClose, onSave, onDelete }: { draft: Row & 
           <div className="sheet-fields">
             <label><span>{L('بالعربي', 'Arabic')}</span><input ref={ar ? first : undefined} dir="rtl" value={form.nameAr} onChange={e => set({ nameAr: e.target.value })} placeholder="مثال: حقائب الظهر" /></label>
             <label><span>{L('بالإنكليزي', 'English')}</span><input ref={ar ? undefined : first} dir="ltr" value={form.name} onChange={e => set({ name: e.target.value })} placeholder="e.g. Backpacks" /></label>
-            <label><span>{L('الرابط', 'Slug')}</span><input dir="ltr" value={slug} disabled={!form.isNew} onChange={e => { setSlugTouched(true); set({ id: e.target.value }); }} placeholder="backpacks" /></label>
+            {!isAll && <label><span>{L('الرابط', 'Slug')}</span><input dir="ltr" value={slug} disabled={!form.isNew} onChange={e => { setSlugTouched(true); set({ id: e.target.value }); }} placeholder="backpacks" /></label>}
           </div>
-          {!form.isNew && <p className="sheet-note">{L('الرابط ما يتغيّر بعد الإنشاء حتى ما تنكسر الروابط القديمة.', 'The slug is fixed after creation so old links keep working.')}</p>}
+          <p className="sheet-note">{isAll ? L('هذا اسم زر "الكل" بشريط الأقسام فوق المنتجات.', 'This is the label of the "Shop all" pill above the products.') : !form.isNew ? L('هذا الاسم يظهر بشريط الأقسام. الرابط ما يتغيّر بعد الإنشاء حتى ما تنكسر الروابط القديمة.', 'Shown in the category bar. The slug is fixed after creation so old links keep working.') : L('هذا الاسم يظهر بشريط الأقسام فوق المنتجات.', 'Shown in the category bar above the products.')}</p>
         </div>
 
         <div className="sheet-group">
-          <h3>{L('الصورة', 'Image')}</h3>
-          <div className="sheet-image"><ImageField value={form.image ?? ''} onChange={url => set({ image: url })} label={L('صورة التصنيف', 'Category image')} hint={!form.image && form.cover ? L('إذا ما حطيت صورة، تنعرض صورة أول منتج بالتصنيف.', 'Without one, the first product photo is used.') : undefined} /></div>
-        </div>
-
-        <div className="sheet-group">
-          <h3>{L('الوصف', 'Description')}</h3>
+          <h3>{L('رأس الصفحة', 'Page heading')}</h3>
           <div className="sheet-fields">
-            <label className="tall"><span>{L('بالعربي', 'Arabic')}</span><textarea dir="rtl" rows={3} value={form.descriptionAr} onChange={e => set({ descriptionAr: e.target.value })} placeholder="سطر قصير يوصف التصنيف" /></label>
-            <label className="tall"><span>{L('بالإنكليزي', 'English')}</span><textarea dir="ltr" rows={3} value={form.description} onChange={e => set({ description: e.target.value })} placeholder="A short line about this category" /></label>
+            <label><span>{L('سطر صغير', 'Eyebrow · AR')}</span><input dir="rtl" value={form.eyebrowAr ?? ''} onChange={e => set({ eyebrowAr: e.target.value })} placeholder="تصميم مدروس. صُنع لأجلك." /></label>
+            <label><span>{L('بالإنكليزي', 'Eyebrow · EN')}</span><input dir="ltr" value={form.eyebrow ?? ''} onChange={e => set({ eyebrow: e.target.value })} placeholder="Thoughtfully designed. Made for you." /></label>
+            <label><span>{L('العنوان', 'Headline · AR')}</span><input dir="rtl" value={form.headlineAr ?? ''} onChange={e => set({ headlineAr: e.target.value })} placeholder={form.nameAr || 'عنوان الصفحة'} /></label>
+            <label><span>{L('بالإنكليزي', 'Headline · EN')}</span><input dir="ltr" value={form.headline ?? ''} onChange={e => set({ headline: e.target.value })} placeholder={form.name || 'Page headline'} /></label>
+            <label className="tall"><span>{L('الوصف', 'Description · AR')}</span><textarea dir="rtl" rows={3} value={form.descriptionAr} onChange={e => set({ descriptionAr: e.target.value })} placeholder="سطر أو سطرين يوصفون القسم" /></label>
+            <label className="tall"><span>{L('بالإنكليزي', 'Description · EN')}</span><textarea dir="ltr" rows={3} value={form.description} onChange={e => set({ description: e.target.value })} placeholder="A line or two about this category" /></label>
           </div>
+          <p className="sheet-note">{L('يظهر فوق المنتجات بصفحة القسم. إذا تركت العنوان فارغ ينعرض اسم القسم.', 'Shown above the products. An empty headline uses the category name.')}</p>
         </div>
 
         <div className="sheet-group">
+          <h3>{L('بانر القسم', 'Category banner')}</h3>
           <div className="sheet-fields">
-            <label className="row"><span>{L('ظاهر بالمتجر', 'Visible in store')}</span><span className="cat-switch"><input type="checkbox" checked={form.active} onChange={e => set({ active: e.target.checked })} /><span /></span></label>
+            <label className="row"><span>{L('إظهار البانر', 'Show banner')}</span><span className="cat-switch"><input type="checkbox" checked={!!form.bannerActive} onChange={e => set({ bannerActive: e.target.checked })} /><span /></span></label>
+          </div>
+          {form.bannerActive && <>
+            {form.bannerImage && <div className="sheet-banner-preview">
+              <img src={form.bannerImage} alt="" />
+              <div>{(ar ? form.bannerTitleAr || form.bannerTitle : form.bannerTitle) && <strong>{ar ? form.bannerTitleAr || form.bannerTitle : form.bannerTitle}</strong>}{(ar ? form.bannerSubtitleAr || form.bannerSubtitle : form.bannerSubtitle) && <span>{ar ? form.bannerSubtitleAr || form.bannerSubtitle : form.bannerSubtitle}</span>}{(ar ? form.bannerCtaAr || form.bannerCta : form.bannerCta) && <em>{ar ? form.bannerCtaAr || form.bannerCta : form.bannerCta}</em>}</div>
+            </div>}
+            <div className="sheet-image"><ImageField value={form.bannerImage ?? ''} onChange={url => set({ bannerImage: url })} label={L('صورة الكمبيوتر', 'Desktop image')} hint={L('مقاس مقترح 1920×800', 'Suggested 1920×800')} /></div>
+            <div className="sheet-image"><ImageField value={form.bannerMobileImage ?? ''} onChange={url => set({ bannerMobileImage: url })} label={L('صورة الموبايل', 'Phone image')} hint={L('اختياري · مقاس مقترح 1080×1350. بدونها تنعرض صورة الكمبيوتر.', 'Optional · suggested 1080×1350. Without it the desktop image is used.')} /></div>
+            <div className="sheet-fields">
+              <label><span>{L('العنوان', 'Title · AR')}</span><input dir="rtl" value={form.bannerTitleAr ?? ''} onChange={e => set({ bannerTitleAr: e.target.value })} placeholder="مثال: تشكيلة الشتاء" /></label>
+              <label><span>{L('بالإنكليزي', 'Title · EN')}</span><input dir="ltr" value={form.bannerTitle ?? ''} onChange={e => set({ bannerTitle: e.target.value })} placeholder="e.g. The winter edit" /></label>
+              <label><span>{L('النص', 'Line · AR')}</span><input dir="rtl" value={form.bannerSubtitleAr ?? ''} onChange={e => set({ bannerSubtitleAr: e.target.value })} placeholder="سطر قصير تحت العنوان" /></label>
+              <label><span>{L('بالإنكليزي', 'Line · EN')}</span><input dir="ltr" value={form.bannerSubtitle ?? ''} onChange={e => set({ bannerSubtitle: e.target.value })} placeholder="A short line under the title" /></label>
+              <label><span>{L('زر', 'Button · AR')}</span><input dir="rtl" value={form.bannerCtaAr ?? ''} onChange={e => set({ bannerCtaAr: e.target.value })} placeholder="تسوق هسه" /></label>
+              <label><span>{L('بالإنكليزي', 'Button · EN')}</span><input dir="ltr" value={form.bannerCta ?? ''} onChange={e => set({ bannerCta: e.target.value })} placeholder="Shop now" /></label>
+              <label><span>{L('الرابط', 'Link')}</span><input dir="ltr" value={form.bannerHref ?? ''} onChange={e => set({ bannerHref: e.target.value })} placeholder="/products/leather-item-1" /></label>
+            </div>
+            <p className="sheet-note">{L('الرابط اختياري: صفحة منتج، تشكيلة، أو أي رابط يبدي بـ / أو https. بدونه البانر يكون صورة فقط.', 'Link is optional: a product, a collection, or any link starting with / or https. Without it the banner is just an image.')}</p>
+          </>}
+        </div>
+
+        {!isAll && <div className="sheet-group">
+          <h3>{L('صورة القسم', 'Category image')}</h3>
+          <div className="sheet-image"><ImageField value={form.image ?? ''} onChange={url => set({ image: url })} label={L('صورة التصنيف', 'Category image')} hint={!form.image && form.cover ? L('إذا ما حطيت صورة، تنعرض صورة أول منتج بالتصنيف.', 'Without one, the first product photo is used.') : L('صورة صغيرة للقسم تنعرض بالقوائم.', 'Small picture used in lists.')} /></div>
+        </div>}
+
+
+        <div className="sheet-group">
+          <div className="sheet-fields">
+            <label className="row"><span>{isAll ? L('إظهار زر "الكل" بالمتجر', 'Show the "Shop all" pill') : L('ظاهر بالمتجر', 'Visible in store')}</span><span className="cat-switch"><input type="checkbox" checked={form.active} onChange={e => set({ active: e.target.checked })} /><span /></span></label>
           </div>
           {!form.isNew && <div className="sheet-fields">
             <a className="row link" href={`/products/category/${form.id}`} target="_blank" rel="noreferrer"><span>{L('فتح التصنيف بالمتجر', 'Open in store')}</span><ExternalLink size={15} /></a>
@@ -238,7 +303,7 @@ function CategorySheet({ draft, ar, onClose, onSave, onDelete }: { draft: Row & 
 
         {error && <p className="sheet-error" role="alert">{error}</p>}
 
-        {!form.isNew && <div className="sheet-group">
+        {!form.isNew && !isAll && <div className="sheet-group">
           <div className="sheet-fields">
             <button type="button" className="row danger" disabled={busy || !!form.productCount} onClick={() => void del()}><span><Trash2 size={15} /> {L('حذف التصنيف', 'Delete category')}</span></button>
           </div>

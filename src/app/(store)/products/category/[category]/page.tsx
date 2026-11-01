@@ -2,7 +2,7 @@ import { getCatalogNav } from '@/lib/categories';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CatalogView } from '@/components/catalog-view';
-import { getCategories } from '@/lib/categories';
+import { getCategories, getCategoryPage } from '@/lib/categories';
 import { getProductsFor } from '@/lib/products';
 import { getActiveBanners, getSettings } from '@/lib/settings';
 
@@ -20,22 +20,44 @@ const descriptions: Record<string, string> = {
   'tote-bags': 'Room for the unexpected. Versatile carry that adapts to your day.',
   accessories: 'Less rummaging. More doing. Give your little essentials a thoughtfully organized home.',
 };
+/** Heading + banner for a category page: what the admin set in Admin → Categories, with the built-in copy as fallback. */
+async function resolvePage(category: string) {
+  const [categories, page] = await Promise.all([getCategories(), getCategoryPage(category)]);
+  const managed = categories.find(c => c.id === category);
+  // A category page exists for 'all', the 'bags' group, and every switched-on category.
+  const exists = category === 'all' || category === 'bags' || !!managed;
+  if (!exists) return null;
+  const fallbackTitle = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore the collection';
+  const fallbackTitleAr = category === 'bags' ? 'الحقائب والأمتعة' : category === 'all' ? 'اختيارات مدروسة لكل تنقلاتك' : managed?.nameAr || fallbackTitle;
+  return {
+    managed,
+    title: page?.headline || fallbackTitle,
+    titleAr: page?.headlineAr || fallbackTitleAr,
+    eyebrow: page?.eyebrow || '',
+    eyebrowAr: page?.eyebrowAr || '',
+    description: page?.description || descriptions[category] || '',
+    descriptionAr: page?.descriptionAr || page?.description || descriptions[category] || '',
+    image: page?.image || null,
+    banner: page?.banner ?? null,
+  };
+}
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category } = await params;
-  const [categories, settings] = await Promise.all([getCategories(), getSettings()]);
-  const managed = categories.find(c => c.id === category);
-  const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore the collection';
-  const description = descriptions[category];
+  const [page, settings] = await Promise.all([resolvePage(category), getSettings()]);
+  if (!page) return {};
   const base = settings.canonicalBaseUrl?.replace(/\/$/, '');
   const url = base ? `${base}/products/category/${encodeURIComponent(category)}` : undefined;
-  return { title, description, alternates: url ? { canonical: url } : undefined, openGraph: { title, description, url, images: managed?.image ? [managed.image] : settings.ogImage ? [settings.ogImage] : undefined } };
+  const image = page.banner?.image || page.image || settings.ogImage;
+  return { title: page.title, description: page.description, alternates: url ? { canonical: url } : undefined, openGraph: { title: page.title, description: page.description, url, images: image ? [image] : undefined } };
 }
 export default async function CategoryPage({ params }: Props) {
   const { category } = await params;
-  const categories = await getCategories();
-  if (!descriptions[category]) notFound();
-  const categoryBanner = (await getActiveBanners('category', category))[0];
-  const managed = categories.find(c => c.id === category);
-  const title = category === 'bags' ? 'Bags & Luggage' : category === 'all' ? 'Considered carry. Endless possibility.' : managed?.name || 'Explore the collection';
-  return <CatalogView navCategories={await getCatalogNav()} products={await getProductsFor(category)} category={category} title={title} titleAr={category === 'bags' ? 'الحقائب والأمتعة' : category === 'all' ? 'اختيارات مدروسة لكل تنقلاتك' : (managed?.nameAr || title)} description={descriptions[category]} descriptionAr={managed?.descriptionAr || descriptions[category]} categoryBanner={categoryBanner ? { title: categoryBanner.title, subtitle: categoryBanner.subtitle, image: categoryBanner.image, mobileImage: categoryBanner.mobileImage, ctaLabel: categoryBanner.ctaLabel, href: categoryBanner.href, badge: categoryBanner.badge } : null} />;
+  const page = await resolvePage(category);
+  if (!page) notFound();
+  // The category's own banner (Admin → Categories) comes first; older banners from Admin → Banners still work.
+  const legacy = page.banner ? null : (await getActiveBanners('category', category))[0];
+  const banner = page.banner
+    ? { title: page.banner.title, titleAr: page.banner.titleAr, subtitle: page.banner.subtitle, subtitleAr: page.banner.subtitleAr, image: page.banner.image, mobileImage: page.banner.mobileImage, ctaLabel: page.banner.cta, ctaLabelAr: page.banner.ctaAr, href: page.banner.href, badge: null }
+    : legacy ? { title: legacy.title, titleAr: legacy.title, subtitle: legacy.subtitle ?? '', subtitleAr: legacy.subtitle ?? '', image: legacy.image, mobileImage: legacy.mobileImage, ctaLabel: legacy.ctaLabel ?? '', ctaLabelAr: legacy.ctaLabel ?? '', href: legacy.href, badge: legacy.badge } : null;
+  return <CatalogView navCategories={await getCatalogNav()} products={await getProductsFor(category)} category={category} title={page.title} titleAr={page.titleAr} eyebrow={page.eyebrow} eyebrowAr={page.eyebrowAr} description={page.description} descriptionAr={page.descriptionAr} categoryBanner={banner} />;
 }

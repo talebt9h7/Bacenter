@@ -17,6 +17,19 @@ const slug = (v: unknown) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
+const href = (v: unknown) => { const h = clean(v, 300); return h.startsWith('/') || /^https?:\/\//.test(h) ? h : ''; };
+/** Heading and banner fields of a category page (drizzle/0035). */
+const pageFields = (body: Record<string, unknown> | null) => ({
+  eyebrow: clean(body?.eyebrow, 120), eyebrowAr: clean(body?.eyebrowAr, 120),
+  headline: clean(body?.headline, 160), headlineAr: clean(body?.headlineAr, 160),
+  bannerActive: body?.bannerActive === true,
+  bannerImage: clean(body?.bannerImage, 500), bannerMobileImage: clean(body?.bannerMobileImage, 500),
+  bannerTitle: clean(body?.bannerTitle, 160), bannerTitleAr: clean(body?.bannerTitleAr, 160),
+  bannerSubtitle: clean(body?.bannerSubtitle, 300), bannerSubtitleAr: clean(body?.bannerSubtitleAr, 300),
+  bannerCta: clean(body?.bannerCta, 60), bannerCtaAr: clean(body?.bannerCtaAr, 60),
+  bannerHref: href(body?.bannerHref),
+});
+
 export async function GET() {
   const actor = await requireAdminSection('catalog', 'view');
 
@@ -104,6 +117,7 @@ export async function POST(request: NextRequest) {
         active: body?.active !== false,
         sortOrder:
           Number(body?.sortOrder) || 0,
+        ...pageFields(body),
       })
       .returning();
 
@@ -180,8 +194,9 @@ export async function PUT(request: NextRequest) {
       image:
         clean(body?.image, 500) || null,
       active: body?.active !== false,
-      sortOrder:
-        Number(body?.sortOrder) || 0,
+      // "Shop all" always stays first.
+      sortOrder: id === 'all' ? -1000 : Number(body?.sortOrder) || 0,
+      ...pageFields(body),
       updatedAt: new Date(),
     })
     .where(eq(categories.id, id))
@@ -234,6 +249,10 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  if (id === 'all') {
+    return NextResponse.json({ error: 'The “Shop all” page cannot be deleted. Switch it off instead.' }, { status: 400 });
+  }
+
   const [used] = await db
     .select({
       count: sql<number>`count(*)`,
@@ -283,7 +302,7 @@ export async function PATCH(request: NextRequest) {
   const actor = await requireAdminSection('catalog', 'manage');
   if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json().catch(() => null);
-  const order = Array.isArray(body?.order) ? body.order.map((x: unknown) => clean(x, 80)).filter(Boolean).slice(0, 500) as string[] : [];
+  const order = Array.isArray(body?.order) ? (body.order.map((x: unknown) => clean(x, 80)).filter(Boolean) as string[]).filter(id => id !== 'all').slice(0, 500) : [];
   if (!order.length) return NextResponse.json({ error: 'Order is required.' }, { status: 400 });
   await db.transaction(async tx => {
     for (const [i, id] of order.entries()) await tx.update(categories).set({ sortOrder: i * 10, updatedAt: new Date() }).where(eq(categories.id, id));

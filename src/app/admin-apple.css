@@ -295,3 +295,19 @@ html[dir=rtl] .sheet{animation-name:sheet-in-rtl}
   .admin-shell .admin-products-table:not(.is-sorting) td[colspan]{grid-column:1/-1}
   .admin-shell .admin-table-wrap:has(.admin-products-table:not(.is-sorting)){overflow:visible;margin:0}
 }
+
+/* Categories: pinned "Shop all" row, banner tag, banner preview in the editor */
+.cat-list-pinned{margin-bottom:2px}
+.cat-pin{color:var(--ap-accent);cursor:default}
+.cat-thumb-all{background:var(--ap-accent-soft);color:var(--ap-accent)}
+.cat-tag{font-size:11px;font-weight:600;color:#0a7cff;background:rgba(10,124,255,.1);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.cat-tag+.cat-count{margin-inline-start:8px}
+.cat-open .cat-tag{margin-inline-start:auto}
+.sheet-banner-preview{position:relative;border-radius:12px;overflow:hidden;background:#ddd;aspect-ratio:12/5}
+.sheet-banner-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.sheet-banner-preview>div{position:absolute;inset:auto 0 0 0;padding:14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;color:#fff;background:linear-gradient(to top,rgba(0,0,0,.6),transparent)}
+.sheet-banner-preview strong{font-size:17px;font-weight:700}
+.sheet-banner-preview span{font-size:12.5px;opacity:.9}
+.sheet-banner-preview em{font-style:normal;font-size:12px;font-weight:600;background:#fff;color:#222;border-radius:999px;padding:4px 12px;margin-top:4px}
+.sheet .sheet-image+.sheet-image{margin-top:-2px}
+@media(max-width:700px){.cat-tag{display:none}}

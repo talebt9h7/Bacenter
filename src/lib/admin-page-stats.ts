@@ -75,11 +75,11 @@ async function load(page: PageKey): Promise<KpiSpec[]> {
     }
     case 'categories': {
       const r = await one(sql`select
-        (select count(*) from categories) total,
-        (select count(*) from categories where active) active,
-        (select count(*) from categories c where not exists (select 1 from products p where p.category = c.id)) empty,
-        (select count(*) from products p where not exists (select 1 from categories c where c.id = p.category)) orphan,
-        (select count(*) from categories where image is null or image = '') noimage`);
+        (select count(*) from categories where id <> 'all') total,
+        (select count(*) from categories where active and id <> 'all') active,
+        (select count(*) from categories c where c.id <> 'all' and not exists (select 1 from products p where p.category = c.id)) empty,
+        (select count(*) from products p where not exists (select 1 from categories c where c.id = p.category and c.id <> 'all')) orphan,
+        (select count(*) from categories where id <> 'all' and (image is null or image = '')) noimage`);
       return [
         { icon: 'folder', tone: 'accent', en: 'Categories', ar: 'التصنيفات', value: n(r.total) },
         { icon: 'eye', tone: 'success', en: 'Shown in the store', ar: 'ظاهرة بالمتجر', value: n(r.active) },
