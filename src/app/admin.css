@@ -229,3 +229,5 @@ html[dir=rtl] .admin-nav-group.folded .admin-nav-group-head svg{transform:rotate
 .admin-nav-group-head:hover svg{opacity:1}
 .admin-nav-group.folded{margin-bottom:4px}
 .media-more{display:flex;justify-content:center;padding:18px 0 4px}
+.backup-auto .admin-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.backup-auto-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
