@@ -278,3 +278,18 @@ export async function DELETE(request: NextRequest) {
     ok: true,
   });
 }
+/** Saves the storefront order: { order: [id, id, …] } → sortOrder 0, 10, 20 … */
+export async function PATCH(request: NextRequest) {
+  const actor = await requireAdminSection('catalog', 'manage');
+  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const body = await request.json().catch(() => null);
+  const order = Array.isArray(body?.order) ? body.order.map((x: unknown) => clean(x, 80)).filter(Boolean).slice(0, 500) as string[] : [];
+  if (!order.length) return NextResponse.json({ error: 'Order is required.' }, { status: 400 });
+  await db.transaction(async tx => {
+    for (const [i, id] of order.entries()) await tx.update(categories).set({ sortOrder: i * 10, updatedAt: new Date() }).where(eq(categories.id, id));
+  });
+  await logActivity(actor, 'category.update', 'category', 'order', 'Reordered categories');
+  revalidatePath('/');
+  revalidatePath('/products/category/all');
+  return NextResponse.json({ ok: true });
+}

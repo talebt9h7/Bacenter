@@ -6,7 +6,7 @@ import { useLanguage } from '@/components/language-provider';
 import { productT } from '@/lib/i18n';
 import { stockLevel } from '@/lib/stock-level';
 
-type Row = { id: string; name: string; image: string; category: string; categoryId: string; price: number; published: boolean; stock: number; colors: { id: number; name: string; hex: string; stock: number; photos: number }[] };
+type Row = { id: string; name: string; nameAr?: string; image: string; category: string; categoryId: string; price: number; published: boolean; stock: number; colors: { id: number; name: string; nameAr?: string; hex: string; stock: number; photos: number }[] };
 type Category = { id: string; name: string; nameAr?: string };
 const iqd = (value: number) => `${Math.round(value).toLocaleString('en-US')} IQD`;
 const VIEW_KEY = 'ur-admin-products-view';
@@ -85,7 +85,7 @@ export function ProductTable({ rows, lowStockThreshold, categories }: { rows: Ro
   } : {};
   const dragClass = (row: Row) => `${sorting ? 'is-sortable' : ''} ${dragId === row.id ? 'is-dragging' : ''} ${overId === row.id && dragId !== row.id ? 'is-over' : ''}`;
   const sortControls = (row: Row, index: number) => <div className="ap-sort"><span className="ap-handle" aria-hidden="true"><GripVertical size={16} /></span><b>{index + 1}</b><button type="button" onClick={() => step(row.id, -1)} disabled={index === 0} aria-label={tt('Move up', 'تحريك لفوق')}><ArrowUp size={14} /></button><button type="button" onClick={() => step(row.id, 1)} disabled={index === visible.length - 1} aria-label={tt('Move down', 'تحريك لتحت')}><ArrowDown size={14} /></button></div>;
-  const chips = (row: Row) => <div className="admin-color-chips">{row.colors.map(color => <Link key={color.id} href={`/admin/products/${row.id}?color=${color.id}`} className={`admin-chip ${stockLevel(color.stock, lowStockThreshold) === 'out' ? 'danger' : stockLevel(color.stock, lowStockThreshold) === 'low' ? 'warning' : ''}`} title={`${color.name}: ${color.stock} in stock · ${color.photos} photos`}><i style={{ background: color.hex }} />{color.name}<b>{color.stock}</b></Link>)}</div>;
+  const chips = (row: Row) => <div className="admin-color-chips">{row.colors.map(color => <Link key={color.id} href={`/admin/products/${row.id}?color=${color.id}`} className={`admin-chip ${stockLevel(color.stock, lowStockThreshold) === 'out' ? 'danger' : stockLevel(color.stock, lowStockThreshold) === 'low' ? 'warning' : ''}`} title={ar ? `${color.nameAr || color.name}: ${color.stock} بالمخزون · ${color.photos} صور` : `${color.name}: ${color.stock} in stock · ${color.photos} photos`}><i style={{ background: color.hex }} />{ar ? color.nameAr || color.name : color.name}<b>{color.stock}</b></Link>)}</div>;
   const status = (row: Row) => row.published ? <span className="admin-badge success">{tr('Live')}</span> : <span className="admin-badge muted">{tr('Draft')}</span>;
 
   return <section className="admin-card ap-card">
@@ -107,10 +107,10 @@ export function ProductTable({ rows, lowStockThreshold, categories }: { rows: Ro
     </div>
     {sorting && <div className="ap-sort-note"><span>{category === 'all' ? tt('Drag products, or use the arrows, to set the order they appear in the store.', 'اسحب المنتجات أو استخدم الأسهم حتى ترتب ظهورها بالمتجر.') : tt(`Arranging inside “${catName(category)}”. Other products keep their places.`, `ترتيب داخل قسم «${catName(category)}». باقي المنتجات تبقى بمكانها.`)}</span><em className={`ap-save ${save}`}>{save === 'saving' ? <><LoaderCircle size={13} className="spin" /> {tt('Saving…', 'جارٍ الحفظ…')}</> : save === 'saved' ? <><Check size={13} /> {tt('Saved', 'انحفظ')}</> : save === 'error' ? <><X size={13} /> {tt('Not saved, try again', 'ما انحفظ، حاول مرة ثانية')}</> : null}</em></div>}
 
-    {view === 'table' ? <div className="admin-table-wrap"><table className="admin-table admin-products-table"><thead><tr>{sorting && <th>{tt('Order', 'الترتيب')}</th>}<th>{tr('Product')}</th><th>{tr('Category')}</th><th className="num">{tr('Price')}</th><th>{tr('Colors & stock')}</th><th className="num">{tr('Total stock')}</th><th>{tr('Status')}</th><th /></tr></thead><tbody>
+    {view === 'table' ? <div className="admin-table-wrap"><table className={`admin-table admin-products-table${sorting ? ' is-sorting' : ''}`}><thead><tr>{sorting && <th>{tt('Order', 'الترتيب')}</th>}<th>{tr('Product')}</th><th>{tr('Category')}</th><th className="num">{tr('Price')}</th><th>{tr('Colors & stock')}</th><th className="num">{tr('Total stock')}</th><th>{tr('Status')}</th><th /></tr></thead><tbody>
       {visible.map((row, index) => <tr key={row.id} className={dragClass(row)} {...dragProps(row)}>
         {sorting && <td>{sortControls(row, index)}</td>}
-        <td><Link href={`/admin/products/${row.id}`} className="admin-product-cell" draggable={false}><img src={row.image} alt="" draggable={false} /><div><strong>{row.name}</strong><small>/{row.id}</small></div></Link></td>
+        <td><Link href={`/admin/products/${row.id}`} className="admin-product-cell" draggable={false}><img src={row.image} alt="" draggable={false} /><div><strong>{ar ? row.nameAr || row.name : row.name}</strong><small data-raw>/{row.id}</small></div></Link></td>
         <td>{catName(row.categoryId)}</td><td className="num">{iqd(row.price)}</td><td>{chips(row)}</td><td className="num"><strong>{row.stock}</strong></td><td>{status(row)}</td>
         <td className="num"><Link href={`/admin/products/${row.id}`} className="admin-btn admin-btn-ghost admin-btn-sm"><Pencil size={14} /> {tr('Edit')}</Link></td>
       </tr>)}
@@ -121,10 +121,10 @@ export function ProductTable({ rows, lowStockThreshold, categories }: { rows: Ro
         {sorting && sortControls(row, index)}
         <Link href={`/admin/products/${row.id}`} className="ap-tile-img" draggable={false}><img src={row.image} alt="" draggable={false} />{!row.published && <span className="ap-tile-draft">{tr('Draft')}</span>}</Link>
         <div className="ap-tile-body">
-          <Link href={`/admin/products/${row.id}`} className="ap-tile-name" draggable={false}>{row.name}</Link>
+          <Link href={`/admin/products/${row.id}`} className="ap-tile-name" draggable={false}>{ar ? row.nameAr || row.name : row.name}</Link>
           <small>{catName(row.categoryId)}</small>
           <div className="ap-tile-row"><b>{iqd(row.price)}</b><span className={`ap-stock ${row.stock <= 0 ? 'out' : ''}`}>{row.stock} {tt('in stock', 'بالمخزون')}</span></div>
-          <div className="ap-dots">{row.colors.map(c => <Link key={c.id} href={`/admin/products/${row.id}?color=${c.id}`} title={`${c.name}: ${c.stock}`} className={stockLevel(c.stock, lowStockThreshold)} style={{ background: c.hex }} draggable={false} />)}</div>
+          <div className="ap-dots">{row.colors.map(c => <Link key={c.id} href={`/admin/products/${row.id}?color=${c.id}`} title={`${ar ? c.nameAr || c.name : c.name}: ${c.stock}`} className={stockLevel(c.stock, lowStockThreshold)} style={{ background: c.hex }} draggable={false} />)}</div>
         </div>
       </article>)}
       {!visible.length && <p className="admin-empty">{tr('No products match that filter.')}</p>}

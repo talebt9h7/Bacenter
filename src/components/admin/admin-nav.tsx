@@ -40,6 +40,11 @@ export function AdminNav({ actor }: { actor: AdminActor }) {
     const frame = requestAnimationFrame(() => { try { const saved = JSON.parse(localStorage.getItem('ur-admin-nav-collapsed') || '[]'); if (Array.isArray(saved)) setCollapsed(saved.filter(x => typeof x === 'string')); } catch { /* storage blocked */ } });
     return () => cancelAnimationFrame(frame);
   }, []);
+  // Keep the open page's link in view inside the (long) sidebar.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => document.querySelector<HTMLElement>('.admin-sidebar nav a.active')?.scrollIntoView({ block: 'nearest' }));
+    return () => cancelAnimationFrame(frame);
+  }, [pathname]);
   function toggleGroup(title: string) {
     setCollapsed(list => { const next = list.includes(title) ? list.filter(x => x !== title) : [...list, title]; try { localStorage.setItem('ur-admin-nav-collapsed', JSON.stringify(next)); } catch { /* storage blocked */ } return next; });
   }

@@ -1,0 +1,297 @@
+/*
+ * Admin, Apple-style pass: light translucent sidebar like macOS System Settings, quiet grey canvas,
+ * soft white cards, compact 34px navigation rows, system fonts (SF Pro / SF Arabic on Apple devices).
+ * Loaded last so it settles the older admin layers.
+ */
+.admin-shell{
+  --ap-bg:#f5f5f7;--ap-card:#fff;--ap-ink:#1d1d1f;--ap-muted:#6e6e73;--ap-faint:#86868b;--ap-line:rgba(0,0,0,.08);--ap-hover:rgba(0,0,0,.045);
+  --ap-accent:#c4501f;--ap-accent-soft:rgba(196,80,31,.1);--ap-green:#34c759;--ap-radius:16px;
+  --ap-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);
+  --a-bg:var(--ap-bg);--a-ink:var(--ap-ink);--a-muted:var(--ap-muted);--a-line:#e5e5ea;
+  background:var(--ap-bg)!important;color:var(--ap-ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Arabic","Segoe UI",UR,"Noto Sans Arabic",Tahoma,sans-serif!important;
+  -webkit-font-smoothing:antialiased;
+}
+.admin-shell .admin-main{background:var(--ap-bg)}
+
+/* ---------- Sidebar ---------- */
+.admin-shell .admin-sidebar{
+  width:248px;padding:14px 10px 0;gap:6px;
+  background:rgba(242,242,244,.86)!important;-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  color:var(--ap-ink)!important;border-inline-end:1px solid var(--ap-line);box-shadow:none!important;
+  scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.18) transparent;
+}
+.admin-shell .admin-sidebar::-webkit-scrollbar{width:6px}.admin-shell .admin-sidebar::-webkit-scrollbar-thumb{background:rgba(0,0,0,.16);border-radius:6px}
+@media(min-width:901px){
+  .admin-shell .admin-main{margin-left:248px}
+  html[dir=rtl] .admin-shell .admin-main{margin-left:0;margin-right:248px}
+  .admin-shell .admin-savebar{left:248px}
+  html[dir=rtl] .admin-shell .admin-savebar{left:0;right:248px}
+}
+.admin-shell .admin-sidebar>.admin-brand{padding:4px 10px 8px;gap:8px;color:var(--ap-ink)}
+.admin-shell .admin-sidebar .admin-brand img{filter:none!important;opacity:1;width:52px;height:auto}
+.admin-shell .admin-sidebar .admin-brand span{border-color:var(--ap-line);color:var(--ap-muted);background:#fff}
+/* One language switch is enough: it stays at the bottom of the sidebar. */
+.admin-shell .admin-sidebar>.admin-language-panel{display:none!important}
+
+.admin-shell .admin-sidebar-search{
+  position:sticky;top:-14px;z-index:2;width:auto;margin:0 4px 8px;height:34px;border-radius:9px;
+  background:rgba(118,118,128,.12)!important;border:0!important;color:var(--ap-muted)!important;font-size:13px!important;
+  box-shadow:0 0 0 6px rgba(242,242,244,.95);
+}
+.admin-shell .admin-sidebar-search:hover{background:rgba(118,118,128,.18)!important;color:var(--ap-ink)!important}
+.admin-shell .admin-sidebar-search kbd{background:#fff!important;color:var(--ap-faint)!important;box-shadow:0 0 0 1px var(--ap-line);font-size:10px}
+
+.admin-shell .admin-sidebar nav{gap:0!important}
+.admin-shell .admin-nav-group{margin-bottom:10px!important;gap:1px!important}
+.admin-shell .admin-nav-group.folded{margin-bottom:2px!important}
+.admin-shell .admin-nav-group-head{padding:6px 10px 4px!important;color:var(--ap-faint)!important;border-radius:6px}
+.admin-shell .admin-nav-group-head>span{font-size:11.5px!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important}
+html:not([dir=rtl]) .admin-shell .admin-nav-group-head>span{font-size:11px!important;letter-spacing:.2px!important}
+.admin-shell .admin-nav-group-head:hover{color:var(--ap-ink)!important;background:transparent}
+.admin-shell .admin-nav-group-head svg{opacity:0;transition:opacity .15s,transform .2s}
+.admin-shell .admin-nav-group-head:hover svg,.admin-shell .admin-nav-group.folded .admin-nav-group-head svg{opacity:.6}
+
+.admin-shell .admin-sidebar nav a{
+  min-height:34px;padding:0 10px!important;gap:10px!important;border-radius:8px!important;
+  color:var(--ap-ink)!important;font-size:13.5px!important;font-weight:450;line-height:1.25;
+  background:transparent!important;border:0!important;box-shadow:none!important;transform:none!important;
+  transition:background .12s ease;
+}
+.admin-shell .admin-sidebar nav a svg{color:var(--ap-accent);opacity:.9;flex-shrink:0;width:17px;height:17px}
+.admin-shell .admin-sidebar nav a:hover{background:var(--ap-hover)!important}
+.admin-shell .admin-sidebar nav a:active{background:rgba(0,0,0,.08)!important}
+.admin-shell .admin-sidebar nav a.active{background:var(--ap-accent)!important;color:#fff!important;font-weight:600}
+.admin-shell .admin-sidebar nav a.active svg{color:#fff;opacity:1}
+.admin-shell .admin-sidebar nav a:focus-visible{outline:2px solid var(--ap-accent);outline-offset:1px}
+.admin-shell .admin-nav-badge{min-width:20px;height:18px;padding:0 6px;border-radius:9px;font-size:11px;font-weight:600;display:inline-grid;place-items:center;background:rgba(0,0,0,.08)!important;color:var(--ap-ink)!important;box-shadow:none!important}
+.admin-shell .admin-nav-badge.hot{background:#ff3b30!important;color:#fff!important}
+.admin-shell .admin-nav-badge.warn{background:#ff9f0a!important;color:#fff!important}
+.admin-shell .admin-sidebar nav a.active .admin-nav-badge{background:rgba(255,255,255,.28)!important;color:#fff!important}
+
+.admin-shell .admin-sidebar-bottom{
+  position:sticky;bottom:0;margin:auto -10px 0;padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px;
+  background:rgba(242,242,244,.96);border-top:1px solid var(--ap-line);
+}
+.admin-shell .admin-sidebar-bottom a,.admin-shell .admin-sidebar-bottom button:not(.sidebar-language-switcher button){
+  display:flex;align-items:center;gap:9px;min-height:32px;padding:0 8px;border-radius:8px;color:var(--ap-muted)!important;font-size:13px!important;background:none!important;border:0!important
+}
+.admin-shell .admin-sidebar-bottom a:hover,.admin-shell .admin-sidebar-bottom button:not(.sidebar-language-switcher button):hover{background:var(--ap-hover)!important;color:var(--ap-ink)!important}
+.admin-shell .sidebar-language-switcher{display:grid!important;grid-template-columns:1fr 1fr;padding:2px!important;border-radius:9px!important;background:rgba(118,118,128,.12)!important;border:0!important;gap:0}
+.admin-shell .sidebar-language-switcher button{min-height:28px!important;border-radius:7px!important;font-size:12.5px!important;color:var(--ap-ink)!important;background:transparent!important;font-weight:500!important}
+.admin-shell .sidebar-language-switcher button.active{background:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)!important;font-weight:600!important}
+
+/* Mobile: sheet-like drawer and a translucent top bar */
+@media(max-width:900px){
+  .admin-shell .admin-sidebar{width:min(300px,86vw);padding-top:12px;box-shadow:0 0 40px rgba(0,0,0,.18)!important;background:rgba(246,246,248,.97)!important}
+  .admin-shell .admin-sidebar-backdrop{background:rgba(0,0,0,.28)!important;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  .admin-shell .admin-sidebar nav a{min-height:42px;font-size:15px!important}
+  .admin-shell .admin-topbar{height:52px;padding:0 8px!important;background:rgba(245,245,247,.82)!important;-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--ap-line)!important}
+  .admin-shell .admin-topbar .admin-icon-btn{width:40px;height:40px;border-radius:10px;color:var(--ap-ink)}
+}
+
+/* ---------- Page chrome ---------- */
+.admin-shell .admin-page{max-width:1280px;padding:30px 36px 120px}
+@media(max-width:900px){.admin-shell .admin-page{padding:18px 16px 110px}}
+.admin-shell .admin-page-heading{margin-bottom:20px!important}
+.admin-shell .admin-page-heading h1{font-size:30px!important;font-weight:700!important;letter-spacing:-.6px!important;color:var(--ap-ink)}
+html[dir=rtl] .admin-shell .admin-page-heading h1{letter-spacing:0!important}
+.admin-shell .admin-page-heading p{color:var(--ap-muted)!important;font-size:14px!important;max-width:680px}
+.admin-shell .admin-eyebrow{border:0!important;background:none!important;padding:0!important;color:var(--ap-faint)!important;font-size:12px!important;font-weight:600!important;letter-spacing:.2px!important;text-transform:none!important;box-shadow:none!important}
+@media(max-width:900px){.admin-shell .admin-page-heading h1{font-size:26px!important}}
+
+.admin-shell .admin-card{border:0!important;border-radius:var(--ap-radius)!important;box-shadow:var(--ap-shadow)!important;background:var(--ap-card)}
+.admin-shell .admin-card-heading h2{font-size:17px;font-weight:650;letter-spacing:-.2px}
+.admin-shell .admin-btn{border-radius:10px;font-weight:600}
+.admin-shell .admin-btn-primary{background:var(--ap-accent);box-shadow:none}
+.admin-shell .admin-btn-primary:hover{background:#ab4419}
+.admin-shell .admin-btn-ghost{border-color:rgba(0,0,0,.1);background:#fff}
+.admin-shell .admin-table th{font-size:12px!important;letter-spacing:0!important;text-transform:none!important;font-weight:600!important;color:var(--ap-faint)!important;border-bottom:1px solid var(--a-line)!important}
+.admin-shell .admin-table tbody tr{transition:background .12s}
+.admin-shell .admin-table tbody tr:hover{background:#fafafc}
+.admin-shell .admin-table td{border-bottom-color:#f0f0f2!important}
+
+/* ---------- Categories: inset grouped list ---------- */
+.cat-manager{display:flex;flex-direction:column;gap:12px}
+.cat-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cat-search{flex:1 1 240px;display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:10px;background:rgba(118,118,128,.12);color:var(--ap-faint);min-width:0}
+.cat-search input{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:14px;color:var(--ap-ink)}
+.cat-search button{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.25);color:#fff}
+.cat-segmented{display:inline-flex;padding:2px;border-radius:10px;background:rgba(118,118,128,.12);gap:0}
+.cat-segmented button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--ap-ink);white-space:nowrap;transition:background .15s,box-shadow .15s}
+.cat-segmented button span{font-size:11.5px;color:var(--ap-faint);font-variant-numeric:tabular-nums}
+.cat-segmented button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);font-weight:600}
+.cat-add{height:38px;padding:0 16px!important}
+.cat-tip{font-size:12.5px;color:var(--ap-faint);margin:2px 4px 0}
+
+.cat-list{list-style:none;margin:0;padding:0;background:#fff;border-radius:var(--ap-radius);box-shadow:var(--ap-shadow);overflow:hidden}
+.cat-row{position:relative;display:flex;align-items:center;gap:6px;padding-inline:8px 14px;min-height:72px;background:#fff;transition:background .12s,opacity .15s,box-shadow .15s}
+.cat-row+.cat-row::before{content:'';position:absolute;top:0;inset-inline-start:84px;inset-inline-end:0;height:1px;background:#e5e5ea}
+.cat-row:hover{background:#fafafc}
+.cat-row.is-hidden .cat-thumb,.cat-row.is-hidden .cat-text{opacity:.5}
+.cat-row.is-dragging{opacity:.4}
+.cat-row.is-over{box-shadow:inset 0 2px 0 var(--ap-accent)}
+.cat-handle{display:grid;place-items:center;width:22px;height:40px;color:#c7c7cc;cursor:grab;flex-shrink:0}
+.cat-row:active .cat-handle{cursor:grabbing}
+.cat-open{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:12px 4px;text-align:start;background:none;border:0;cursor:pointer;color:inherit;font:inherit}
+.cat-thumb{width:48px;height:48px;border-radius:11px;background:#f2f2f4;display:grid;place-items:center;overflow:hidden;flex-shrink:0;color:#aeaeb2;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.06)}
+.cat-thumb img{width:100%;height:100%;object-fit:cover;mix-blend-mode:multiply}
+.cat-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cat-text strong{font-size:15px;font-weight:600;color:var(--ap-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-text small{font-size:12.5px;color:var(--ap-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-count{margin-inline-start:auto;font-size:13px;color:var(--ap-muted);white-space:nowrap;font-variant-numeric:tabular-nums;padding-inline:8px}
+.cat-count.zero{color:#c7c7cc}
+.cat-move{display:flex;flex-direction:column;gap:2px;opacity:0;transition:opacity .15s}
+.cat-row:hover .cat-move,.cat-move:focus-within{opacity:1}
+.cat-move button{display:grid;place-items:center;width:26px;height:20px;border-radius:6px;color:var(--ap-muted)}
+.cat-move button:hover:not(:disabled){background:var(--ap-hover);color:var(--ap-ink)}
+.cat-move button:disabled{opacity:.25}
+.cat-chevron{color:#c7c7cc;flex-shrink:0}
+
+/* iOS switch */
+.cat-switch{position:relative;display:inline-flex;flex-shrink:0;cursor:pointer;margin-inline:6px}
+.cat-switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.cat-switch>span{width:44px;height:26px;border-radius:13px;background:#e9e9eb;position:relative;transition:background .2s ease}
+.cat-switch>span::after{content:'';position:absolute;top:2px;inset-inline-start:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.04);transition:transform .22s cubic-bezier(.3,.7,.4,1)}
+.cat-switch input:checked+span{background:var(--ap-green)}
+.cat-switch input:checked+span::after{transform:translateX(18px)}
+html[dir=rtl] .cat-switch input:checked+span::after{transform:translateX(-18px)}
+.cat-switch input:focus-visible+span{outline:2px solid var(--ap-accent);outline-offset:2px}
+
+.cat-empty{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:56px 20px;background:#fff;border-radius:var(--ap-radius);box-shadow:var(--ap-shadow);color:var(--ap-faint)}
+.cat-empty h3{font-size:17px;font-weight:600;color:var(--ap-ink);margin-top:6px}
+.cat-empty p{font-size:13.5px;max-width:340px;line-height:1.6;margin-bottom:8px}
+
+@media(max-width:700px){
+  .cat-toolbar{gap:8px}
+  .cat-segmented{order:3;width:100%;overflow-x:auto;scrollbar-width:none}
+  .cat-segmented::-webkit-scrollbar{display:none}
+  .cat-segmented button{flex:1;justify-content:center;padding:0 8px}
+  .cat-add{flex:0 0 auto}
+  .cat-row{min-height:66px;padding-inline:4px 10px;gap:2px}
+  .cat-row+.cat-row::before{inset-inline-start:74px}
+  .cat-open{gap:12px}
+  .cat-thumb{width:44px;height:44px;border-radius:10px}
+  .cat-count{display:none}
+  .cat-move{opacity:1}
+  .cat-chevron{display:none}
+}
+
+/* ---------- Side sheet (editor) ---------- */
+.sheet-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.24);display:flex;justify-content:flex-end;animation:sheet-fade .2s ease both}
+.sheet{width:min(460px,100vw);height:100dvh;background:#f2f2f7;display:flex;flex-direction:column;box-shadow:0 0 50px rgba(0,0,0,.2);animation:sheet-in .32s cubic-bezier(.2,.8,.2,1) both;font-family:inherit}
+html[dir=rtl] .sheet{animation-name:sheet-in-rtl}
+.sheet-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:56px;padding:0 12px;background:rgba(242,242,247,.9);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--ap-line);flex-shrink:0}
+.sheet-head h2{font-size:16px;font-weight:600;color:var(--ap-ink)}
+.sheet-text-btn{font-size:15px;color:var(--ap-accent);padding:8px 6px;justify-self:start;border-radius:8px}
+.sheet-text-btn.strong{font-weight:600;justify-self:end}
+.sheet-text-btn:disabled{color:#c7c7cc}
+.sheet-text-btn:hover:not(:disabled){background:var(--ap-accent-soft)}
+.sheet-body{flex:1;overflow-y:auto;padding:18px 16px 40px;display:flex;flex-direction:column;gap:22px;overscroll-behavior:contain}
+.sheet-preview{display:flex;align-items:center;gap:14px;padding:14px;background:#fff;border-radius:14px}
+.sheet-preview-img{width:64px;height:64px;border-radius:14px;background:#f2f2f4;display:grid;place-items:center;overflow:hidden;color:#aeaeb2;flex-shrink:0}
+.sheet-preview-img img{width:100%;height:100%;object-fit:cover;mix-blend-mode:multiply}
+.sheet-preview strong{display:block;font-size:17px;font-weight:600;color:var(--ap-ink)}
+.sheet-preview small{display:block;font-size:12px;color:var(--ap-faint);margin-top:4px;word-break:break-all;text-align:start}
+.sheet-group{display:flex;flex-direction:column;gap:8px}
+.sheet-group h3{font-size:12.5px;font-weight:500;color:var(--ap-muted);padding-inline:14px;text-transform:none}
+.sheet-fields{background:#fff;border-radius:12px;overflow:hidden}
+.sheet-fields>label,.sheet-fields>.row{position:relative;display:flex;align-items:center;gap:12px;min-height:46px;padding:0 14px;font-size:15px;color:var(--ap-ink);width:100%;text-align:start;background:#fff}
+.sheet-fields>*+*::before{content:'';position:absolute;top:0;inset-inline-start:14px;inset-inline-end:0;height:1px;background:#e5e5ea}
+.sheet-fields>label>span:first-child{flex:0 0 92px;color:var(--ap-ink)}
+.sheet-fields input,.sheet-fields textarea{flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;font-size:15px;color:var(--ap-ink);padding:12px 0}
+.sheet-fields input:disabled{color:var(--ap-faint)}
+.sheet-fields input::placeholder,.sheet-fields textarea::placeholder{color:#c7c7cc}
+.sheet-fields>label.tall{align-items:flex-start}
+.sheet-fields>label.tall>span:first-child{padding-top:12px}
+.sheet-fields textarea{resize:vertical;line-height:1.5;min-height:66px}
+.sheet-fields>.row{justify-content:space-between}
+.sheet-fields>.row.link{color:var(--ap-accent)}
+.sheet-fields>.row.danger{color:#ff3b30;justify-content:center;cursor:pointer}
+.sheet-fields>.row.danger span{display:inline-flex;align-items:center;gap:8px}
+.sheet-fields>.row.danger:disabled{color:#c7c7cc;cursor:not-allowed}
+.sheet-fields>.row:hover:not(:disabled){background:#fafafa}
+.sheet-fields .cat-switch{margin:0}
+.sheet-note{font-size:12.5px;color:var(--ap-faint);padding-inline:14px;line-height:1.5}
+.sheet-error{background:#fff;color:#ff3b30;border-radius:12px;padding:12px 14px;font-size:14px}
+.sheet-image{background:#fff;border-radius:12px;padding:14px}
+.sheet-image .admin-field>span{display:none}
+@keyframes sheet-in{from{transform:translateX(100%)}to{transform:none}}
+@keyframes sheet-in-rtl{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes sheet-fade{from{opacity:0}to{opacity:1}}
+@media(max-width:600px){
+  .sheet-overlay{align-items:flex-end}
+  .sheet,html[dir=rtl] .sheet{width:100vw;height:94dvh;border-radius:14px 14px 0 0;animation-name:sheet-up}
+  @keyframes sheet-up{from{transform:translateY(100%)}to{transform:none}}
+}
+@media(prefers-reduced-motion:reduce){.sheet,.sheet-overlay{animation:none!important}}
+
+/* Sidebar footer fully opaque so links never show through */
+.admin-shell .admin-sidebar-bottom{background:#f2f2f4}
+@media(max-width:900px){.admin-shell .admin-sidebar-bottom{background:#f6f6f8}}
+@media(max-width:700px){.cat-search{flex:1 1 150px}}
+
+/* ---------- Orders on phones: each row becomes a card ---------- */
+@media(max-width:700px){
+  .admin-shell .admin-orders-table{min-width:0!important;display:block}
+  .admin-shell .admin-orders-table thead{display:none}
+  .admin-shell .admin-orders-table tbody{display:flex;flex-direction:column;gap:10px}
+  .admin-shell .admin-orders-table tr{
+    display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;row-gap:6px;
+    grid-template-areas:"check order total" "check customer pay" ". place status" ". items items" "actions actions actions";
+    padding:14px 12px;border-radius:14px;background:#fff;box-shadow:var(--ap-shadow)
+  }
+  .admin-shell .admin-orders-table tr.is-selected{box-shadow:0 0 0 2px var(--ap-accent)}
+  .admin-shell .admin-orders-table tbody tr:hover{background:#fff}
+  .admin-shell .admin-orders-table td{display:block;padding:0!important;border:0!important;min-width:0}
+  .admin-shell .admin-orders-table td:nth-child(1){grid-area:check;padding-top:2px!important}
+  .admin-shell .admin-orders-table td:nth-child(2){grid-area:order}
+  .admin-shell .admin-orders-table td:nth-child(3){grid-area:customer;font-weight:600}
+  .admin-shell .admin-orders-table td:nth-child(4){grid-area:place;font-size:12.5px;color:var(--ap-muted)}
+  .admin-shell .admin-orders-table td:nth-child(4) br{display:none}
+  .admin-shell .admin-orders-table td:nth-child(4) small::before{content:' · '}
+  .admin-shell .admin-orders-table td:nth-child(5){grid-area:items;font-size:12.5px;color:var(--ap-muted)}
+  .admin-shell .admin-orders-table td:nth-child(5) br{display:none}
+  .admin-shell .admin-orders-table td:nth-child(5) small::before{content:' · '}
+  .admin-shell .admin-orders-table td:nth-child(6){grid-area:total;text-align:end;font-size:15px}
+  .admin-shell .admin-orders-table td:nth-child(7){grid-area:pay;text-align:end}
+  .admin-shell .admin-orders-table td:nth-child(7) small{display:none}
+  .admin-shell .admin-orders-table td:nth-child(8){grid-area:status;justify-self:end}
+  .admin-shell .admin-orders-table td:nth-child(9){grid-area:actions;border-top:1px solid #f0f0f2!important;padding-top:10px!important;margin-top:4px}
+  .admin-shell .admin-orders-table .admin-order-actions{display:flex;gap:6px;flex-wrap:nowrap;justify-content:flex-start}
+  .admin-shell .admin-orders-table .admin-order-actions>a:last-child{margin-inline-start:auto}
+  .admin-shell .admin-orders-table td[colspan]{grid-column:1/-1}
+  .admin-shell .admin-orders-table tr:has(td[colspan]){display:block}
+  .admin-shell .admin-orders-table + .admin-pager,.admin-shell .admin-table-wrap:has(.admin-orders-table){margin:0;overflow:visible}
+  .admin-shell .admin-card:has(.admin-orders-table){background:transparent!important;box-shadow:none!important;padding:0!important}
+}
+@media(max-width:700px){
+  .admin-shell .admin-orders-table td:nth-child(3) br{display:none}
+  .admin-shell .admin-orders-table td:nth-child(3) small{display:flex;align-items:center;gap:4px;font-weight:400;margin-top:2px}
+  .admin-shell .admin-orders-table td:nth-child(2) small{display:block;margin-top:2px}
+}
+/* Sheet headings: keep them iOS-sized whatever the global heading rules say */
+.admin-shell .sheet .sheet-head h2,.sheet .sheet-head h2{font-size:17px!important;font-weight:600!important;letter-spacing:0!important;line-height:1.2!important;margin:0!important}
+.admin-shell .sheet .sheet-group h3,.sheet .sheet-group h3{font-size:13px!important;font-weight:500!important;letter-spacing:0!important;line-height:1.3!important;margin:0!important;color:var(--ap-muted,#6e6e73)!important;font-family:inherit!important}
+.sheet .sheet-preview strong{font-size:17px!important}
+.sheet .sheet-fields textarea{text-align:start}
+
+/* ---------- Products on phones: card rows (not while arranging the order) ---------- */
+@media(max-width:700px){
+  .admin-shell .admin-products-table:not(.is-sorting){min-width:0!important;display:block}
+  .admin-shell .admin-products-table:not(.is-sorting) thead{display:none}
+  .admin-shell .admin-products-table:not(.is-sorting) tbody{display:flex;flex-direction:column}
+  .admin-shell .admin-products-table:not(.is-sorting) tr{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:8px;column-gap:10px;grid-template-areas:"product status" "meta price" "chips chips" "edit edit";padding:14px 2px;border-bottom:1px solid #f0f0f2}
+  .admin-shell .admin-products-table:not(.is-sorting) tr:last-child{border-bottom:0}
+  .admin-shell .admin-products-table:not(.is-sorting) td{display:block;padding:0!important;border:0!important;min-width:0;text-align:start}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(1){grid-area:product}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(2){grid-area:meta;font-size:12.5px;color:var(--ap-muted)}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(3){grid-area:price;text-align:end;font-weight:600}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(4){grid-area:chips}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(5){display:none}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(6){grid-area:status;justify-self:end}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(7){grid-area:edit}
+  .admin-shell .admin-products-table:not(.is-sorting) td:nth-child(7) .admin-btn{width:100%}
+  .admin-shell .admin-products-table:not(.is-sorting) td[colspan]{grid-column:1/-1}
+  .admin-shell .admin-table-wrap:has(.admin-products-table:not(.is-sorting)){overflow:visible;margin:0}
+}
