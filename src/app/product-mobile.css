@@ -39,3 +39,7 @@
   html body main.product-page.bundle-page .product-heading{align-items:flex-start;text-align:start}
   html body main.product-page.bundle-page .product-heading h1{font-size:24px!important}
 }
+
+/* Reviews close the product page, after "In good company" */
+html body main.product-page .related-products + .product-reviews{margin-top:64px;padding-top:40px;border-top:1px solid rgba(60,40,20,.12)}
+@media(max-width:767px){html body main.product-page .related-products + .product-reviews{margin-top:40px;padding-top:28px}}

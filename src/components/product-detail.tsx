@@ -14,7 +14,7 @@ import { track } from '@/lib/track';
 import { Modal, ModalHeading } from './modal';
 import { ProductVideo } from './product-video';
 import { BundleCard } from './bundle-card';
-import { ProductReviews, RatingLink } from './product-reviews';
+import { ProductReviews } from './product-reviews';
 import type { ReviewSummary } from '@/lib/reviews';
 import type { BundleView } from '@/lib/bundles';
 import type { ProductPageBanner } from '@/lib/product-page-banner';
@@ -134,7 +134,6 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
       <div className="product-buy-box">
         <div className="product-heading">
           <h1>{displayName}</h1>
-          {reviews && <RatingLink summary={reviews} />}
           {promoLive && pricing.regular > pricing.price ? <div className="product-price on-sale"><span className="price-now">{moneyIqd(pricing.price)}</span><s className="price-was">{moneyIqd(pricing.regular)}</s><span className="price-save">{language === 'ar' ? `وفّر ${moneyIqd(pricing.regular - pricing.price)}` : `Save ${moneyIqd(pricing.regular - pricing.price)}`}</span></div> : <div className="product-price">{moneyIqd(shownPrice)}</div>}
           {promoLive && product.promotion && <div className="promo-panel"><span className="promo-panel-name">{(language === 'ar' ? product.promotion.badgeAr || product.promotion.nameAr : product.promotion.badge || product.promotion.name) || `−${product.promotion.percentOff}%`}</span>{product.promotion.showCountdown && <PromoCountdown endsAt={product.promotion.endsAt} language={language} refreshOnEnd />}</div>}
         </div>
@@ -225,8 +224,9 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
       const picture = <picture>{banner.mobileImage && <source media="(max-width: 700px)" srcSet={mediaSrc(banner.mobileImage, 960)} />}<img src={mediaSrc(banner.image, 1920)} alt={alt} loading="lazy" /></picture>;
       return <section className="product-page-banner" aria-label={alt}>{banner.href ? <Link href={banner.href}>{picture}</Link> : picture}</section>;
     })()}
-    {reviews && <ProductReviews productId={product.id} summary={reviews} />}
     {related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
+    {/* Reviews sit at the end of the page, with the form to write one. */}
+    {reviews && <ProductReviews productId={product.id} summary={reviews} />}
     {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={mediaSrc(images[safeIndex], 1600)} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
     {product.colors.length > 0 && <link rel="prefetch" href={mediaSrc(primaryImage(color), 1280)} />}
   </main>;
