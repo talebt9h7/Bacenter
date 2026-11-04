@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { LazySection } from './lazy-section';
 import { ArrowRight, Banknote, ChevronDown, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, ShieldCheck, ZoomIn } from 'lucide-react';
 import { categories } from '@/lib/catalog';
 import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
@@ -12,9 +14,10 @@ import { PromoCountdown, usePromoLive } from './promo-price';
 import { colorGroups, findVariant, hasSizes, sizeOptions, variantLabel, variantPricing } from '@/lib/variants';
 import { track } from '@/lib/track';
 import { Modal, ModalHeading } from './modal';
-import { ProductVideo } from './product-video';
-import { BundleCard } from './bundle-card';
-import { ProductReviews } from './product-reviews';
+// Parts that many products don't have, or that sit at the bottom of the page, load as separate chunks.
+const ProductVideo = dynamic(() => import('./product-video').then(m => m.ProductVideo));
+const BundleCard = dynamic(() => import('./bundle-card').then(m => m.BundleCard));
+const ProductReviews = dynamic(() => import('./product-reviews').then(m => m.ProductReviews), { ssr: false });
 import type { ReviewSummary } from '@/lib/reviews';
 import type { BundleView } from '@/lib/bundles';
 import type { ProductPageBanner } from '@/lib/product-page-banner';
@@ -226,7 +229,7 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
     })()}
     {related.length > 0 && <><div className="section-heading"><h2>{language === 'ar' ? 'منتجات تكمل اختيارك' : 'In good company'}</h2><Link className="text-link" href="/products/category/all">{t('Explore all')} <ArrowRight size={16} /></Link></div><div className="related-products">{related.map(item => <ProductCard key={item.id} product={item} />)}</div></>}
     {/* Reviews sit at the end of the page, with the form to write one. */}
-    {reviews && <ProductReviews productId={product.id} summary={reviews} />}
+    {reviews && <LazySection id="reviews" minHeight={reviews.count ? 520 : 260}>{() => <ProductReviews productId={product.id} summary={reviews} />}</LazySection>}
     {zoom && <Modal title={`${displayName} image`} className="product-zoom-overlay" onClose={() => setZoom(false)}><ModalHeading title={`${displayName} — ${displayColorName(color)}`} onClose={() => setZoom(false)} /><img src={mediaSrc(images[safeIndex], 1600)} alt={`${displayName} in ${displayColorName(color)}, enlarged photo ${safeIndex + 1}`} /></Modal>}
     {product.colors.length > 0 && <link rel="prefetch" href={mediaSrc(primaryImage(color), 1280)} />}
   </main>;

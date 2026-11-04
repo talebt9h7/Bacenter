@@ -1,4 +1,5 @@
 'use client';
+import { groupInt, numberFormat } from '@/lib/number-format';
 import { track } from '@/lib/track';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -38,7 +39,7 @@ export function Checkout() {
   const { cart, loaded, refreshCart, setCartOpen } = useStore();
   const { language } = useLanguage();
   const ar = language === 'ar';
-  const iqd = (value: number) => ar ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)} د.ع` : new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(value);
+  const iqd = (value: number) => ar ? `${groupInt(value)} د.ع` : numberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(value);
   const t = (label: string) => storeT(label, language);
   const [config, setConfig] = useState<Config | null>(null);
   const [governorate, setGovernorate] = useState('');

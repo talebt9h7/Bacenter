@@ -1,3 +1,4 @@
+import { numberFormat } from '@/lib/number-format';
 // Iraq-only delivery: the 18 governorates with default courier rates in IQD.
 export const iraqGovernorates = [
   { code: 'baghdad', nameEn: 'Baghdad', nameAr: 'بغداد', rate: 5000, minDays: 1, maxDays: 2 },
@@ -33,8 +34,8 @@ export function normalizeIraqPhone(raw: string) {
 }
 export function roundIqd(value: number) { return Math.max(0, Math.round(value / 250) * 250); }
 export function formatAmount(amount: number, currency: string) {
-  if (currency === 'IQD') return new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(amount);
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount / 100);
+  if (currency === 'IQD') return numberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(amount);
+  return numberFormat('en-US', { style: 'currency', currency }).format(amount / 100);
 }
 export const orderStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'] as const;
 export type OrderStatus = typeof orderStatuses[number];

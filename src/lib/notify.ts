@@ -1,3 +1,4 @@
+import { numberFormat } from '@/lib/number-format';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { orders, productVariants, shippingZones } from '@/db/schema';
@@ -15,7 +16,7 @@ const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 const plain = (html: string) => html.replace(/<b>(.*?)<\/b>/g, '*$1*').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 // Overridable only so automated tests can capture messages locally.
 const TELEGRAM_API = process.env.TELEGRAM_API_BASE || 'https://api.telegram.org';
-const money = (n: number) => `${new Intl.NumberFormat('en-US').format(Math.round(n))} د.ع`;
+const money = (n: number) => `${numberFormat('en-US').format(Math.round(n))} د.ع`;
 
 export async function sendTelegram(config: Integrations['telegram'], html: string) {
   if (!config.botToken || !config.chatIds.length) return { ok: false, error: 'Telegram is not set up.' };
