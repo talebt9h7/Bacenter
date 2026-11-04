@@ -390,3 +390,16 @@ body:has(.product-page-banner){overflow-x:clip}
   .bd-pick{padding:14px}
   .bd-swatches button{width:56px}.bd-swatches button img,.bd-swatches button>span{width:54px;height:54px}
 }
+
+/* Sold out (chosen design): grey photo, a dark band across the bottom of the photo, muted name and price. */
+html body .product-card.is-sold-out .product-image{filter:grayscale(.85);transition:filter .3s ease}
+html body .product-card.is-sold-out .product-badge.sold-out-badge{
+  top:auto!important;bottom:0!important;left:0!important;right:0!important;inset-inline:0!important;
+  display:flex;align-items:center;justify-content:center;height:38px;padding:0!important;border-radius:0!important;
+  background:rgba(42,33,27,.84)!important;color:#fff!important;font-size:13px!important;font-weight:700;letter-spacing:0;
+  box-shadow:none!important;pointer-events:none
+}
+html body .product-card.is-sold-out .product-card-title{color:#8a7f76!important}
+html body .product-card.is-sold-out .product-card-price,
+html body .product-card.is-sold-out .product-card-price *{color:#a39890!important}
+@media(max-width:767px){html body .product-card.is-sold-out .product-badge.sold-out-badge{height:34px;font-size:12.5px!important}}
