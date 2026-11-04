@@ -85,12 +85,16 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
     finally { setBusy(false); }
   }
   async function updateQuantity(id: number, quantity: number) {
+    // Optimistic: the quantity (or removal) shows at once; the server's answer then replaces it,
+    // and a failure puts the bag back the way it was.
+    const before = cart;
+    setCart(quantity > 0 ? cart.map(item => item.id === id ? { ...item, quantity } : item) : cart.filter(item => item.id !== id));
     setBusy(true);
     try {
       const response = await fetch('/api/cart', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, quantity }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
       setCart(data.items);
-    } catch (error) { notify(error instanceof Error ? error.message : 'Please check your connection.', true); }
+    } catch (error) { setCart(before); notify(error instanceof Error ? error.message : 'Please check your connection.', true); }
     finally { setBusy(false); }
   }
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);

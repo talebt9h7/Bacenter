@@ -6,12 +6,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "perf": "bash scripts/perf.sh"
   },
   "dependencies": {
-    "@playwright/test": "^1.63.0",
     "@vercel/blob": "2.8.2",
-    "dotenv": "17.3.1",
+    "@vercel/speed-insights": "2.0.0",
     "drizzle-orm": "0.45.2",
     "lucide-react": "^1.48.0",
     "next": "16.2.6",
@@ -21,11 +21,13 @@
     "sharp": "0.34.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "4.1.17",
     "@types/node": "22.19.15",
     "@types/pg": "8.18.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "dotenv": "17.3.1",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",

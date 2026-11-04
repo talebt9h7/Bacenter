@@ -5,7 +5,7 @@ import { Plus, LoaderCircle } from 'lucide-react';
 import { mediaSrc, mediaSrcSet, primaryImage, type Product } from '@/lib/types';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { PromoCountdown, usePromoLive } from './promo-price';
 import { colorGroups, hasSizes, priceFrom } from '@/lib/variants';
 

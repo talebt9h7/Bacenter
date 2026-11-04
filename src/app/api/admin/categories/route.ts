@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { categories, products } from '@/db/schema';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { logActivity } from '@/lib/activity-log';
+import { invalidateCatalog } from '@/lib/cache-tags';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,7 +130,8 @@ export async function POST(request: NextRequest) {
       `Created category: ${name}`
     );
 
-    revalidatePath('/');
+    invalidateCatalog();
+  revalidatePath('/');
     revalidatePath(`/products/category/${id}`);
 
     return NextResponse.json(
@@ -217,6 +219,7 @@ export async function PUT(request: NextRequest) {
     `Updated category: ${name}`
   );
 
+  invalidateCatalog();
   revalidatePath('/');
   revalidatePath(`/products/category/${id}`);
 
@@ -290,6 +293,7 @@ export async function DELETE(request: NextRequest) {
     `Deleted category: ${row.name}`
   );
 
+  invalidateCatalog();
   revalidatePath('/');
   revalidatePath(`/products/category/${id}`);
 
@@ -308,6 +312,7 @@ export async function PATCH(request: NextRequest) {
     for (const [i, id] of order.entries()) await tx.update(categories).set({ sortOrder: i * 10, updatedAt: new Date() }).where(eq(categories.id, id));
   });
   await logActivity(actor, 'category.update', 'category', 'order', 'Reordered categories');
+  invalidateCatalog();
   revalidatePath('/');
   revalidatePath('/products/category/all');
   return NextResponse.json({ ok: true });

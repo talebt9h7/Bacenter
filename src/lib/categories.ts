@@ -1,7 +1,9 @@
+import { unstable_cache } from 'next/cache';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { categories } from '@/db/schema';
 import { categories as legacyCategories } from '@/lib/catalog';
+import { CATALOG_TAG } from './cache-tags';
 
 const legacyArabic: Record<string, string> = {
   backpacks: 'حقائب الظهر',
@@ -18,6 +20,16 @@ const legacyFallback = () => legacyCategories.filter(x => x.id !== 'all').map((x
 
 export const ALL_ID = 'all';
 
+/**
+ * Every category row, cached across requests (one database read per minute at most, cleared at once
+ * by any change in Admin → Categories through CATALOG_TAG). Shop pages read categories several times.
+ */
+const categoryRows = unstable_cache(
+  async () => (await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name))).map(({ createdAt: _c, updatedAt: _u, ...row }) => row),
+  ['categories-rows-v1'], { revalidate: 60, tags: [CATALOG_TAG] },
+);
+type CategoryRow = Awaited<ReturnType<typeof categoryRows>>[number];
+
 export type Category = {
   id: string;
   name: string;
@@ -29,13 +41,13 @@ export type Category = {
   sortOrder: number;
 };
 
-function map(row: typeof categories.$inferSelect): Category {
+function map(row: CategoryRow): Category {
   return { id: row.id, name: row.name, nameAr: row.nameAr || row.name, description: row.description, descriptionAr: row.descriptionAr || row.description, image: row.image, active: row.active, sortOrder: row.sortOrder };
 }
 
 export async function getCategories(options: { includeInactive?: boolean } = {}): Promise<Category[]> {
   try {
-    const rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name));
+    const rows = await categoryRows();
     // 'all' is the "Shop all" page, never a category a product can belong to.
     const mapped = rows.filter(r => r.id !== ALL_ID).map(map);
     return options.includeInactive ? mapped : mapped.filter(x => x.active);
@@ -46,7 +58,7 @@ export async function getCategories(options: { includeInactive?: boolean } = {})
 
 export async function getCategory(id: string) {
   try {
-    const [row] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+    const row = (await categoryRows()).find(r => r.id === id);
     return row ? map(row) : null;
   } catch { return null; }
 }
@@ -58,7 +70,7 @@ export async function getCategory(id: string) {
 export async function getCatalogNav() {
   const { categories: builtIn } = await import('./catalog');
   let rows;
-  try { rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name)); }
+  try { rows = await categoryRows(); }
   catch { return builtIn.map(c => ({ id: c.id, name: c.name, nameAr: c.nameAr })); } // database unreachable only
   // Exactly what the admin set: deleted or switched-off categories never show. The "Shop all"
   // pill takes its label and visibility from the 'all' row (shown first when it is switched on).
@@ -75,7 +87,7 @@ export type CategoryPage = {
 /** The heading and banner for a category page ('all' included), as set in Admin → Categories. */
 export async function getCategoryPage(id: string): Promise<(CategoryPage & { id: string; name: string; nameAr: string; active: boolean }) | null> {
   try {
-    const [row] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+    const row = (await categoryRows()).find(r => r.id === id);
     if (!row) return null;
     return {
       id: row.id, name: row.name, nameAr: row.nameAr || row.name, active: row.active,

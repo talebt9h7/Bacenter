@@ -3,14 +3,12 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { LanguageProvider } from '@/components/language-provider';
-import { LANGUAGE_COOKIE, normalizeLanguage } from '@/lib/i18n';
+import { LANGUAGE_COOKIE, normalizeLanguage } from '@/lib/i18n-store';
 import { defaultSettings, getSettings } from '@/lib/settings';
+import './fonts.css';
 import './globals.css';
 import './reference-refinements.css';
 import './editorial.css';
-import './admin.css';
-import './admin-dashboard.css';
-import './admin-theme.css';
 import './typography.css';
 import './cart-checkout.css';
 import './product-card.css';
@@ -19,7 +17,6 @@ import './product-mobile.css';
 import './product-grid.css';
 import './header-pill.css';
 import './hero-spotlight.css';
-import './admin-apple.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);
@@ -37,5 +34,5 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = normalizeLanguage(cookieStore.get(LANGUAGE_COOKIE)?.value);
-  return <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-scroll-behavior="smooth"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" /><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" /></head><body><LanguageProvider initialLanguage={language}>{children}</LanguageProvider></body></html>;
+  return <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-scroll-behavior="smooth"><head>{/* Fonts are self-hosted (src/app/fonts.css) with font-display: swap; no preload, so the first product photo isn't held back. */}</head><body><LanguageProvider initialLanguage={language}>{children}</LanguageProvider></body></html>;
 }

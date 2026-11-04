@@ -1,0 +1,11 @@
+/* Admin-only type rules from typography.css, repeated here so they still come after the admin styles. */
+.admin-sidebar a, .admin-sidebar button { font-size: 14px !important; }
+.admin-table th, .admin-table td { font-size: 14px !important; line-height: 1.55; }
+.admin-stat-grid strong, .admin-report-mini-grid strong { font-size: 24px !important; }
+.admin-language-switcher button { font-size: 12px !important; }
+.admin-card-subtitle, .admin-segment-hint, .admin-report-footer, .admin-customer-product small,
+.admin-customer-product > span, .admin-field > span, .admin-field label,
+.admin-form-field label, .admin-empty-state, .admin-help-text { font-size: max(14px, 1em) !important; line-height: 1.65; }
+.admin-tag, .admin-report-custom label, .admin-report-bars span,
+.admin-language-column-heading span, .admin-bilingual-title small { font-size: max(12px, 1em) !important; line-height: 1.5; }
+@media (max-width: 767px) { .admin-table th, .admin-table td { font-size: max(14px, 1em) !important; } }

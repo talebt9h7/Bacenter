@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { ReelPlayer } from './reel-player';
 
 type Story = { youtubeId: string; title: string; titleAr?: string; cta: string; ctaAr?: string; href: string; active: boolean; sortOrder: number };

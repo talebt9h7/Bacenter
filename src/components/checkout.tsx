@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, Chevr
 import { useStore } from './store-provider';
 import { mediaSrc } from '@/lib/types';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { iraqPhonePattern, normalizeIraqPhone } from '@/lib/iraq';
 
 type Zone = { code: string; nameEn: string; nameAr: string; rate: number; minDays: number; maxDays: number };

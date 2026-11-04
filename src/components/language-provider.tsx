@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { LANGUAGE_COOKIE, LANGUAGE_STORAGE_KEY, type AppLanguage, normalizeLanguage } from '@/lib/i18n';
+import { LANGUAGE_COOKIE, LANGUAGE_STORAGE_KEY, type AppLanguage, normalizeLanguage } from '@/lib/i18n-store';
 
 type LanguageContextValue = {
   language: AppLanguage;

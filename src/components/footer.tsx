@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ArrowRight, Check, Globe2, Camera as Instagram, LoaderCircle, MapPin, Star, CirclePlay as Youtube } from 'lucide-react';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 
 
 /** The UR monogram (kept under the old name so existing imports keep working). */

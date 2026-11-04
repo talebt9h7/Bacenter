@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { normalizeLanguage } from '@/lib/i18n';
+import { normalizeLanguage } from '@/lib/i18n-store';
 import { infoPages } from '@/lib/info';
 import { InfoPage } from '@/components/info-page';
 import { getContentPage, getSettings } from '@/lib/settings';

@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Check, LoaderCircle, Minus, Plus, RotateCcw, Sho
 import { useStore } from './store-provider';
 import { mediaSrc, primaryImage, type Product } from '@/lib/types';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { Modal, ModalHeading } from './modal';
 
 /**

@@ -2,7 +2,7 @@ import { getCatalogNav, getCategories } from '@/lib/categories';
 import { CatalogView } from '@/components/catalog-view';
 import { getAllProducts, matchesQuery } from '@/lib/products';
 import { cookies } from 'next/headers';
-import { normalizeLanguage } from '@/lib/i18n';
+import { normalizeLanguage } from '@/lib/i18n-store';
 export const metadata = { title: 'Search' };
 export const dynamic = 'force-dynamic';
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

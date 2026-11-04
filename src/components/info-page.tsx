@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, ChevronRight, LoaderCircle, MapPin } from 'lu
 import type { InfoPage as InfoContent } from '@/lib/info';
 import type { StoreLocation } from '@/lib/store-locations';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 
 function ContactForm() {
   const { language } = useLanguage();

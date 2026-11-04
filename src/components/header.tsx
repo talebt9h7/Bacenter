@@ -8,10 +8,12 @@ import type { Product } from '@/lib/types';
 import { categories } from '@/lib/catalog';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { Modal, ModalHeading } from './modal';
 import { ProductCard } from './product-card';
-import { CartDrawer } from './cart-drawer';
+import dynamic from 'next/dynamic';
+// The bag drawer is only needed after the page is interactive, so it loads in its own chunk.
+const CartDrawer = dynamic(() => import('./cart-drawer').then(m => m.CartDrawer), { ssr: false });
 import { Newsletter } from './footer';
 
 

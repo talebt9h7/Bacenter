@@ -7,7 +7,7 @@ import { mediaSrc, type Product } from '@/lib/types';
 import { ProductCard } from './product-card';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 
 export type CategoryBanner = { title: string; titleAr?: string; subtitle: string | null; subtitleAr?: string | null; image: string; mobileImage: string | null; ctaLabel: string | null; ctaLabelAr?: string | null; href: string; badge: string | null };
 export function CatalogView({ products, title, titleAr, eyebrow, eyebrowAr, description, descriptionAr, category = 'all', searchQuery, categoryBanner, navCategories }: { navCategories?: { id: string; name: string; nameAr: string }[]; products: Product[]; title: string; titleAr?: string; eyebrow?: string; eyebrowAr?: string; description: string; descriptionAr?: string; category?: string; searchQuery?: string; categoryBanner?: CategoryBanner | null }) {

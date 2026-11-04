@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
 :root{--ink:#333632;--muted:#777a73;--orange:#de623f;--orange-hover:#c94f30;--paper:#fff;--cream:#f5f4f0;--line:#e4e3dd;--olive:#676f54;--page-gutter:clamp(24px,4.45vw,72px)}

@@ -6,7 +6,7 @@ import { categories } from '@/lib/catalog';
 import { hoverImage, mediaSrc, mediaSrcSet, primaryImage, PLACEHOLDER_IMAGE, type Product, type ProductColor } from '@/lib/types';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { ProductCard } from './product-card';
 import { PromoCountdown, usePromoLive } from './promo-price';
 import { colorGroups, findVariant, hasSizes, sizeOptions, variantLabel, variantPricing } from '@/lib/variants';

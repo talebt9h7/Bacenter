@@ -8,7 +8,7 @@ import { OwlMark } from './footer';
 import { BrandStory } from './responsible-section';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
-import { storeT } from '@/lib/i18n';
+import { storeT } from '@/lib/i18n-store';
 import { VideoStories } from './video-stories';
 import { HeroSpotlight } from './hero-spotlight';
 import { BundlesSection } from './bundle-card';
