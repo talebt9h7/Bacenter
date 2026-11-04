@@ -11,7 +11,16 @@ export class GatewayError extends Error {
 
 const TIMEOUT_MS = 25000;
 async function call(url: string, init: RequestInit) {
-  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store' });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store' });
+  } catch (error) {
+    // "fetch failed" alone says nothing; name the host and the network reason (DNS, refused, TLS, timeout).
+    const cause = (error as { cause?: { code?: string; message?: string } })?.cause;
+    const reason = cause?.code || cause?.message || (error instanceof Error ? error.name : '') || 'network error';
+    let host = url; try { host = new URL(url).host; } catch { /* keep url */ }
+    throw new GatewayError(`Could not reach ${host} (${reason})`);
+  }
   const text = await response.text();
   let body: unknown = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
