@@ -15,6 +15,7 @@ import { BundlesSection } from './bundle-card';
 import type { BundleView } from '@/lib/bundles';
 import type { HomepageConfig } from '@/lib/settings';
 import type { Category } from '@/lib/categories';
+import { ScrollReveal } from './scroll-reveal';
 
 // With no hero slides or highlight cards in the admin, the homepage shows the UR brand panel instead.
 const defaultSlides: { key: string; image: string; mobileImage: string; lines: string[]; cta: string; href: string; alt: string }[] = [];
@@ -94,5 +95,5 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
 
     {enabled('videos') && <VideoStories stories={homepage.videoStories} />}
     {enabled('social') && socialItems.length > 0 && <section className="social-section"><div className="section-heading"><div><span className="eyebrow">{text(copy.socialEyebrow, copy.socialEyebrowAr)}</span><h2>{text(copy.socialTitle, copy.socialTitleAr)}</h2></div><a className="text-link" href={settings.instagram} target="_blank" rel="noreferrer">{copy.socialHandle} <ArrowRight size={17} /></a></div><div className="social-grid">{socialItems.map((item, index) => <a href={item.href} key={`${item.image}-${index}`} target="_blank" rel="noreferrer" aria-label={item.caption || `${t('Community photo')} ${index + 1}`}><img src={mediaSrc(item.image, 480)} alt={text(item.caption, item.captionAr) || `Community photo ${index + 1}`} loading="lazy" /><span>{text(item.caption, item.captionAr) || (language === 'ar' ? 'تابعنا في الرحلة' : 'Come along for the ride')} <ArrowRight size={17} /></span></a>)}</div></section>}
-  </main>;
+  <ScrollReveal /></main>;
 }
