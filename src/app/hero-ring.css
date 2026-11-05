@@ -1,0 +1,17 @@
+/* Homepage product ring (components/hero-ring.tsx) */
+.hring{position:relative;margin:0;padding:78px 0 10px;background:radial-gradient(120% 80% at 50% 55%,#fbf6ef 0%,#efe4d6 55%,#e6d7c5 100%);overflow:hidden}
+.hring-stage{position:relative;height:clamp(300px,48vh,540px);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;outline:none}
+.hring-stage:active{cursor:grabbing}
+.hring-stage:focus-visible{box-shadow:inset 0 0 0 2px rgba(122,74,40,.45)}
+.hring-floor{position:absolute;left:50%;bottom:8%;width:min(86vw,780px);height:110px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(92,60,34,.14),rgba(92,60,34,0));pointer-events:none}
+.hring-item{position:absolute;left:50%;top:calc(47% - clamp(75px,22vw,150px));width:clamp(150px,44vw,300px);aspect-ratio:1;display:block;transform-origin:50% 60%;will-change:transform,opacity;-webkit-tap-highlight-color:transparent;transition:filter .2s}
+.hring-item img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+/* Product photos that still have their own light background melt into the stage
+   (the blend sits on the link itself, which is what touches the stage background). */
+.hring-item:not(.is-cutout){mix-blend-mode:multiply}
+.hring-item:not(.is-cutout) img{border-radius:18px;-webkit-mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,#000 62%,transparent 100%);mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,#000 62%,transparent 100%)}
+.hring-shadow{position:absolute;left:14%;right:14%;bottom:-4%;height:16%;border-radius:50%;background:radial-gradient(closest-side,rgba(40,24,12,.32),rgba(40,24,12,0));filter:blur(4px)}
+.hring-item.is-front img{filter:drop-shadow(0 18px 22px rgba(60,36,18,.18))}
+.hring-item:not(.is-cutout).is-front img{filter:none}
+@media(min-width:768px){.hring{padding-top:96px}}
+@media(prefers-reduced-motion:reduce){.hring-item{transition:none}}

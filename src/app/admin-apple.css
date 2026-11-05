@@ -311,3 +311,21 @@ html[dir=rtl] .sheet{animation-name:sheet-in-rtl}
 .sheet-banner-preview em{font-style:normal;font-size:12px;font-weight:600;background:#fff;color:#222;border-radius:999px;padding:4px 12px;margin-top:4px}
 .sheet .sheet-image+.sheet-image{margin-top:-2px}
 @media(max-width:700px){.cat-tag{display:none}}
+
+/* Homepage → product ring */
+.hring-admin{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.hring-admin .admin-card-heading{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.hring-admin-row{display:flex;align-items:center;gap:10px}
+.hring-admin-speed{display:flex;flex-direction:column;gap:6px;max-width:460px;font-size:14px}
+.hring-admin-speed input{width:100%;accent-color:var(--ap-accent,#c4501f)}
+.hring-admin-scale{display:flex;justify-content:space-between;color:var(--ap-faint,#86868b)}
+.hring-admin-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.hring-admin-list li{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:start;padding:12px;border-radius:14px;background:#f7f6f4}
+.hring-admin-thumb{width:72px;height:72px;border-radius:12px;background:#ece9e5 repeating-conic-gradient(#e2ded8 0 25%,#f2efeb 0 50%) 0 0/14px 14px;overflow:hidden;display:block}
+.hring-admin-thumb img{width:100%;height:100%;object-fit:contain}
+.hring-admin-fields{display:flex;flex-direction:column;gap:8px;min-width:0}
+.hring-admin-fields select{height:40px;border-radius:10px;border:1px solid #dcd8d2;padding:0 10px;font:inherit;background:#fff}
+.hring-admin-actions{display:flex;flex-direction:column;gap:6px}
+.hring-admin-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.admin-warning-text{color:#b25000;font-size:13.5px;margin:0}
+@media(max-width:640px){.hring-admin-list li{grid-template-columns:56px minmax(0,1fr)}.hring-admin-thumb{width:56px;height:56px}.hring-admin-actions{grid-column:1/-1;flex-direction:row;justify-content:flex-end}}
