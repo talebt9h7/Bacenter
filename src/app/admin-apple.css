@@ -313,19 +313,43 @@ html[dir=rtl] .sheet{animation-name:sheet-in-rtl}
 @media(max-width:700px){.cat-tag{display:none}}
 
 /* Homepage → product ring */
-.hring-admin{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.hring-admin{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
 .hring-admin .admin-card-heading{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
 .hring-admin-row{display:flex;align-items:center;gap:10px}
-.hring-admin-speed{display:flex;flex-direction:column;gap:6px;max-width:460px;font-size:14px}
-.hring-admin-speed input{width:100%;accent-color:var(--ap-accent,#c4501f)}
-.hring-admin-scale{display:flex;justify-content:space-between;color:var(--ap-faint,#86868b)}
+.hring-admin-preview{display:flex;flex-direction:column;gap:10px}
+.hring-admin-preview-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.hring-admin-seg{display:inline-flex;padding:3px;border-radius:10px;background:rgba(118,118,128,.12)}
+.hring-admin-seg button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ap-muted)}
+.hring-admin-seg button[aria-pressed=true]{background:#fff;color:var(--ap-ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.hring-admin-frame{width:100%;margin:0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--ap-line);background:#f8f6f2 radial-gradient(120% 520px at 50% 0,#f1dcc2 0%,#f6e9d9 38%,rgba(248,246,242,0) 100%) no-repeat}
+.hring-admin-frame.is-phone{max-width:390px;margin:8px auto 10px;border:0;border-radius:36px;box-shadow:0 0 0 9px #1d1d1f,0 24px 44px -14px rgba(0,0,0,.4)}
+.hring-admin-frame .hring{padding-top:14px}
+.hring-admin-empty{margin:0;padding:56px 20px;text-align:center;color:var(--ap-muted)}
+.hring-admin-subhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--ap-line)}
+.hring-admin-subhead h3{margin:0;font-size:15px;font-weight:700}
 .hring-admin-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.hring-admin-list li{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:start;padding:12px;border-radius:14px;background:#f7f6f4}
-.hring-admin-thumb{width:72px;height:72px;border-radius:12px;background:#ece9e5 repeating-conic-gradient(#e2ded8 0 25%,#f2efeb 0 50%) 0 0/14px 14px;overflow:hidden;display:block}
-.hring-admin-thumb img{width:100%;height:100%;object-fit:contain}
+.hring-admin-list li{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:14px;align-items:start;padding:12px;border-radius:14px;background:#f7f6f4}
+.hring-admin-thumb{position:relative;display:block;width:76px;height:76px;border-radius:12px;overflow:hidden;background:#ece9e5}
+.hring-admin-thumb.is-cut{background:#ece9e5 repeating-conic-gradient(#e2ded8 0 25%,#f2efeb 0 50%) 0 0/14px 14px}
+.hring-admin-thumb img{width:100%;height:100%;object-fit:cover}
+.hring-admin-thumb.is-cut img{object-fit:contain}
+.hring-admin-thumb i{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.72);color:var(--ap-ink)}
 .hring-admin-fields{display:flex;flex-direction:column;gap:8px;min-width:0}
 .hring-admin-fields select{height:40px;border-radius:10px;border:1px solid #dcd8d2;padding:0 10px;font:inherit;background:#fff}
+.hring-admin-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.hring-admin-badge{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;font-size:12px;font-weight:700}
+.hring-admin-badge.is-cut{background:rgba(52,199,89,.14);color:#1f7a3a}
+.hring-admin-badge.is-photo{background:rgba(118,118,128,.14);color:#4a4a50}
+.hring-admin-badge.is-none{background:rgba(255,149,0,.16);color:#9a5300}
+.hring-admin-badge.is-busy{background:rgba(0,122,255,.12);color:#0a5bc4}
+.hring-admin-error{color:#c0392b;font-size:12.5px;line-height:1.5}
 .hring-admin-actions{display:flex;flex-direction:column;gap:6px}
-.hring-admin-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hring-admin-copy{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+.hring-admin-copy .hring-admin-wide{grid-column:1/-1}
+.hring-admin-speed{display:flex;flex-direction:column;gap:6px;max-width:460px;font-size:14px;padding-top:14px;border-top:1px solid var(--ap-line)}
+.hring-admin-speed input{width:100%;accent-color:var(--ap-accent,#c4501f)}
+.hring-admin-scale{display:flex;justify-content:space-between;color:var(--ap-faint,#86868b)}
+.hring-admin-footer{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.hring-admin-footer .admin-hint{flex:1 1 320px;margin:0}
 .admin-warning-text{color:#b25000;font-size:13.5px;margin:0}
-@media(max-width:640px){.hring-admin-list li{grid-template-columns:56px minmax(0,1fr)}.hring-admin-thumb{width:56px;height:56px}.hring-admin-actions{grid-column:1/-1;flex-direction:row;justify-content:flex-end}}
+@media(max-width:640px){.hring-admin-list li{grid-template-columns:56px minmax(0,1fr)}.hring-admin-thumb{width:56px;height:56px}.hring-admin-actions{grid-column:1/-1;flex-direction:row;justify-content:flex-end}.hring-admin-copy{grid-template-columns:1fr}.hring-admin-frame.is-phone{box-shadow:0 0 0 6px #1d1d1f;border-radius:28px}}

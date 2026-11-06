@@ -1,17 +1,77 @@
-/* Homepage product ring (components/hero-ring.tsx) */
-.hring{position:relative;margin:0;padding:78px 0 10px;background:radial-gradient(120% 80% at 50% 55%,#fbf6ef 0%,#efe4d6 55%,#e6d7c5 100%);overflow:hidden}
-.hring-stage{position:relative;height:clamp(300px,48vh,540px);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;outline:none}
+/* Homepage product ring (components/hero-ring.tsx).
+   Sizes follow the ring's own width (container units, with vw fallbacks), so the admin preview at
+   phone width looks exactly like a phone. The JS uses the same radii: 40% of the width on phones
+   (tilt 15% of that), 36% (max 520px) from 768px (tilt 13%). Products stand on the circle: the front one at
+   30px (36px) above the stage bottom. */
+.hring{position:relative;container-type:inline-size;padding:4px 0 14px;overflow:hidden;isolation:isolate}
+
+/* Heading */
+.hring-copy{position:relative;z-index:2;display:grid;justify-items:center;text-align:center;padding:8px 20px 0}
+.hring-eyebrow{display:inline-flex;align-items:center;gap:10px;margin:0;font-size:12.5px;font-weight:600;line-height:1.6;color:#8a6a3b}
+.hring-eyebrow::before,.hring-eyebrow::after{content:'';width:22px;height:1px;background:#cdb08a}
+.hring-title{margin:2px 0 0;font-family:var(--ruqaa),'IBM Plex Sans Arabic',serif;font-weight:700;font-size:44px;font-size:clamp(38px,11.5cqw,52px);line-height:1.3;color:#3b2a1c}
+/* The brand name in its calligraphic face (the storefront otherwise forces one Arabic typeface). */
+html[lang=ar] body .hring-title{font-family:var(--ruqaa),'Noto Sans Arabic',serif!important}
+html[lang=en] .hring-title{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.hring-sub{margin:2px 0 0;max-width:34ch;font-size:15px;line-height:1.6;color:#6f5b47}
+.hring-cta{margin-top:14px;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 22px;border-radius:999px;background:#3b2a1c;color:#f8efe2;font-size:14px;font-weight:700;box-shadow:0 10px 22px -10px rgba(59,42,28,.6);transition:background .2s,transform .2s}
+.hring-cta:hover{background:#5a3e25;color:#fff}
+.hring-cta:active{transform:scale(.97)}
+.hring-cta:focus-visible{outline:2px solid #8b5a2b;outline-offset:3px}
+
+/* Stage */
+.hring-stage{position:relative;margin-top:2px;height:calc(min(56vw,280px) + 44px);height:calc(min(56cqw,280px) + 44px);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;outline:none}
 .hring-stage:active{cursor:grabbing}
-.hring-stage:focus-visible{box-shadow:inset 0 0 0 2px rgba(122,74,40,.45)}
-.hring-floor{position:absolute;left:50%;bottom:8%;width:min(86vw,780px);height:110px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(92,60,34,.14),rgba(92,60,34,0));pointer-events:none}
-.hring-item{position:absolute;left:50%;top:calc(47% - clamp(75px,22vw,150px));width:clamp(150px,44vw,300px);aspect-ratio:1;display:block;transform-origin:50% 60%;will-change:transform,opacity;-webkit-tap-highlight-color:transparent;transition:filter .2s}
-.hring-item img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
-/* Product photos that still have their own light background melt into the stage
-   (the blend sits on the link itself, which is what touches the stage background). */
-.hring-item:not(.is-cutout){mix-blend-mode:multiply}
-.hring-item:not(.is-cutout) img{border-radius:18px;-webkit-mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,#000 62%,transparent 100%);mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,#000 62%,transparent 100%)}
-.hring-shadow{position:absolute;left:14%;right:14%;bottom:-4%;height:16%;border-radius:50%;background:radial-gradient(closest-side,rgba(40,24,12,.32),rgba(40,24,12,0));filter:blur(4px)}
-.hring-item.is-front img{filter:drop-shadow(0 18px 22px rgba(60,36,18,.18))}
-.hring-item:not(.is-cutout).is-front img{filter:none}
-@media(min-width:768px){.hring{padding-top:96px}}
-@media(prefers-reduced-motion:reduce){.hring-item{transition:none}}
+.hring-stage:focus-visible{box-shadow:inset 0 0 0 2px rgba(139,90,43,.35);border-radius:20px}
+.hring-glow{position:absolute;left:50%;top:-12%;width:150%;height:125%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(255,253,249,.92),rgba(255,253,249,.5) 48%,rgba(255,253,249,0));pointer-events:none}
+.hring-orbit{position:absolute;left:0;right:0;margin:0 auto;bottom:30px;width:80vw;height:12vw;width:80cqw;height:12cqw;border-radius:50%;border:1px solid rgba(139,90,43,.26);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),#000 70%);mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),#000 70%);pointer-events:none}
+.hring-spot{position:absolute;left:0;right:0;margin:0 auto;bottom:calc(30px - min(56vw,280px) * .11);bottom:calc(30px - min(56cqw,280px) * .11);width:calc(min(56vw,280px) * 1.15);width:calc(min(56cqw,280px) * 1.15);aspect-ratio:5/1;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.95),rgba(255,255,255,.55) 50%,rgba(255,255,255,0));pointer-events:none}
+
+/* Products */
+.hring-item{position:absolute;left:0;right:0;margin:0 auto;bottom:calc(30px + 6vw);bottom:calc(30px + 6cqw);width:min(56vw,280px);width:min(56cqw,280px);aspect-ratio:1;display:block;transform-origin:50% 100%;will-change:transform,opacity;-webkit-tap-highlight-color:transparent;outline:none}
+.hring-item img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%;pointer-events:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+.hring-item.is-front img{filter:drop-shadow(0 16px 18px rgba(70,42,20,.16))}
+.hring-item:focus-visible{outline:2px solid #8b5a2b;outline-offset:6px;border-radius:18px}
+.hring-shadow{position:absolute;left:50%;bottom:-4%;width:calc(min(1,var(--ar,1)) * 76%);height:10%;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(52,32,16,.36),rgba(52,32,16,.14) 58%,rgba(52,32,16,0));pointer-events:none}
+
+/* Photos that still have their own background: shown as deliberate cards, never as light squares. */
+.hring.is-cards .hring-item{width:calc(min(56vw,280px) * .8);width:calc(min(56cqw,280px) * .8);aspect-ratio:4/5}
+.hring-card{position:relative;z-index:1;display:block;width:100%;height:100%;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 22px 40px -18px rgba(70,42,20,.42),0 2px 8px rgba(70,42,20,.08),inset 0 0 0 1px rgba(139,90,43,.08)}
+.hring-card img{object-fit:cover;object-position:50% 50%}
+.hring.is-cards .hring-item.is-front img{filter:none}
+.hring.is-cards .hring-shadow{bottom:-5%;height:8%}
+
+/* Arrows (wide screens) */
+.hring-nav{display:none}
+
+/* Caption and position dots */
+.hring-foot{position:relative;z-index:2;display:grid;justify-items:center;gap:6px;padding:0 20px}
+.hring-caption{display:grid;justify-items:center;gap:1px;margin:0;text-align:center;animation:hring-in .45s ease both}
+.hring-caption b{font-size:16px;font-weight:700;color:#2a211b}
+.hring-caption span{font-size:14px;font-weight:600;color:#7a5a3a}
+.hring-dots{display:flex;justify-content:center;flex-wrap:wrap}
+.hring-dots button{display:grid;place-items:center;min-width:24px;height:24px;padding:0}
+.hring-dots button::before{content:'';width:7px;height:7px;border-radius:99px;background:rgba(59,42,28,.24);transition:width .35s ease,background .35s ease}
+.hring-dots button[aria-current=true]::before{width:22px;background:#3b2a1c}
+.hring-dots button:focus-visible{outline:2px solid #8b5a2b;outline-offset:0;border-radius:12px}
+@keyframes hring-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+@container (min-width:768px){
+  .hring-copy{padding-top:18px}
+  .hring-eyebrow{font-size:13.5px}
+  .hring-title{font-size:clamp(52px,5.2cqw,68px)}
+  .hring-sub{font-size:17.5px}
+  .hring-cta{min-height:48px;padding:0 26px;font-size:15px}
+  .hring-stage{height:calc(clamp(280px,26cqw,360px) + 52px)}
+  .hring-orbit{bottom:36px;width:min(72cqw,1040px);height:min(9.36cqw,135.2px)}
+  .hring-spot{bottom:calc(36px - clamp(280px,26cqw,360px) * .11);width:calc(clamp(280px,26cqw,360px) * 1.15)}
+  .hring-item{bottom:calc(36px + min(4.68cqw,67.6px));width:clamp(280px,26cqw,360px)}
+  .hring.is-cards .hring-item{width:calc(clamp(280px,26cqw,360px) * .8)}
+  .hring-nav{position:absolute;z-index:1100;top:calc(50% - 24px);display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.88);color:#3b2a1c;box-shadow:0 8px 22px -8px rgba(70,42,20,.35),0 0 0 1px rgba(139,90,43,.12);transition:background .2s,transform .2s}
+  .hring-nav:hover{background:#fff;transform:scale(1.06)}
+  .hring-nav:focus-visible{outline:2px solid #8b5a2b;outline-offset:3px}
+  .hring-prev{inset-inline-start:max(20px,3cqw)}
+  .hring-next{inset-inline-end:max(20px,3cqw)}
+  .hring-foot{gap:8px;margin-top:4px}
+}
+@media (prefers-reduced-motion:reduce){.hring-caption{animation:none}.hring-dots button::before{transition:none}}
