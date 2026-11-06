@@ -1,5 +1,6 @@
 'use client';
 import type { MouseEvent } from 'react';
+import { showHeader } from './hide-on-scroll';
 /**
  * Two hand-made storefront motions, no animation library:
  *
@@ -20,6 +21,20 @@ function bagIcon(): HTMLElement | null {
     if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight) return el;
   }
   return null;
+}
+
+/** Where the bag will be: on phones a scrolled-away header is called back, and measured where it lands. */
+function bagTarget(): DOMRect | null {
+  const hidden = document.querySelector<HTMLElement>('.site-header.is-scroll-hidden');
+  if (!hidden) return bagIcon()?.getBoundingClientRect() ?? null;
+  hidden.style.transition = 'none';
+  hidden.classList.remove('is-scroll-hidden');
+  const rect = bagIcon()?.getBoundingClientRect() ?? null;
+  hidden.classList.add('is-scroll-hidden');
+  void hidden.offsetWidth;
+  hidden.style.transition = '';
+  showHeader(); // slides back in while the photo flies
+  return rect;
 }
 
 /** Bounce the bag icon once (also used when no flight could run). */
@@ -49,10 +64,10 @@ function onScreen(source: FlySource) {
 export function flyToCart(candidates: FlySource, image: string, onLand?: () => void): Promise<boolean> {
   const source = typeof window === 'undefined' ? null : onScreen(candidates);
   if (!source || reduced()) return Promise.resolve(false);
-  const bag = bagIcon();
   const from = source.getBoundingClientRect();
-  if (!bag || from.width < 4) return Promise.resolve(false);
-  const to = bag.getBoundingClientRect();
+  if (from.width < 4) return Promise.resolve(false);
+  const to = bagTarget();
+  if (!to) return Promise.resolve(false);
 
   // Start as a square on the photo's centre, at most 220px, so big product photos don't fly as walls.
   const size = Math.min(220, from.width, from.height);

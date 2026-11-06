@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { mediaSrc } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Globe2, Mail, MapPin, Menu, Search, ShoppingCart, X } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { categories } from '@/lib/catalog';
@@ -12,6 +12,7 @@ import { storeT } from '@/lib/i18n-store';
 import { Modal, ModalHeading } from './modal';
 import { ProductCard } from './product-card';
 import dynamic from 'next/dynamic';
+import { useHideOnScroll } from '@/lib/hide-on-scroll';
 // The bag drawer is only needed after the page is interactive, so it loads in its own chunk.
 const CartDrawer = dynamic(() => import('./cart-drawer').then(m => m.CartDrawer), { ssr: false });
 import { Newsletter } from './footer';
@@ -84,9 +85,11 @@ export function Header() {
   const navGroups = settings.navigation?.length ? settings.navigation : defaultNavGroups;
   const localizedNavGroups = navGroups.map(nav => ({ ...nav, displayName: language === 'ar' ? (nav.nameAr || navArabicLabels[nav.name] || storeT(nav.name, language)) : nav.name, displayCaption: language === 'ar' ? (('captionAr' in nav ? nav.captionAr : undefined) || ({ 'Good design. Great company.': 'تصميم متقن. جودة تدوم.', 'We’ve got your back.': 'رفيقك في كل رحلة.', 'A world of possibility.': 'افتح آفاقاً جديدة.', 'Less bulk. More possibility.': 'أقل حجماً. أكثر حرية.', 'For all the ways you move.': 'لكل خطوة تخطوها.', 'Little things. Big difference.': 'تفاصيل صغيرة، تصنع فرقاً كبيراً.', 'Designed for a better world.': 'صناعة واعية لمستقبل أفضل.' } as Record<string,string>)[nav.caption] || storeT(nav.caption, language)) : nav.caption, links: nav.links.map(link => ({ ...link, displayLabel: language === 'ar' ? (('labelAr' in link ? link.labelAr : undefined) || navArabicLabels[link.label] || storeT(link.label, language)) : link.label })) }));
   const group = localizedNavGroups.find(nav => nav.displayName === activeMenu);
+  const headerRef = useRef<HTMLElement>(null);
+  useHideOnScroll(headerRef, mobileMenu || searchOpen || regionOpen || newsletterOpen);
   const flags: Record<string, string> = { Iraq: '🇮🇶', 'United States': '🇺🇸' };
   return <>
-    <header className="site-header" onMouseLeave={() => setActiveMenu(null)}>
+    <header ref={headerRef} className="site-header" onMouseLeave={() => setActiveMenu(null)}>
       <div className="utility-bar"><Link href={settings.announcementHref || "/info/shipping"} className="shipping-link">{language === 'ar' && settings.announcement === 'Free delivery across Iraq on orders over 150,000 IQD · Cash on delivery' ? 'توصيل مجاني داخل العراق للطلبات التي تتجاوز 150,000 د.ع · الدفع عند الاستلام' : settings.announcement}</Link><div className="utility-right"><button aria-label={t('Choose your region')} title={`${region.name} · ${region.currency}`} onClick={() => { setSelectedRegion(region.name); setRegionOpen(true); }}><span>{flags[region.name]}</span><ChevronDown size={9} /></button><span className="utility-divider">|</span><button className="language-switch" type="button" aria-label={language === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'} onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>{language === 'ar' ? 'EN' : 'العربية'}</button><span className="utility-divider">|</span><Link href="/info/contact">{t('Need help?')}</Link></div></div>
       <div className="main-navigation"><div className="navigation-left"><button className="icon-button mobile-menu-button" aria-label={t('Open menu')} onClick={() => setMobileMenu(true)}><Menu size={24} strokeWidth={1.3} /></button></div>
         <Link href="/" className="brand-logo" aria-label={`${settings.storeName} home`}><img src={settings.logoUrl ? mediaSrc(settings.logoUrl, 320) : "/images/UR-logo.svg"} alt={settings.logoAlt || settings.storeName} width="110" height="65" /></Link>
