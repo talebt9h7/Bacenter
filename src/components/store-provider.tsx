@@ -6,6 +6,10 @@ import { track } from '@/lib/track';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocalStorageValue, writeLocalStorage } from '@/lib/use-local-storage';
 import type { CartLine } from '@/lib/types';
+import { flyToCart, type FlySource } from '@/lib/motion';
+
+/** Where an added product's photo flies from (see lib/motion). */
+export type Fly = { from: FlySource; image: string };
 import type { NavigationGroup, FooterConfig } from '@/lib/settings';
 import { roundIqd } from '@/lib/iraq';
 import { Check, X, AlertCircle } from 'lucide-react';
@@ -18,7 +22,7 @@ export const baseRegions: Region[] = [
 ];
 type Store = {
   cart: CartLine[]; loaded: boolean; busy: boolean; cartOpen: boolean; setCartOpen: (open: boolean) => void;
-  addToCart: (variantId: number, quantity?: number, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number, selection?: Record<string, number>) => Promise<boolean>;
+  addToCart: (variantId: number, quantity?: number, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>, fly?: Fly) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number, selection?: Record<string, number>) => Promise<boolean>;
   updateQuantity: (id: number, quantity: number) => Promise<void>; refreshCart: () => Promise<void>;
   count: number; subtotal: number; region: Region; regions: Region[]; setRegion: (region: Region) => void;
   money: (price: number) => string; moneyIqd: (priceIqd: number) => string; notify: (message: string, error?: boolean) => void; settings: PublicSettings; freeShippingUsd: number;
@@ -32,6 +36,8 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [inFlight, setInFlight] = useState(0);
+  const [frozenCount, setFrozenCount] = useState(0);
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
   // Storage key kept from the original template so returning visitors keep their region.
   const regionName = useLocalStorageValue(REGION_KEY);
@@ -49,12 +55,25 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
    * Adds to the bag immediately: the line appears and the bag opens straight away (when a preview
    * is given), then the server confirms. If the server refuses, the bag is put back and the reason shown.
    */
-  async function addToCart(variantId: number, quantity = 1, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>) {
+  async function addToCart(variantId: number, quantity = 1, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>, fly?: Fly) {
     const before = cart;
+    // With a photo to fly, the product travels to the bag icon instead of the bag opening; the
+    // counter only goes up when it lands.
+    let flying = false;
+    if (fly) {
+      const image = fly.image;
+      flying = !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !!document.querySelector('.bag-trigger');
+      if (flying) {
+        const shown = cart.reduce((sum, item) => sum + item.quantity, 0);
+        setFrozenCount(c => (inFlight > 0 ? c : shown));
+        setInFlight(n => n + quantity);
+        void flyToCart(fly.from, image, () => setInFlight(n => Math.max(0, n - quantity))).then(landed => { if (!landed) { setInFlight(n => Math.max(0, n - quantity)); setCartOpen(true); } });
+      }
+    }
     if (preview) {
       const existing = cart.find(item => item.variantId === variantId && !item.bundle);
       setCart(existing ? cart.map(item => item === existing ? { ...item, quantity: Math.min(10, item.quantity + quantity) } : item) : [...cart, { ...preview, id: -1e9 - variantId, quantity, price: preview.salePriceIqd / settings.exchangeRate }]);
-      setCartOpen(true);
+      if (!flying) setCartOpen(true);
       track.addToCart({ id: preview.productId, name: preview.name, variant: preview.color, price: preview.salePriceIqd, quantity });
     } else setBusy(true);
     try {
@@ -63,7 +82,7 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
       if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
       setCart(data.items);
       if (!preview) {
-        setCartOpen(true);
+        if (!flying) setCartOpen(true);
         const line = (data.items as CartLine[]).find(item => item.variantId === variantId);
         if (line) track.addToCart({ id: line.productId, name: line.name, variant: line.color, price: line.salePriceIqd, quantity });
       }
@@ -98,7 +117,8 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
     } catch (error) { setCart(before); notify(error instanceof Error ? error.message : 'Please check your connection.', true); }
     finally { setBusy(false); }
   }
-  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // While a product is flying to the bag, the counter keeps its old number until it lands.
+  const count = inFlight > 0 ? frozenCount : cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const fmtIqd = useCallback((n: number) => language === 'ar' ? `${groupInt(n)} د.ع` : numberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(n), [language]);
   function money(price: number) {
