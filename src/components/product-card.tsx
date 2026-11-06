@@ -9,6 +9,7 @@ import { storeT } from '@/lib/i18n-store';
 import { PromoCountdown, usePromoLive } from './promo-price';
 import { colorGroups, hasSizes, priceFrom } from '@/lib/variants';
 import { openProduct } from '@/lib/motion';
+import { useRevealOnScroll } from '@/lib/reveal';
 
 export function ProductCard({ product, compact = false }: { product: Product; compact?: boolean }) {
   // Sized products list each colour once here; the size is chosen on the product page.
@@ -23,6 +24,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
   const displaySubtitle = language === 'ar' ? product.subtitleAr : product.subtitle;
   const card = useRef<HTMLElement>(null);
   const photo = useRef<HTMLImageElement>(null);
+  useRevealOnScroll(card);
   async function add() { setAdding(true); await addToCart(color.id, 1, undefined, { from: photo.current, image: mediaSrc(primaryImage(color), 320) }); setAdding(false); }
   const open = (event: React.MouseEvent) => openProduct(event, href, card.current, photo.current);
   // Both links share one URL so the page is prefetched once. `prefetch` loads the full page data
