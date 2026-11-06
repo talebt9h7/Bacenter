@@ -9,7 +9,7 @@ import { showHeader } from './hide-on-scroll';
  * list or card can clip it) and is always removed when the flight ends.
  *
  * openProduct — "open container": the tapped product card grows into the product page (its photo
- * becomes the page's big photo) using the browser's View Transitions; plain navigation elsewhere.
+ * becomes the page's big photo).
  */
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -114,36 +114,61 @@ export function flyToCart(candidates: FlySource, image: string, onLand?: () => v
   });
 }
 
-type ViewTransitionDocument = Document & { startViewTransition?: (update: () => Promise<void>) => { finished: Promise<void> } };
-
 /**
- * Opens a product page with the card growing into it. `card` is the product card, `photo` its
- * picture; the product page names its own big photo and content the same way (product-card.css).
+ * Opens a product page with the card growing into it ("open container"), drawn by hand so it
+ * behaves the same on iPhone and Android: a copy of the card is laid over the page, grows to the
+ * full screen while its photo moves to where the product page shows it, the page loads underneath,
+ * then the copy fades away. The copy is always removed (also on a slow or failed load).
  */
-export function openProduct(event: MouseEvent, href: string, card: HTMLElement | null, photo: HTMLElement | null, push: (href: string) => void) {
-  const doc = document as ViewTransitionDocument;
-  if (!doc.startViewTransition || reduced() || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !card || !photo) return;
+export function openProduct(event: MouseEvent, href: string, card: HTMLElement | null, photo: HTMLImageElement | null, push: (href: string) => void) {
+  if (reduced() || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !card || !photo) return;
+  const c = card.getBoundingClientRect(), ph = photo.getBoundingClientRect();
+  if (c.width < 20 || ph.width < 20) return;
   event.preventDefault();
-  // Only one element per page may carry a name: hand the names to this card for the snapshot.
-  const pagePhoto = document.querySelector<HTMLElement>('.product-main-image');
-  const pageBody = document.querySelector<HTMLElement>('.product-detail-layout');
-  if (pagePhoto) pagePhoto.style.viewTransitionName = 'none';
-  if (pageBody) pageBody.style.viewTransitionName = 'none';
-  card.style.viewTransitionName = 'product-container';
-  photo.style.viewTransitionName = 'product-photo';
-  document.documentElement.dataset.vt = 'product';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const radius = getComputedStyle(card).borderRadius || '18px';
+
+  const layer = document.createElement('div');
+  layer.className = 'open-container';
+  layer.setAttribute('aria-hidden', 'true');
+  Object.assign(layer.style, { left: `${c.left}px`, top: `${c.top}px`, width: `${c.width}px`, height: `${c.height}px`, borderRadius: radius });
+  const img = document.createElement('img');
+  img.src = photo.currentSrc || photo.src;
+  img.alt = '';
+  Object.assign(img.style, { left: `${ph.left}px`, top: `${ph.top}px`, width: `${ph.width}px`, height: `${ph.height}px` });
+  document.body.append(layer, img);
+  img.className = 'open-container-photo';
+
+  // Where the product page shows its big photo (phones: full width under the header).
+  const header = document.querySelector('.site-header')?.getBoundingClientRect();
+  const top = vw < 768 ? Math.max(header?.bottom ?? 80, header?.height ?? 80) : 140; // the page opens at its top, header shown
+  const w = vw < 768 ? vw : Math.min(vw * 0.55, 760), h = w / 1.05, left = vw < 768 ? 0 : (document.dir === 'rtl' ? vw - w - 40 : 40);
+  const ease = 'cubic-bezier(.2,.8,.2,1)';
+  const grow = 420;
+  layer.animate([{ left: `${c.left}px`, top: `${c.top}px`, width: `${c.width}px`, height: `${c.height}px`, borderRadius: radius }, { left: '0px', top: '0px', width: `${vw}px`, height: `${vh}px`, borderRadius: '0px' }], { duration: grow, easing: ease, fill: 'forwards' });
+  img.animate([{ left: `${ph.left}px`, top: `${ph.top}px`, width: `${ph.width}px`, height: `${ph.height}px` }, { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` }], { duration: grow, easing: ease, fill: 'forwards' });
+
+  let removed = false;
+  const remove = () => { if (removed) return; removed = true; layer.remove(); img.remove(); };
+  const fadeOut = () => {
+    if (removed) return;
+    const anims = [layer, img].map(el => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease', fill: 'forwards' }));
+    anims[0].onfinish = remove;
+    window.setTimeout(remove, 400);
+  };
   const path = href.split('?')[0];
-  const transition = doc.startViewTransition(() => new Promise<void>(resolve => {
-    card.style.viewTransitionName = '';
-    photo.style.viewTransitionName = '';
-    push(href);
-    const started = performance.now();
-    const wait = () => {
-      const target = document.querySelector('.product-main-image');
-      if ((location.pathname === path && target && target !== pagePhoto) || performance.now() - started > 2500) resolve();
-      else requestAnimationFrame(wait);
-    };
-    requestAnimationFrame(wait);
-  }));
-  transition.finished.finally(() => { delete document.documentElement.dataset.vt; if (pagePhoto) pagePhoto.style.viewTransitionName = ''; if (pageBody) pageBody.style.viewTransitionName = ''; });
+  const started = performance.now();
+  push(href);
+  const wait = () => {
+    if (removed) return;
+    const target = location.pathname === path ? document.querySelector<HTMLElement>('.product-main-image') : null;
+    if (target && performance.now() - started > grow) {
+      // Land the photo exactly on the page's photo, then let the page show.
+      const r = target.getBoundingClientRect();
+      img.animate([{ left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` }], { duration: 160, easing: ease, fill: 'forwards' }).onfinish = fadeOut;
+      window.setTimeout(fadeOut, 260);
+    } else if (performance.now() - started > 8000) fadeOut();
+    else requestAnimationFrame(wait);
+  };
+  requestAnimationFrame(wait);
 }
