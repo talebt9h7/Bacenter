@@ -24,14 +24,28 @@ function shared() {
   return observer;
 }
 
+/** A horizontal rail the card sits in (it clips anything moving up or down inside it). */
+function railOf(el: HTMLElement) {
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const x = getComputedStyle(node).overflowX;
+    if (x === 'auto' || x === 'scroll') return node;
+  }
+  return null;
+}
+
 export function useRevealOnScroll(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const card = ref.current;
+    if (!card || typeof IntersectionObserver === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // In a sideways rail the whole row rises together; moving single cards there makes them look cut and wavy.
+    const rail = railOf(card);
+    const el = rail ?? card;
+    if (rail && rail.dataset.reveal) return;
     if (el.getBoundingClientRect().top < window.innerHeight) return; // on screen already
+    if (rail) rail.dataset.reveal = '1';
     el.classList.add('reveal-pending');
     const io = shared();
     io.observe(el);
-    return () => { io.unobserve(el); el.classList.remove('reveal-pending', 'reveal-in'); el.style.removeProperty('--reveal-delay'); };
+    return () => { io.unobserve(el); el.classList.remove('reveal-pending', 'reveal-in'); el.style.removeProperty('--reveal-delay'); if (rail) delete rail.dataset.reveal; };
   }, [ref]);
 }
