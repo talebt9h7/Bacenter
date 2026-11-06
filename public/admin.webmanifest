@@ -1,0 +1,19 @@
+{
+  "id": "/admin",
+  "name": "UR Admin — لوحة أور",
+  "short_name": "أور أدمن",
+  "description": "لوحة إدارة متجر أور للجلود",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f1ea",
+  "theme_color": "#f6f1ea",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/admin-icon/192", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/admin-icon/512", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/admin-icon/maskable-512", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
