@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { playProductOpen } from '@/lib/motion';
 import dynamic from 'next/dynamic';
 import { LazySection } from './lazy-section';
 import { ArrowRight, Banknote, ChevronDown, ChevronLeft, ChevronRight, CreditCard, Layers, LoaderCircle, LockKeyhole, ShieldCheck, ZoomIn } from 'lucide-react';
@@ -110,6 +111,7 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
     return () => cancelAnimationFrame(frame);
   }, [startColor]);
   // Swipe between photos on touch screens.
+  const mainPhoto = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   function onTouchStart(event: React.TouchEvent) { const t0 = event.touches[0]; touchStart.current = { x: t0.clientX, y: t0.clientY }; }
   function onTouchEnd(event: React.TouchEvent) {
@@ -120,10 +122,16 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
   }
   // Same-position photo of every other colour, fetched ahead so switching colour is instant.
   const neighbourImages = product.colors.filter(item => item.id !== color.id && item.images.length).map(item => item.images[Math.min(safeIndex, item.images.length - 1)]);
+  // Opened from a product card: the big photo grows out of the card and the details slide up.
+  useLayoutEffect(() => {
+    const page = mainPhoto.current?.closest('.product-page');
+    const rest = page ? [...page.querySelectorAll<HTMLElement>('.product-thumbnails, .product-detail-layout > :not(.product-gallery)')] : [];
+    playProductOpen(mainPhoto.current, rest);
+  }, []);
   return <main className="product-page" dir={language === 'ar' ? 'rtl' : 'ltr'}>
     <div className="product-detail-layout">
       <div className="product-gallery">
-        <div className="product-main-image" style={loadedPhoto === `${color.id}-${safeIndex}` ? undefined : { backgroundImage: `url("${mediaSrc(images[safeIndex], 640)}")` }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
+        <div ref={mainPhoto} className="product-main-image" style={loadedPhoto === `${color.id}-${safeIndex}` ? undefined : { backgroundImage: `url("${mediaSrc(images[safeIndex], 640)}")` }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onKeyDown={event => { if (event.key === 'ArrowRight') showImage(safeIndex + 1); if (event.key === 'ArrowLeft') showImage(safeIndex - 1); }}>
           <img key={`${color.id}-${safeIndex}`} ref={img => { if (img?.complete && img.naturalWidth > 0 && loadedPhoto !== `${color.id}-${safeIndex}`) setLoadedPhoto(`${color.id}-${safeIndex}`); }} onLoad={() => setLoadedPhoto(`${color.id}-${safeIndex}`)} src={mediaSrc(images[safeIndex], 1280)} srcSet={mediaSrcSet(images[safeIndex], [640, 960, 1280, 1600])} sizes="(max-width: 767px) 100vw, 60vw" fetchPriority="high" alt={`${displayName} in ${displayColorName(color)}, photo ${safeIndex + 1} of ${images.length}`} onClick={() => setZoom(true)} />
           {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : product.badge && <span className="product-badge">{product.badge}</span>}
 

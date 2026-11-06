@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Plus, LoaderCircle } from 'lucide-react';
 import { mediaSrc, mediaSrcSet, primaryImage, type Product } from '@/lib/types';
 import { useStore } from './store-provider';
@@ -24,9 +23,8 @@ export function ProductCard({ product, compact = false }: { product: Product; co
   const displaySubtitle = language === 'ar' ? product.subtitleAr : product.subtitle;
   const card = useRef<HTMLElement>(null);
   const photo = useRef<HTMLImageElement>(null);
-  const router = useRouter();
   async function add() { setAdding(true); await addToCart(color.id, 1, undefined, { from: photo.current, image: mediaSrc(primaryImage(color), 320) }); setAdding(false); }
-  const open = (event: React.MouseEvent) => openProduct(event, href, card.current, photo.current, url => router.push(url));
+  const open = (event: React.MouseEvent) => openProduct(event, href, card.current, photo.current);
   // Both links share one URL so the page is prefetched once. `prefetch` loads the full page data
   // while the card is on screen, so opening the product needs no server round trip.
   const href = `/products/${product.id}?color=${encodeURIComponent(color.name)}`;
