@@ -28,7 +28,7 @@ export const defaultPaymentSettings: PaymentSettings = {
 };
 // Sandbox hosts published by each provider. Live hosts are given by the provider at onboarding.
 export const SANDBOX = { zaincash: 'https://pg-api-uat.zaincash.iq', fib: 'https://fib.stage.fib.iq', alqaseh: 'https://api-test.alqaseh.com/v1' } as const;
-export const ALQASEH_SANDBOX_PAY = 'https://pay-test.alqaseh.com/pay';
+export const ALQASEH_SANDBOX_PAY = 'https://pay-test.alqaseh.com';
 // Al Qaseh publishes shared sandbox credentials; used in test mode when no own UAT keys are saved.
 export const ALQASEH_SANDBOX_CLIENT = { clientId: 'public_test', clientSecret: 'Lr10yWWmm1dXLoI7VgXCrQVnlq13c1G0' };
 const KEY = 'payments';
@@ -101,6 +101,18 @@ export function alqasehAccess(s: PaymentSettings) {
     clientId: own ? s.alqaseh.clientId : live ? '' : ALQASEH_SANDBOX_CLIENT.clientId,
     clientSecret: own ? s.alqaseh.clientSecret : live ? '' : ALQASEH_SANDBOX_CLIENT.clientSecret,
     api: baseUrl(s, 'alqaseh'),
-    pay: (live && s.alqaseh.livePayUrl ? s.alqaseh.livePayUrl : ALQASEH_SANDBOX_PAY).replace(/\/+$/, ''),
+    pay: live && s.alqaseh.livePayUrl ? s.alqaseh.livePayUrl : ALQASEH_SANDBOX_PAY,
   };
+}
+
+/**
+ * Al Qaseh's hosted payment page for a token: https://pay.alqaseh.com/form?payment-token=<token>.
+ * Whatever was typed in the admin (with or without https, a trailing /, /form or /pay) gives the same form.
+ */
+export function alqasehPayLink(pay: string, token: string) {
+  const raw = pay.trim().replace(/^http:\/\//i, 'https://');
+  if (/payment-token=/.test(raw)) return `${raw.replace(/payment-token=.*$/, 'payment-token=')}${encodeURIComponent(token)}`;
+  let origin = ALQASEH_SANDBOX_PAY;
+  try { origin = new URL(/^https:\/\//i.test(raw) ? raw : `https://${raw}`).origin; } catch { /* keep the sandbox page */ }
+  return `${origin}/form?payment-token=${encodeURIComponent(token)}`;
 }

@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { alqasehAccess, baseUrl, type PaymentProvider, type PaymentSettings } from './config';
+import { alqasehAccess, alqasehPayLink, baseUrl, type PaymentProvider, type PaymentSettings } from './config';
 
 /** Our own payment status, shared by both providers. */
 export type PayStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled' | 'refunded';
@@ -215,7 +215,7 @@ async function qsCreate(s: PaymentSettings, input: StartInput): Promise<StartRes
   const paymentId = str(pick(body, ['payment_id', 'paymentId']));
   const token = str(pick(body, ['token']));
   if (!token) throw new GatewayError('Al Qaseh did not return a payment token.', 0, body);
-  return { providerRef: paymentId || token, redirectUrl: `${a.pay}/${encodeURIComponent(token)}`, details: { token, paymentId } };
+  return { providerRef: paymentId || token, redirectUrl: alqasehPayLink(a.pay, token), details: { token, paymentId } };
 }
 /** Status by request token; the amount and currency must match the order before it counts as paid. */
 async function qsCheck(s: PaymentSettings, token: string, expectedIqd?: number) {
