@@ -40,8 +40,8 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   const [frozenCount, setFrozenCount] = useState(0);
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
   // Storage key kept from the original template so returning visitors keep their region.
-  const regionName = useLocalStorageValue(REGION_KEY);
-  const region = regions.find(item => item.name === regionName) ?? regions[0];
+  // Prices always show in Iraqi dinars (the region picker was removed).
+  const region = regions[0];
   const notify = useCallback((message: string, error = false) => setToast({ message, error }), []);
   const refreshCart = useCallback(() => fetch('/api/cart')
     .then(response => response.ok ? response.json() : null)
