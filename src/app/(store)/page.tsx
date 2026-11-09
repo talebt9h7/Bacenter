@@ -20,6 +20,9 @@ export default async function HomePage() {
     const from = priceFrom(product);
     return [{ id: product.id, name: product.name, nameAr: product.nameAr || product.name, priceIqd: from.min, priceVaries: from.varies, href: `/products/${product.id}`, image: photo, cutout: !!item.image && item.cut !== false }];
   }) : [];
-  const ring: RingView | null = ringItems.length >= 3 ? { items: ringItems, secondsPerTurn: ringConfig.secondsPerTurn, heading: ringConfig.heading, caption: ringConfig.caption } : null;
+  // A photo or video hero needs its file; the ring needs 3 products. Otherwise the regular hero shows.
+  const { mode, media } = ringConfig;
+  const ready = !ringConfig.enabled ? false : mode === 'image' ? !!(media.image || media.imageMobile) : mode === 'video' ? !!media.video : ringItems.length >= 3;
+  const ring: RingView | null = ready ? { mode, media, layout: ringConfig.layout, items: ringItems, secondsPerTurn: ringConfig.secondsPerTurn, heading: ringConfig.heading, caption: ringConfig.caption } : null;
   return <Homepage products={products} heroBanners={heroBanners} highlightBanners={highlightBanners} homepage={settings.homepage} categories={categories} bundles={bundles} ring={ring} />;
 }

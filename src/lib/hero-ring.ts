@@ -10,8 +10,13 @@ import { SETTINGS_TAG, invalidateSettings } from './cache-tags';
  * or, while it has none, the product's first photo shown as a card.
  */
 export type HeroRingItem = { productId: string; image: string; cut?: boolean };
-export type HeroRingHeading = { show: boolean; eyebrow: string; eyebrowAr: string; title: string; titleAr: string; subtitle: string; subtitleAr: string; cta: string; ctaAr: string; href: string };
-export type HeroRing = { enabled: boolean; secondsPerTurn: number; items: HeroRingItem[]; heading: HeroRingHeading; caption: boolean };
+export type HeroRingHeading = { show: boolean; eyebrow: string; eyebrowAr: string; title: string; titleAr: string; subtitle: string; subtitleAr: string; cta: string; ctaAr: string; href: string; cta2: string; cta2Ar: string; href2: string };
+/** What the top of the homepage shows: the product ring, one photo, or a silent looping video. */
+export type HeroMode = 'ring' | 'image' | 'video';
+export type HeroMedia = { image: string; imageMobile: string; video: string };
+/** Where the text and buttons sit over the photo/video, and how dark the shade under them is (0–80 %). */
+export type HeroLayout = { x: 'start' | 'center' | 'end'; y: 'top' | 'middle' | 'bottom'; shade: number };
+export type HeroRing = { enabled: boolean; mode: HeroMode; media: HeroMedia; layout: HeroLayout; secondsPerTurn: number; items: HeroRingItem[]; heading: HeroRingHeading; caption: boolean };
 
 export const defaultRingHeading: HeroRingHeading = {
   show: true,
@@ -24,8 +29,9 @@ export const defaultRingHeading: HeroRingHeading = {
   cta: 'Shop all',
   ctaAr: 'تسوق الكل',
   href: '/products/category/all',
+  cta2: '', cta2Ar: '', href2: '/info/our-story',
 };
-export const defaultHeroRing: HeroRing = { enabled: false, secondsPerTurn: 28, items: [], heading: defaultRingHeading, caption: false };
+export const defaultHeroRing: HeroRing = { enabled: false, mode: 'ring', media: { image: '', imageMobile: '', video: '' }, layout: { x: 'center', y: 'bottom', shade: 45 }, secondsPerTurn: 28, items: [], heading: defaultRingHeading, caption: false };
 export const RING_LIMITS = { minSeconds: 10, maxSeconds: 90, maxItems: 10 };
 const KEY = 'heroRing';
 
@@ -37,9 +43,16 @@ export function normalizeHeroRing(value: unknown): HeroRing {
   const seconds = Math.round(Number(v.secondsPerTurn));
   const h = (v.heading && typeof v.heading === 'object' ? v.heading : {}) as Partial<HeroRingHeading>;
   const d = defaultRingHeading;
-  const href = text(h.href, 300, d.href);
+  const href = text(h.href, 300, d.href), href2 = text(h.href2, 300, d.href2);
+  const m = (v.media && typeof v.media === 'object' ? v.media : {}) as Partial<HeroMedia>;
+  const l = (v.layout && typeof v.layout === 'object' ? v.layout : {}) as Partial<HeroLayout>;
+  const url = (value: unknown) => { const u = text(value, 500, ''); return safeUrl(u) ? u : ''; };
+  const shade = Math.round(Number(l.shade));
   return {
     enabled: v.enabled === true,
+    mode: v.mode === 'image' || v.mode === 'video' ? v.mode : 'ring',
+    media: { image: url(m.image), imageMobile: url(m.imageMobile), video: url(m.video) },
+    layout: { x: l.x === 'start' || l.x === 'end' ? l.x : 'center', y: l.y === 'top' || l.y === 'middle' ? l.y : 'bottom', shade: Number.isFinite(shade) ? Math.min(80, Math.max(0, shade)) : 45 },
     secondsPerTurn: Number.isFinite(seconds) ? Math.min(RING_LIMITS.maxSeconds, Math.max(RING_LIMITS.minSeconds, seconds)) : defaultHeroRing.secondsPerTurn,
     items: (Array.isArray(v.items) ? v.items : [])
       .map(item => {
@@ -56,6 +69,7 @@ export function normalizeHeroRing(value: unknown): HeroRing {
       subtitle: text(h.subtitle, 160, d.subtitle), subtitleAr: text(h.subtitleAr, 160, d.subtitleAr),
       cta: text(h.cta, 40, d.cta), ctaAr: text(h.ctaAr, 40, d.ctaAr),
       href: href && safeUrl(href) ? href : d.href,
+      cta2: text(h.cta2, 40, d.cta2), cta2Ar: text(h.cta2Ar, 40, d.cta2Ar), href2: href2 && safeUrl(href2) ? href2 : d.href2,
     },
     caption: v.caption === true,
   };
@@ -77,4 +91,4 @@ export async function saveHeroRing(next: HeroRing) {
 
 /** What the storefront ring shows for one item (built on the server from the settings above). */
 export type RingItem = { id: string; name: string; nameAr: string; priceIqd: number; priceVaries: boolean; href: string; image: string; cutout: boolean };
-export type RingView = { items: RingItem[]; secondsPerTurn: number; heading: HeroRingHeading; caption: boolean };
+export type RingView = { mode: HeroMode; media: HeroMedia; layout: HeroLayout; items: RingItem[]; secondsPerTurn: number; heading: HeroRingHeading; caption: boolean };

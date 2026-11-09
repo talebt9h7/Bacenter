@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ExternalLink, ImageUp, LoaderCircle, Monitor, Plus, RotateCcw, RotateCw, Smartphone, Trash2, WandSparkles } from 'lucide-react';
-import { api, Field, Switch, useFlash } from '@/components/admin/ui';
+import { ArrowDown, ArrowUp, ExternalLink, Film, Image as ImageIcon, ImageUp, LoaderCircle, Monitor, Plus, RotateCcw, RotateCw, Smartphone, Trash2, WandSparkles } from 'lucide-react';
+import { api, Field, ImageField, Switch, useFlash } from '@/components/admin/ui';
+import { HeroMedia } from '@/components/hero-media';
 import { useLanguage } from '@/components/language-provider';
 import { HeroRing } from '@/components/hero-ring';
 import { groupInt } from '@/lib/number-format';
 import { mediaSrc } from '@/lib/types';
-import type { HeroRing as Ring, HeroRingHeading, HeroRingItem, RingItem } from '@/lib/hero-ring';
+import type { HeroLayout, HeroMedia as Media, HeroRing as Ring, HeroRingHeading, HeroRingItem, RingItem } from '@/lib/hero-ring';
 
 type ProductOption = { id: string; name: string; nameAr: string; image: string; priceIqd: number; priceVaries: boolean };
 type Limits = { minSeconds: number; maxSeconds: number; maxItems: number };
@@ -30,6 +31,17 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
   const fileInput = useRef<HTMLInputElement>(null);
   const byId = new Map(products.map(p => [p.id, p]));
   const set = (patch: Partial<Ring>) => setRing(r => ({ ...r, ...patch }));
+  const setMedia = (patch: Partial<Media>) => setRing(r => ({ ...r, media: { ...r.media, ...patch } }));
+  const setLayout = (patch: Partial<HeroLayout>) => setRing(r => ({ ...r, layout: { ...r.layout, ...patch } }));
+  const [videoBusy, setVideoBusy] = useState(false);
+  const videoInput = useRef<HTMLInputElement>(null);
+  async function uploadVideo(files: FileList | null) {
+    if (!files?.length) return;
+    setVideoBusy(true);
+    try { const form = new FormData(); form.append('file', files[0]); const data = await api<{ video: string }>('/api/admin/hero-ring/video', { method: 'POST', body: form }); setMedia({ video: data.video }); }
+    catch (e) { fail(e); }
+    finally { setVideoBusy(false); if (videoInput.current) videoInput.current.value = ''; }
+  }
   const setHeading = (patch: Partial<HeroRingHeading>) => setRing(r => ({ ...r, heading: { ...r.heading, ...patch } }));
   // Items are found by product (a product is in the ring once), so a cut that finishes after a reorder lands on the right row.
   const patchItem = (productId: string, patch: Partial<HeroRingItem>) => setRing(r => ({ ...r, items: r.items.map(it => (it.productId === productId ? { ...it, ...patch } : it)) }));
@@ -65,7 +77,7 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
 
   async function save(next: Ring = ring) {
     setSaving(true);
-    try { const data = await api<{ ring: Ring }>('/api/admin/hero-ring', { method: 'PUT', json: next }); setRing(data.ring); success(L('انحفظت الحلقة وطلعت بالموقع', 'Ring saved and live')); }
+    try { const data = await api<{ ring: Ring }>('/api/admin/hero-ring', { method: 'PUT', json: next }); setRing(data.ring); success(L('انحفظت الواجهة وطلعت بالموقع', 'Hero saved and live')); }
     catch (e) { fail(e); }
     finally { setSaving(false); }
   }
@@ -100,20 +112,31 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
   const tooFew = ring.items.length < 3;
   const formatPrice = (n: number) => (ar ? `${groupInt(Math.round(n))} د.ع` : `IQD ${groupInt(Math.round(n))}`);
   const h = ring.heading;
+  const isRing = ring.mode === 'ring';
+  const mediaReady = ring.mode === 'image' ? !!(ring.media.image || ring.media.imageMobile) : !!ring.media.video;
 
   return <section className="admin-card hring-admin">
     {flash}
     <div className="admin-card-heading">
       <div>
-        <h2><RotateCw size={17} /> {L('حلقة المنتجات (أعلى الرئيسية)', 'Product ring (top of homepage)')}</h2>
-        <p className="admin-hint">{L('منتجات واكفة على دائرة تدور ببطء، اللي بالنص أكبر ومنوّر. الزبون يوقفها باللمس ويدوّرها بإصبعه، ومن يضغط على منتج جانبي يجي للنص، ومن يضغط على اللي بالنص تنفتح صفحته.', 'Products standing on a slowly turning circle; the front one is biggest and lit. Touch holds it, a drag spins it, a tap on a side product brings it to the front, a tap on the front one opens it.')}</p>
+        <h2><RotateCw size={17} /> {L('واجهة الصفحة الرئيسية', 'Homepage hero')}</h2>
+        <p className="admin-hint">{L('أول شي يشوفه الزبون. اختار: حلقة منتجات تدور، صورة وحدة، أو فيديو قصير صامت. الكتابة والأزرار ومكانها تتعدل من هنا.', 'The first thing a shopper sees. Choose a turning product ring, one photo, or a short silent video. Text, buttons and their position are set here.')}</p>
       </div>
       <a className="admin-btn admin-btn-ghost" href="/" target="_blank" rel="noreferrer"><ExternalLink size={15} />{L('شوف الرئيسية', 'View homepage')}</a>
     </div>
 
     <div className="hring-admin-row">
       <label className="cat-switch"><input type="checkbox" checked={ring.enabled} onChange={e => set({ enabled: e.target.checked })} aria-label={L('تشغيل الحلقة', 'Turn the ring on')} /><span /></label>
-      <strong>{ring.enabled ? L('الحلقة شغالة بالموقع', 'Ring is on') : L('الحلقة مطفية', 'Ring is off')}</strong>
+      <strong>{ring.enabled ? L('الواجهة شغالة بالموقع', 'Hero is on') : L('الواجهة مطفية', 'Hero is off')}</strong>
+    </div>
+
+    <div className="hring-admin-row">
+      <strong>{L('نوع الواجهة', 'Hero type')}</strong>
+      <div className="hring-admin-seg" role="group" aria-label={L('نوع الواجهة', 'Hero type')}>
+        <button type="button" aria-pressed={ring.mode === 'ring'} onClick={() => set({ mode: 'ring' })}><RotateCw size={15} />{L('حلقة منتجات', 'Product ring')}</button>
+        <button type="button" aria-pressed={ring.mode === 'image'} onClick={() => set({ mode: 'image' })}><ImageIcon size={15} />{L('صورة', 'Photo')}</button>
+        <button type="button" aria-pressed={ring.mode === 'video'} onClick={() => set({ mode: 'video' })}><Film size={15} />{L('فيديو', 'Video')}</button>
+      </div>
     </div>
 
     <div className="hring-admin-preview">
@@ -125,12 +148,13 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
         </div>
       </div>
       <div className={`hring-admin-frame is-${device}`}>
-        {preview.length ? <HeroRing key={device} items={preview} secondsPerTurn={ring.secondsPerTurn} heading={ring.heading} caption={ring.caption} formatPrice={formatPrice} preview /> : <p className="hring-admin-empty">{L('أضف منتجات حتى تشوف المعاينة.', 'Add products to see the preview.')}</p>}
+        {!isRing ? (mediaReady ? <HeroMedia key={device + ring.mode} mode={ring.mode} media={ring.media} layout={ring.layout} heading={ring.heading} preview /> : <p className="hring-admin-empty">{ring.mode === 'image' ? L('ارفع صورة حتى تشوف المعاينة.', 'Upload a photo to see the preview.') : L('ارفع فيديو أو حط رابطه حتى تشوف المعاينة.', 'Upload a video or paste its link to see the preview.')}</p>) : preview.length ? <HeroRing key={device} items={preview} secondsPerTurn={ring.secondsPerTurn} heading={ring.heading} caption={ring.caption} formatPrice={formatPrice} preview /> : <p className="hring-admin-empty">{L('أضف منتجات حتى تشوف المعاينة.', 'Add products to see the preview.')}</p>}
       </div>
-      {tooFew && <p className="admin-warning-text">{L('تحتاج 3 منتجات على الأقل حتى تظهر الحلقة بالموقع. أحلى شكل من 5 إلى 8.', 'Add at least 3 products for the ring to show on the site; 5–8 look best.')}</p>}
-      {!tooFew && uncut > 0 && <p className="admin-warning-text">{L(`${uncut} من الصور بعدها بخلفيتها، فالحلقة تنعرض كبطاقات. اضغط «قص الكل وحفظ» حتى تطلع المنتجات واكفة بدون خلفية.`, `${uncut} photo(s) still have their background, so the ring shows cards. Press “Cut all and save” for free-standing products.`)}</p>}
+      {isRing && tooFew && <p className="admin-warning-text">{L('تحتاج 3 منتجات على الأقل حتى تظهر الحلقة بالموقع. أحلى شكل من 5 إلى 8.', 'Add at least 3 products for the ring to show on the site; 5–8 look best.')}</p>}
+      {isRing && !tooFew && uncut > 0 && <p className="admin-warning-text">{L(`${uncut} من الصور بعدها بخلفيتها، فالحلقة تنعرض كبطاقات. اضغط «قص الكل وحفظ» حتى تطلع المنتجات واكفة بدون خلفية.`, `${uncut} photo(s) still have their background, so the ring shows cards. Press “Cut all and save” for free-standing products.`)}</p>}
     </div>
 
+    {isRing && <>
     <div className="hring-admin-subhead">
       <h3>{L(`المنتجات (${ring.items.length}/${limits.maxItems})`, `Products (${ring.items.length}/${limits.maxItems})`)}</h3>
       <button type="button" className="admin-btn admin-btn-primary" disabled={bulk || saving || !ring.items.length || !uncut} onClick={() => void cutAllAndSave()}>{bulk ? <LoaderCircle size={15} className="spin" /> : <WandSparkles size={15} />}{bulk ? L('جارٍ القص…', 'Cutting…') : L('قص الكل وحفظ', 'Cut all and save')}</button>
@@ -169,7 +193,31 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
       <button type="button" className="admin-btn admin-btn-ghost" disabled={ring.items.length >= limits.maxItems || !unused.length} onClick={() => { const id = unused[0].id; setRing(r => ({ ...r, items: [...r.items, { productId: id, image: '' }] })); void cut(id); }}><Plus size={15} />{L('إضافة منتج', 'Add product')}</button>
     </div>
 
-    <div className="hring-admin-subhead"><h3>{L('الكتابة فوق الحلقة', 'Text above the ring')}</h3><Switch checked={h.show} onChange={show => setHeading({ show })} label={h.show ? L('ظاهرة', 'Shown') : L('مخفية', 'Hidden')} /></div>
+    </>}
+
+    {!isRing && <>
+      <div className="hring-admin-subhead"><h3>{ring.mode === 'image' ? L('الصورة', 'Photo') : L('الفيديو', 'Video')}</h3></div>
+      {ring.mode === 'video' && <div className="hring-admin-video">
+        <input ref={videoInput} type="file" accept="video/mp4,video/webm" hidden onChange={e => void uploadVideo(e.target.files)} />
+        <div className="hring-admin-tools">
+          <button type="button" className="admin-btn admin-btn-primary" disabled={videoBusy} onClick={() => videoInput.current?.click()}>{videoBusy ? <LoaderCircle size={15} className="spin" /> : <Film size={15} />}{videoBusy ? L('جارٍ الرفع…', 'Uploading…') : L('رفع فيديو', 'Upload video')}</button>
+          {ring.media.video && <button type="button" className="admin-btn admin-btn-ghost" onClick={() => setMedia({ video: '' })}><Trash2 size={15} />{L('حذف الفيديو', 'Remove video')}</button>}
+        </div>
+        <Field label={L('أو رابط فيديو مباشر (MP4)', 'Or a direct video link (MP4)')} hint={L('الرفع لحد 4 ميغا: فيديو 6 إلى 10 ثواني، دقة 720، بدون صوت. يشتغل صامت ويعيد نفسه. للأكبر حط رابط https مباشر لملف MP4.', 'Uploads up to 4 MB: 6–10 seconds, 720p, no sound. It plays muted on a loop. For a bigger file paste a direct https link to an MP4.')}><input dir="ltr" value={ring.media.video} onChange={e => setMedia({ video: e.target.value })} placeholder="https://…/hero.mp4" /></Field>
+      </div>}
+      <div className="hring-admin-copy">
+        <ImageField value={ring.media.image} onChange={image => setMedia({ image })} label={ring.mode === 'video' ? L('صورة الغلاف (تبين قبل ما يشتغل الفيديو)', 'Poster photo (shows before the video plays)') : L('الصورة (كمبيوتر) — عرضية', 'Photo (desktop) — landscape')} hint={L('الأفضل 2000×1100 تقريباً.', 'About 2000×1100 works best.')} />
+        <ImageField value={ring.media.imageMobile} onChange={imageMobile => setMedia({ imageMobile })} label={L('صورة الموبايل — طولية', 'Phone photo — portrait')} hint={L('اختياري. الأفضل 1000×1400 تقريباً. بدونها تنعرض صورة الكمبيوتر مقصوصة.', 'Optional. About 1000×1400. Without it the desktop photo is cropped.')} />
+      </div>
+      <div className="hring-admin-subhead"><h3>{L('مكان الكتابة والأزرار', 'Where the text and buttons sit')}</h3></div>
+      <div className="hring-admin-copy">
+        <Field label={L('أفقياً', 'Across')}><select value={ring.layout.x} onChange={e => setLayout({ x: e.target.value as HeroLayout['x'] })}><option value="start">{L('يمين (بداية السطر)', 'Start')}</option><option value="center">{L('بالنص', 'Centre')}</option><option value="end">{L('يسار (نهاية السطر)', 'End')}</option></select></Field>
+        <Field label={L('عمودياً', 'Up and down')}><select value={ring.layout.y} onChange={e => setLayout({ y: e.target.value as HeroLayout['y'] })}><option value="top">{L('فوق', 'Top')}</option><option value="middle">{L('بالنص', 'Middle')}</option><option value="bottom">{L('تحت', 'Bottom')}</option></select></Field>
+        <label className="hring-admin-speed hring-admin-wide" style={{ borderTop: 0, paddingTop: 0 }}><span>{L('تعتيم الصورة تحت الكتابة', 'Shade under the text')}: <b>{ring.layout.shade}%</b></span><input type="range" min={0} max={80} step={5} value={ring.layout.shade} onChange={e => setLayout({ shade: Number(e.target.value) })} aria-label={L('التعتيم', 'Shade')} /><span className="hring-admin-scale"><small>{L('بدون', 'None')}</small><small>{L('غامق', 'Dark')}</small></span></label>
+      </div>
+    </>}
+
+    <div className="hring-admin-subhead"><h3>{isRing ? L('الكتابة فوق الحلقة', 'Text above the ring') : L('الكتابة والأزرار', 'Text and buttons')}</h3><Switch checked={h.show} onChange={show => setHeading({ show })} label={h.show ? L('ظاهرة', 'Shown') : L('مخفية', 'Hidden')} /></div>
     {h.show && <div className="hring-admin-copy">
       <Field label={L('سطر صغير فوق العنوان (عربي)', 'Eyebrow (Arabic)')}><input dir="rtl" value={h.eyebrowAr} maxLength={80} onChange={e => setHeading({ eyebrowAr: e.target.value })} /></Field>
       <Field label={L('سطر صغير فوق العنوان (إنكليزي)', 'Eyebrow (English)')}><input dir="ltr" value={h.eyebrow} maxLength={80} onChange={e => setHeading({ eyebrow: e.target.value })} /></Field>
@@ -180,8 +228,14 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
       <Field label={L('نص الزر (عربي)', 'Button (Arabic)')} hint={L('فارغ = بدون زر', 'Empty = no button')}><input dir="rtl" value={h.ctaAr} maxLength={40} onChange={e => setHeading({ ctaAr: e.target.value })} /></Field>
       <Field label={L('نص الزر (إنكليزي)', 'Button (English)')}><input dir="ltr" value={h.cta} maxLength={40} onChange={e => setHeading({ cta: e.target.value })} /></Field>
       <Field label={L('الزر يفتح', 'Button opens')} className="hring-admin-wide"><input dir="ltr" value={h.href} maxLength={300} onChange={e => setHeading({ href: e.target.value })} placeholder="/products/category/all" /></Field>
+      {!isRing && <>
+        <Field label={L('الزر الثاني (عربي)', 'Second button (Arabic)')} hint={L('فارغ = بدون زر ثاني', 'Empty = no second button')}><input dir="rtl" value={h.cta2Ar} maxLength={40} onChange={e => setHeading({ cta2Ar: e.target.value })} /></Field>
+        <Field label={L('الزر الثاني (إنكليزي)', 'Second button (English)')}><input dir="ltr" value={h.cta2} maxLength={40} onChange={e => setHeading({ cta2: e.target.value })} /></Field>
+        <Field label={L('الزر الثاني يفتح', 'Second button opens')} className="hring-admin-wide"><input dir="ltr" value={h.href2} maxLength={300} onChange={e => setHeading({ href2: e.target.value })} placeholder="/info/our-story" /></Field>
+      </>}
     </div>}
 
+    {isRing && <>
     <div className="hring-admin-subhead"><h3>{L('اسم وسعر المنتج اللي بالنص', 'Name and price of the front product')}</h3><Switch checked={ring.caption} onChange={caption => set({ caption })} label={ring.caption ? L('ظاهر', 'Shown') : L('مخفي', 'Hidden')} /></div>
 
     <label className="hring-admin-speed">
@@ -190,9 +244,11 @@ export function HeroRingManager({ initial, products, limits }: { initial: Ring; 
       <span className="hring-admin-scale"><small>{L('أبطأ', 'Slower')}</small><small>{L('أسرع', 'Faster')}</small></span>
     </label>
 
+    </>}
+
     <div className="hring-admin-footer">
-      <p className="admin-hint">{L('أحلى نتيجة: صور المنتج وحده على خلفية سادة (بيضاء أو رمادي فاتح)، بنفس الزاوية والإضاءة لكل المنتجات. القص التلقائي يشيل الخلفية ويخلي ظل ناعم.', 'Best result: each product alone on a plain light background, same angle and light for all. Auto cut removes the background and keeps a soft shadow.')}</p>
-      <button type="button" className="admin-btn admin-btn-primary" disabled={saving || bulk} onClick={() => void save()}>{saving ? L('جارٍ الحفظ…', 'Saving…') : L('حفظ الحلقة', 'Save ring')}</button>
+      {isRing ? <p className="admin-hint">{L('أحلى نتيجة: صور المنتج وحده على خلفية سادة (بيضاء أو رمادي فاتح)، بنفس الزاوية والإضاءة لكل المنتجات. القص التلقائي يشيل الخلفية ويخلي ظل ناعم.', 'Best result: each product alone on a plain light background, same angle and light for all. Auto cut removes the background and keeps a soft shadow.')}</p> : <span />}
+      <button type="button" className="admin-btn admin-btn-primary" disabled={saving || bulk} onClick={() => void save()}>{saving ? L('جارٍ الحفظ…', 'Saving…') : L('حفظ الواجهة', 'Save hero')}</button>
     </div>
   </section>;
 }

@@ -370,3 +370,6 @@ html[dir=rtl] .sheet{animation-name:sheet-in-rtl}
 .mo-meta span+span{color:#86868b;font-weight:500}
 .mo-empty{grid-column:1/-1;margin:0;padding:24px;text-align:center;color:#86868b}
 @media(max-width:640px){.mo-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-height:300px}}
+.hring-admin-video{display:flex;flex-direction:column;gap:10px}
+.hring-admin-frame .hmedia{margin:10px}
+.hring-admin-copy select{height:42px;border-radius:10px;border:1px solid #dcd8d2;padding:0 10px;font:inherit;background:#fff;width:100%}
