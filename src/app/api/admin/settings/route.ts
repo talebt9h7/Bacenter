@@ -192,6 +192,10 @@ export async function PUT(request: NextRequest) {
     patch.codEnabled = body.codEnabled;
   }
 
+  if (typeof body.showCurrency === 'boolean') {
+    patch.showCurrency = body.showCurrency;
+  }
+
   if (patch.orderPrefix !== undefined) {
     patch.orderPrefix =
       patch.orderPrefix

@@ -15,7 +15,7 @@ import { roundIqd } from '@/lib/iraq';
 import { Check, X, AlertCircle } from 'lucide-react';
 
 export type Region = { name: string; currency: string; rate: number; locale: string };
-export type PublicSettings = { storeName: string; tagline: string; logoUrl: string; logoAlt: string; faviconUrl: string; metaTitle: string; metaDescription: string; announcement: string; announcementHref: string; supportEmail: string; supportPhone: string; whatsapp: string; instagram: string; youtube: string; facebook: string; address: string; footerTagline: string; copyrightText: string; exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; lowStockThreshold?: number; homeHeadline: string; homeHeadlineAr?: string; homeSubheadline: string; homeSubheadlineAr?: string; homeValues: { title: string; text: string; titleAr?: string; textAr?: string }[]; navigation: NavigationGroup[]; footer: FooterConfig };
+export type PublicSettings = { showCurrency?: boolean; storeName: string; tagline: string; logoUrl: string; logoAlt: string; faviconUrl: string; metaTitle: string; metaDescription: string; announcement: string; announcementHref: string; supportEmail: string; supportPhone: string; whatsapp: string; instagram: string; youtube: string; facebook: string; address: string; footerTagline: string; copyrightText: string; exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; lowStockThreshold?: number; homeHeadline: string; homeHeadlineAr?: string; homeSubheadline: string; homeSubheadlineAr?: string; homeValues: { title: string; text: string; titleAr?: string; textAr?: string }[]; navigation: NavigationGroup[]; footer: FooterConfig };
 export const baseRegions: Region[] = [
   { name: 'Iraq', currency: 'IQD', rate: 1320, locale: 'en-IQ' },
   { name: 'United States', currency: 'USD', rate: 1, locale: 'en-US' },
@@ -120,7 +120,8 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   // While a product is flying to the bag, the counter keeps its old number until it lands.
   const count = inFlight > 0 ? frozenCount : cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const fmtIqd = useCallback((n: number) => language === 'ar' ? `${groupInt(n)} د.ع` : numberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(n), [language]);
+  // The admin can show prices as bare numbers (Settings → show currency).
+  const fmtIqd = useCallback((n: number) => settings.showCurrency === false ? groupInt(n) : language === 'ar' ? `${groupInt(n)} د.ع` : numberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(n), [language, settings.showCurrency]);
   function money(price: number) {
     if (region.currency === 'IQD') return fmtIqd(roundIqd(price * region.rate));
     return numberFormat(region.locale, { style: 'currency', currency: region.currency, maximumFractionDigits: 0 }).format(Math.round(price * region.rate));
