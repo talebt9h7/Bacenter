@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LoaderCircle, Plus, Save, Trash2 } from 'lucide-react';
+import { LoaderCircle, Save, Trash2 } from 'lucide-react';
 import { api, Modal, useFlash } from './ui';
 import { useLanguage } from '@/components/language-provider';
 import { iraqGovernorates } from '@/lib/iraq';
 import { groupInt } from '@/lib/number-format';
+import { mediaSrc } from '@/lib/types';
 
 type CatalogRow = { variantId: number; productId: string; productName: string; productNameAr?: string; color: string; colorAr?: string; stock: number; priceCents: number; salePriceIqd: number; image: string | null; published: boolean };
 type ManualLine = CatalogRow & { quantity: number; unitPrice: number };
@@ -23,10 +24,11 @@ export function ManualOrderModal({ catalog, onClose }: { catalog: CatalogRow[]; 
   const [source, setSource] = useState('instagram'), [sourceNote, setSourceNote] = useState(''), [paymentMethod, setPaymentMethod] = useState('cod'), [paymentStatus, setPaymentStatus] = useState('unpaid'), [shipping, setShipping] = useState(''), [discount, setDiscount] = useState('0'), [note, setNote] = useState(''), [selected, setSelected] = useState('');
   const [lines, setLines] = useState<ManualLine[]>([]), [busy, setBusy] = useState(false);
   const { flash, fail } = useFlash();
-  const addLine = () => { const row = catalog.find(x => x.variantId === Number(selected)); if (!row || lines.some(x => x.variantId === row.variantId)) return; setLines(v => [...v, { ...row, quantity: 1, unitPrice: row.salePriceIqd }]); setSelected(''); };
+  const addLine = (row: CatalogRow) => { if (lines.some(x => x.variantId === row.variantId)) { setLines(v => v.map(x => (x.variantId === row.variantId ? { ...x, quantity: Math.min(x.stock, x.quantity + 1) } : x))); return; } setLines(v => [...v, { ...row, quantity: 1, unitPrice: row.salePriceIqd }]); };
   const subtotal = lines.reduce((s, x) => s + x.unitPrice * x.quantity, 0), safeDiscount = Math.min(Math.max(0, Number(discount) || 0), subtotal), delivery = shipping === '' ? null : Math.max(0, Number(shipping) || 0), total = Math.max(0, subtotal - safeDiscount) + (delivery ?? 0);
   async function submit() { setBusy(true); try { const data = await api<{ id: number }>('/api/admin/orders/manual', { method: 'POST', json: { name, phone, governorate, city, address, landmark, source, sourceNote, paymentMethod, paymentStatus, shipping: delivery, discount: safeDiscount, note, items: lines.map(x => ({ variantId: x.variantId, quantity: x.quantity, unitPrice: x.unitPrice })) } }); router.push(`/admin/orders/${data.id}`); } catch (e) { fail(e); setBusy(false); } }
-  const picked = selected ? catalog.find(x => x.variantId === Number(selected)) : undefined;
+  const q = selected.trim().toLowerCase();
+  const choices = catalog.filter(x => x.published && x.stock > 0 && (!q || `${x.productName} ${x.productNameAr ?? ''} ${x.color} ${x.colorAr ?? ''}`.toLowerCase().includes(q)));
 
   return <Modal title={L('إضافة طلب يدوي', 'Add manual order')} onClose={onClose} wide>{flash}
     <div className="admin-form-grid">
@@ -44,18 +46,20 @@ export function ManualOrderModal({ catalog, onClose }: { catalog: CatalogRow[]; 
 
     <section className="admin-card" style={{ marginTop: 18 }}>
       <div className="admin-card-heading"><h3>{L('المنتجات', 'Products')}</h3></div>
-      <div className="admin-toolbar admin-product-picker">
-        <select value={selected} onChange={e => setSelected(e.target.value)}>
-          <option value="">{L('اختر المنتج / اللون…', 'Choose product / color…')}</option>
-          {catalog.filter(x => x.published && x.stock > 0).map(x => <option key={x.variantId} value={x.variantId}>{productName(x)} · {colorName(x)} · {L(`المتوفر ${x.stock}`, `stock ${x.stock}`)}</option>)}
-        </select>
-        <button type="button" className="admin-btn admin-btn-primary" onClick={addLine} disabled={!selected}><Plus size={15} />{L('إضافة المنتج', 'Add product')}</button>
+      <input className="mo-search" type="search" value={selected} onChange={e => setSelected(e.target.value)} placeholder={L('ابحث باسم المنتج أو اللون…', 'Search product or colour…')} aria-label={L('بحث المنتجات', 'Search products')} />
+      <div className="mo-grid" role="list">
+        {choices.map(x => { const count = lines.find(l => l.variantId === x.variantId)?.quantity ?? 0; return <button key={x.variantId} type="button" role="listitem" className={`mo-tile${count ? ' is-added' : ''}`} onClick={() => addLine(x)} title={L('اضغط للإضافة', 'Tap to add')}>
+          <span className="mo-photo">{x.image ? <img src={mediaSrc(x.image, 240)} alt="" loading="lazy" /> : null}{count > 0 && <b className="mo-count">{count}</b>}</span>
+          <strong>{productName(x)}</strong>
+          <small>{colorName(x)}</small>
+          <span className="mo-meta"><span>{iqd(x.salePriceIqd)}</span><span>{L(`متوفر ${x.stock}`, `${x.stock} left`)}</span></span>
+        </button>; })}
+        {!choices.length && <p className="mo-empty">{L('ماكو منتج بهذا الاسم.', 'No product matches.')}</p>}
       </div>
-      {picked && <div className="admin-selected-product"><img src={picked.image || '/placeholder.svg'} alt="" /><div><strong>{productName(picked)}</strong><span>{colorName(picked)} · {L(`المتوفر ${picked.stock}`, `${picked.stock} in stock`)} · {iqd(picked.salePriceIqd)}</span></div></div>}
       {lines.length > 0 && <div className="admin-table-wrap"><table className="admin-table">
         <thead><tr><th>{L('المنتج', 'Product')}</th><th>{L('الكمية', 'Qty')}</th><th>{L('سعر القطعة', 'Unit price')}</th><th>{L('المجموع', 'Total')}</th><th /></tr></thead>
         <tbody>{lines.map((line, i) => <tr key={line.variantId}>
-          <td><div className="admin-product-cell"><img src={line.image || '/placeholder.svg'} alt="" /><div><strong>{productName(line)}</strong><small>{colorName(line)} · {L(`المتوفر ${line.stock}`, `${line.stock} in stock`)}</small></div></div></td>
+          <td><div className="admin-product-cell"><img src={line.image ? mediaSrc(line.image, 160) : '/placeholder.svg'} alt="" /><div><strong>{productName(line)}</strong><small>{colorName(line)} · {L(`المتوفر ${line.stock}`, `${line.stock} in stock`)}</small></div></div></td>
           <td><input type="number" min="1" max={line.stock} value={line.quantity} onChange={e => setLines(v => v.map((x, j) => (j === i ? { ...x, quantity: Math.max(1, Math.min(x.stock, Number(e.target.value) || 1)) } : x)))} style={{ width: 80 }} aria-label={L('الكمية', 'Quantity')} /></td>
           <td><input type="number" min="0" step="250" value={line.unitPrice} onChange={e => setLines(v => v.map((x, j) => (j === i ? { ...x, unitPrice: Math.max(0, Number(e.target.value) || 0) } : x)))} style={{ width: 120 }} aria-label={L('سعر القطعة', 'Unit price')} /></td>
           <td>{iqd(line.unitPrice * line.quantity)}</td>
