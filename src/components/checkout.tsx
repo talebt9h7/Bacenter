@@ -53,6 +53,9 @@ export function Checkout() {
   const [phoneError, setPhoneError] = useState('');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [order, setOrder] = useState<PlacedOrder | null>(null);
+  // Al Qaseh's card page opens in a sheet over the checkout instead of leaving the site.
+  const [payFrame, setPayFrame] = useState<{ url: string; total: number } | null>(null);
+  const [payClosed, setPayClosed] = useState<{ url: string; total: number } | null>(null);
   // InitiateCheckout / begin_checkout once, when the bag has loaded with items.
   const checkoutTracked = useRef(false);
   useEffect(() => {
@@ -121,7 +124,9 @@ export function Checkout() {
       // Online gateway: go to the payment page (ZainCash directly, FIB via our QR page).
       if (payment === 'electronic' && result.payment?.url) {
         track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping });
-        window.location.assign(result.payment.redirectUrl || result.payment.url);
+        const payUrl = result.payment.redirectUrl || result.payment.url;
+        if (config?.gateway?.provider === 'alqaseh') { setPayClosed(null); setPayFrame({ url: payUrl, total: result.order.total }); return; }
+        window.location.assign(payUrl);
         return;
       }
       setOrder({ ...result.order, zone, payment });
@@ -147,7 +152,9 @@ export function Checkout() {
   </section></main>;
 
   if (!loaded || !config) return <main className="checkout-page co-page"><div className="co-state"><LoaderCircle className="spin" size={30} /><h3>{ar ? 'جارٍ تجهيز طلبك…' : 'Getting your order ready…'}</h3>{error && <p className="co-error">{error}</p>}</div></main>;
-  if (!cart.length) return <main className="checkout-page co-page"><div className="co-state"><ShoppingBag size={46} strokeWidth={1.1} /><h3>{ar ? 'سلتك فارغة' : 'Your bag is empty'}</h3><p>{ar ? 'ابدأ من الأكثر طلباً عند زبائننا.' : 'Start with what our customers order most.'}</p><Link href="/collection/bestsellers" className="co-primary">{ar ? 'تسوّق الأكثر مبيعاً' : 'Shop bestsellers'} {ar ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</Link></div></main>;
+  const sheet = payFrame ? <PaySheet url={payFrame.url} total={iqd(payFrame.total)} ar={ar} onClose={() => { setPayClosed(payFrame); setPayFrame(null); }} /> : null;
+  const reopen = payClosed && !payFrame ? <div className="co-pay-resume" role="status"><p>{ar ? 'ما كمّلت الدفع، وطلبك محفوظ بانتظاره.' : 'Payment not finished. Your order is waiting for it.'}</p><button type="button" className="co-primary" onClick={() => setPayFrame(payClosed)}><LockKeyhole size={16} aria-hidden="true" /> {ar ? 'كمّل الدفع' : 'Finish payment'}</button></div> : null;
+  if (!cart.length) return <main className="checkout-page co-page">{sheet}{reopen}<div className="co-state"><ShoppingBag size={46} strokeWidth={1.1} /><h3>{ar ? 'سلتك فارغة' : 'Your bag is empty'}</h3><p>{ar ? 'ابدأ من الأكثر طلباً عند زبائننا.' : 'Start with what our customers order most.'}</p><Link href="/collection/bestsellers" className="co-primary">{ar ? 'تسوّق الأكثر مبيعاً' : 'Shop bestsellers'} {ar ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</Link></div></main>;
 
   const summary = <>
     <ul className="co-lines">{lines.map(item => <li key={item.id}>
@@ -177,7 +184,7 @@ export function Checkout() {
     {!freeShipping && threshold > subtotal && <p className="co-upsell">{ar ? <>باقي <strong>{iqd(threshold - subtotal)}</strong> على التوصيل المجاني. <button type="button" onClick={() => setCartOpen(true)}>أضف منتج</button></> : <><strong>{iqd(threshold - subtotal)}</strong> away from free delivery. <button type="button" onClick={() => setCartOpen(true)}>Add an item</button></>}</p>}
   </>;
 
-  return <main className="checkout-page co-page">
+  return <main className="checkout-page co-page">{sheet}
     <nav className="co-steps" aria-label={ar ? 'مراحل الطلب' : 'Checkout steps'}>
       <button type="button" className="is-done" onClick={() => setCartOpen(true)}><Check size={13} aria-hidden="true" /> {ar ? 'السلة' : 'Bag'}</button>
       <span className="is-current" aria-current="step">2 · {ar ? 'معلومات التوصيل' : 'Delivery details'}</span>
@@ -229,6 +236,7 @@ export function Checkout() {
           </dl>
         </fieldset>
 
+        {reopen}
         {error && <p className="co-error co-error-box" role="alert">{error}</p>}
         <div className="co-submit">
           <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</> : payOnline ? <><LockKeyhole size={17} aria-hidden="true" /> {ar ? 'الانتقال إلى صفحة الدفع' : 'Continue to payment'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
@@ -242,4 +250,38 @@ export function Checkout() {
       </aside>
     </div>
   </main>;
+}
+
+/**
+ * The card payment page in a sheet over the checkout (phones: from the bottom; computers: centred).
+ * The gateway's own page does the card entry, so card details never touch this site. When the
+ * gateway sends the shopper back to our result page inside the sheet, the whole window follows.
+ */
+function PaySheet({ url, total, ar, onClose }: { url: string; total: string; ar: boolean; onClose: () => void }) {
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow; };
+  }, [onClose]);
+  return <div className="co-sheet-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="co-sheet" role="dialog" aria-modal="true" aria-label={ar ? 'الدفع بالبطاقة' : 'Card payment'}>
+      <div className="co-sheet-head">
+        <span className="co-sheet-grip" aria-hidden="true" />
+        <div className="co-sheet-title"><LockKeyhole size={16} aria-hidden="true" /><strong>{ar ? 'الدفع بالبطاقة' : 'Card payment'}</strong><span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span></div>
+        <div className="co-sheet-total"><span>{ar ? 'المبلغ' : 'Amount'}</span><b>{total}</b></div>
+        <button type="button" className="co-sheet-close" onClick={onClose} aria-label={ar ? 'إغلاق' : 'Close'}><X size={18} /></button>
+      </div>
+      <div className="co-sheet-body">
+        {!loaded && <div className="co-sheet-loading"><LoaderCircle className="spin" size={26} /><span>{ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…'}</span></div>}
+        <iframe src={url} title={ar ? 'صفحة الدفع' : 'Payment page'} allow="payment" onLoad={e => {
+          setLoaded(true);
+          // Back on our own site (the result page): leave the sheet and show it full screen.
+          try { const here = e.currentTarget.contentWindow?.location; if (here && here.origin === window.location.origin) window.location.assign(here.href); } catch { /* still on the gateway's page */ }
+        }} />
+      </div>
+      <a className="co-sheet-full" href={url}>{ar ? 'الصفحة ما تبين؟ افتحها بشاشة كاملة' : 'Page not showing? Open it full screen'}</a>
+    </div>
+  </div>;
 }
