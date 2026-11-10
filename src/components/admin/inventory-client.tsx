@@ -2,13 +2,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { Download, LoaderCircle, Minus, Plus, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, LoaderCircle, Pencil, Minus, PackagePlus, Plus, Search, Trash2, X } from 'lucide-react';
 import { api, useFlash } from './ui';
 import { useLanguage } from '@/components/language-provider';
 import { catalogT } from '@/lib/i18n';
 import { availableUnits, stockLevel } from '@/lib/stock-level';
 
-export type InventoryRow = { variantId: number; productId: string; productName: string; category: string; color: string; hex: string; stock: number; reserved?: number; photos: number; image: string; price: number; priceIqd: number; published: boolean; knownCostIqd: number; unknownCostUnits: number };
+export type InventoryRow = { variantId: number; productId: string; productName: string; category: string; color: string; hex: string; stock: number; reserved?: number; photos: number; image: string; price: number; priceIqd: number; published: boolean; knownCostIqd: number; unknownCostUnits: number ; costedUnits?: number; lastCostIqd?: number | null; sold30?: number };
 export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeRate }: { rows: InventoryRow[]; lowStockThreshold: number; exchangeRate: number }) {
   const { language } = useLanguage();
   const tr = (label: keyof typeof import('@/lib/i18n').catalogTranslations) => catalogT(label, language);
@@ -25,11 +25,9 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
   const [newColors, setNewColors] = useState<Array<{ id: number; name: string; hex: string; quantity: string }>>([]);
   const [newColorDraft, setNewColorDraft] = useState({ name: '', hex: '#8b6f47', quantity: '' });
   const { flash, success, fail } = useFlash();
-  const visible = useMemo(() => rows.filter(row => (filter === 'all' || stockLevel(availableUnits(row.stock, row.reserved), lowStockThreshold) === filter) && (!query || `${row.productName} ${row.color} ${row.productId} ${row.category}`.toLowerCase().includes(query.toLowerCase()))), [rows, filter, query, lowStockThreshold]);
-  const totals = useMemo(() => ({ units: rows.reduce((sum, row) => sum + row.stock, 0), knownCost: rows.reduce((sum, row) => sum + row.knownCostIqd, 0), unknownUnits: rows.reduce((sum, row) => sum + row.unknownCostUnits, 0), low: rows.filter(row => stockLevel(availableUnits(row.stock, row.reserved), lowStockThreshold) === 'low').length, out: rows.filter(row => stockLevel(availableUnits(row.stock, row.reserved), lowStockThreshold) === 'out').length }), [rows, lowStockThreshold]);
   async function apply(row: InventoryRow, body: { delta?: number; set?: number }) {
     setBusy(row.variantId);
-    try { const data = await api<{ stock: number }>('/api/admin/inventory', { method: 'POST', json: { variantId: row.variantId, reason, ...body } }); setRows(current => current.map(item => item.variantId === row.variantId ? { ...item, stock: data.stock } : item)); setDrafts(current => { const next = { ...current }; delete next[row.variantId]; return next; }); success(`${row.productName} · ${row.color} is now ${data.stock} in stock.`); router.refresh(); }
+    try { const data = await api<{ stock: number }>('/api/admin/inventory', { method: 'POST', json: { variantId: row.variantId, reason, ...body } }); setRows(current => current.map(item => item.variantId === row.variantId ? { ...item, stock: data.stock } : item)); setDrafts(current => { const next = { ...current }; delete next[row.variantId]; return next; }); success(language === 'ar' ? `${row.productName} · ${row.color}: صار ${data.stock}` : `${row.productName} · ${row.color} is now ${data.stock} in stock`); router.refresh(); }
     catch (error) { fail(error); }
     finally { setBusy(null); }
   }
@@ -84,11 +82,119 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
     } catch (error) { fail(error); }
     finally { setBusy(null); }
   }
-  function exportCsv() { const header = 'product,handle,color,on_hand,reserved,available,known_cost_iqd,unknown_cost_units,category'; const lines = rows.map(row => [row.productName, row.productId, row.color, row.stock, row.reserved ?? 0, Math.max(0, row.stock - (row.reserved ?? 0)), row.knownCostIqd, row.unknownCostUnits, row.category].map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')); const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `inventory-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(link.href); }
+  const ar = language === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const n = (v: number) => Math.round(v).toLocaleString('en-US');
+  const iqd = (v: number) => `${n(v)} ${ar ? 'د.ع' : 'IQD'}`;
+  const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
+  /** Per-colour figures: average cost of what is on the shelf, margin, value and how long it lasts. */
+  const metric = (row: InventoryRow) => {
+    const costed = row.costedUnits ?? 0;
+    const unitCost = costed > 0 ? row.knownCostIqd / costed : row.lastCostIqd ?? null;
+    const price = row.priceIqd || 0;
+    const profit = unitCost === null || !price ? null : price - unitCost;
+    const margin = profit === null || !price ? null : profit / price;
+    const available = Math.max(0, row.stock - (row.reserved ?? 0));
+    const perDay = (row.sold30 ?? 0) / 30;
+    return { unitCost, price, profit, margin, available, costValue: unitCost === null ? 0 : unitCost * row.stock, saleValue: price * row.stock, days: perDay > 0 ? Math.floor(available / perDay) : null, level: available === 0 ? 'out' : available <= lowStockThreshold ? 'low' : 'ok' };
+  };
+  const [category, setCategory] = useState('');
+  const [sort, setSort] = useState<'name' | 'stock' | 'value' | 'margin' | 'sold'>('name');
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const categories = useMemo(() => [...new Set(rows.map(r => r.category))].sort(), [rows]);
+  const summary = useMemo(() => {
+    let units = 0, costValue = 0, saleValue = 0, low = 0, out = 0, noCost = 0;
+    for (const row of rows) { const m = metric(row); units += row.stock; costValue += m.costValue; if (m.unitCost !== null) saleValue += m.saleValue; if (m.level === 'low') low++; if (m.level === 'out') out++; if (m.unitCost === null && row.stock > 0) noCost++; }
+    return { units, costValue, saleValue, profit: saleValue - costValue, margin: saleValue ? (saleValue - costValue) / saleValue : null, low, out, noCost };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, lowStockThreshold]);
+  const groups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const map = new Map<string, InventoryRow[]>();
+    for (const row of rows) {
+      if (category && row.category !== category) continue;
+      if (q && !`${row.productName} ${row.color} ${row.productId} ${row.category}`.toLowerCase().includes(q)) continue;
+      const m = metric(row);
+      if (filter === 'low' && m.level !== 'low') continue;
+      if (filter === 'out' && m.level !== 'out') continue;
+      map.set(row.productId, [...(map.get(row.productId) ?? []), row]);
+    }
+    const list = [...map.values()].map(colors => {
+      const ms = colors.map(metric);
+      const units = colors.reduce((a, r) => a + r.stock, 0), available = ms.reduce((a, m) => a + m.available, 0);
+      const costValue = ms.reduce((a, m) => a + m.costValue, 0), saleValue = ms.reduce((a, m) => a + (m.unitCost !== null ? m.saleValue : 0), 0);
+      const costedUnits = colors.reduce((a, r, k) => a + (ms[k].unitCost !== null ? r.stock : 0), 0);
+      const avgCost = costedUnits ? costValue / costedUnits : (ms.find(m => m.unitCost !== null)?.unitCost ?? null);
+      const prices = ms.map(m => m.price).filter(Boolean);
+      const price = prices.length ? Math.min(...prices) : 0;
+      const margin = saleValue ? (saleValue - costValue) / saleValue : avgCost !== null && price ? (price - avgCost) / price : null;
+      return { id: colors[0].productId, first: colors[0], colors, units, available, costValue, saleValue, avgCost, price, priceVaries: new Set(prices).size > 1, margin, sold: colors.reduce((a, r) => a + (r.sold30 ?? 0), 0), out: ms.filter(m => m.level === 'out').length, low: ms.filter(m => m.level === 'low').length };
+    });
+    const by: Record<typeof sort, (a: typeof list[number], b: typeof list[number]) => number> = { name: (a, b) => a.first.productName.localeCompare(b.first.productName), stock: (a, b) => a.available - b.available, value: (a, b) => b.costValue - a.costValue, margin: (a, b) => (a.margin ?? 9) - (b.margin ?? 9), sold: (a, b) => b.sold - a.sold };
+    return list.sort(by[sort]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, query, filter, category, sort, lowStockThreshold]);
+  const chip = (level: string, available: number) => level === 'out' ? <span className="inv-chip is-out">{L('نافد', 'Sold out')}</span> : level === 'low' ? <span className="inv-chip is-low">{L(`قليل · ${available}`, `Low · ${available}`)}</span> : <span className="inv-chip is-ok">{L('متوفر', 'In stock')}</span>;
+  const marginTone = (m: number | null) => (m === null ? '' : m < 0.2 ? ' is-bad' : m < 0.35 ? ' is-mid' : ' is-good');
+
   return <>{flash}
-    <div className="admin-stats admin-stats-4"><div className="admin-stat"><strong>{totals.units.toLocaleString('en-US')}</strong><span>{tr('Units on hand')}</span></div><div className="admin-stat"><strong>{`${totals.knownCost.toLocaleString('en-US')} ${language === 'ar' ? 'د.ع' : 'IQD'}`}</strong><span>{tr('Known stock cost')}</span>{totals.unknownUnits > 0 && <small>{totals.unknownUnits.toLocaleString('en-US')} {tr('units have no historical cost')}</small>}</div><div className="admin-stat"><strong>{totals.low}</strong><span>{tr('Low stock colors')}</span><small>≤ {lowStockThreshold} units</small></div><div className="admin-stat"><strong>{totals.out}</strong><span>{tr('Sold out colors')}</span></div></div>
-    <section className="admin-card"><div className="admin-toolbar"><label className="admin-search"><Search size={16} /><input placeholder={tr('Search product or color…')} value={query} onChange={event => setQuery(event.target.value)} aria-label={tr('Search inventory')} /></label><div className="admin-segmented" role="tablist">{([['all', tr('All')], ['low', tr('Low')], ['out', tr('Sold out')]] as const).map(([key, label]) => <button key={key} role="tab" aria-selected={filter === key} className={filter === key ? 'active' : ''} onClick={() => setFilter(key)}>{label}</button>)}</div><label className="admin-reason"><span>{tr('Reason')}</span><select value={reason} onChange={event => setReason(event.target.value)}>{[['Stock count', tr('Stock count')], ['Damaged', tr('Damaged')], ['Returned by customer', tr('Returned by customer')], ['Transfer', tr('Transfer')], ['Correction', tr('Correction')]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button className="admin-btn admin-btn-ghost admin-btn-sm" onClick={exportCsv}><Download size={14} /> {tr('CSV')}</button></div>
-      <div className="admin-table-wrap"><table className="admin-table admin-inventory-table"><thead><tr><th>{tr('Product')}</th><th>{tr('Color')}</th><th className="num">{tr('On hand')}</th><th className="num">{language === 'ar' ? 'محجوز' : 'Reserved'}</th><th className="num">{language === 'ar' ? 'متاح للبيع' : 'Available'}</th><th>{tr('Adjust')}</th><th>{tr('Purchase')}</th><th>{tr('Set exact')}</th></tr></thead><tbody>{visible.map(row => { const free = Math.max(0, row.stock - (row.reserved ?? 0)); const level = free === 0 ? 'danger' : free <= lowStockThreshold ? 'warning' : 'success'; return <tr key={row.variantId}><td><div className="admin-product-cell"><img src={row.image} alt="" /><div><strong>{row.productName}</strong><small>{row.category}{!row.published && ' · draft'}</small></div></div></td><td><span className="admin-swatch" style={{ background: row.hex }} /> {row.color}</td><td className="num"><span className={`admin-badge ${level}`}>{row.stock}</span></td><td className="num">{row.reserved ? <span className="admin-badge warning" title={language === 'ar' ? 'وحدات في طلبات قيد الانتظار، لم تُخصم بعد' : 'Units in pending orders, not deducted yet'}>{row.reserved}</span> : <span className="admin-muted">0</span>}</td><td className="num"><strong>{Math.max(0, row.stock - (row.reserved ?? 0))}</strong></td><td><div className="admin-inline-stepper"><button aria-label="Remove one" disabled={busy === row.variantId || row.stock === 0} onClick={() => void apply(row, { delta: -1 })}><Minus size={13} /></button></div></td><td><button className="admin-btn admin-btn-primary admin-btn-sm" disabled={busy === row.variantId} onClick={() => openReceiveBatch(row)}>{tr('Receive batch')}</button></td><td><form className="admin-set-form" onSubmit={event => { event.preventDefault(); const value = Number(drafts[row.variantId]); if (!Number.isInteger(value) || value < 0) return; if (value > row.stock) { openReceiveBatch(row); setPurchaseLines(current => ({ ...current, [row.variantId]: String(value - row.stock) })); } else void apply(row, { set: value }); }}><input type="number" min="0" placeholder={String(row.stock)} value={drafts[row.variantId] ?? ''} onChange={event => setDrafts(current => ({ ...current, [row.variantId]: event.target.value }))} aria-label={`Set stock for ${row.productName} ${row.color}`} /><button className="admin-btn admin-btn-ghost admin-btn-sm" disabled={busy === row.variantId}>{tr('Set')}</button></form></td></tr>; })}{!visible.length && <tr><td colSpan={8}><p className="admin-empty">{tr('No inventory matches that filter.')}</p></td></tr>}</tbody></table></div>
+    <div className="inv-kpis">
+      <div className="inv-kpi"><span>{L('القطع بالمخزن', 'Units on hand')}</span><strong>{n(summary.units)}</strong><small>{L(`${rows.length} لون/قياس`, `${rows.length} colours/sizes`)}</small></div>
+      <div className="inv-kpi"><span>{L('قيمة المخزون بالتكلفة', 'Stock value at cost')}</span><strong>{iqd(summary.costValue)}</strong><small>{summary.noCost ? L(`${summary.noCost} لون بدون تكلفة`, `${summary.noCost} colours without cost`) : L('كل الألوان بيها تكلفة', 'Every colour has a cost')}</small></div>
+      <div className="inv-kpi"><span>{L('قيمته بسعر البيع', 'Value at sale price')}</span><strong>{iqd(summary.saleValue)}</strong><small>{L('للألوان اللي بيها تكلفة', 'Colours with a cost')}</small></div>
+      <div className="inv-kpi"><span>{L('الربح المتوقع', 'Expected profit')}</span><strong>{iqd(summary.profit)}</strong><small className={`inv-margin${marginTone(summary.margin)}`}>{L('هامش', 'Margin')} {pct(summary.margin)}</small></div>
+      <button type="button" className={`inv-kpi inv-kpi-alert${filter === 'low' ? ' is-on' : ''}`} onClick={() => setFilter(filter === 'low' ? 'all' : 'low')}><span>{L('مخزون قليل', 'Low stock')}</span><strong>{summary.low}</strong><small>{L(`≤ ${lowStockThreshold} قطع · اضغط للعرض`, `≤ ${lowStockThreshold} units · tap to show`)}</small></button>
+      <button type="button" className={`inv-kpi inv-kpi-out${filter === 'out' ? ' is-on' : ''}`} onClick={() => setFilter(filter === 'out' ? 'all' : 'out')}><span>{L('نافد', 'Sold out')}</span><strong>{summary.out}</strong><small>{L('لون/قياس · اضغط للعرض', 'colours · tap to show')}</small></button>
+    </div>
+
+    <section className="admin-card inv-card">
+      <div className="inv-toolbar">
+        <label className="admin-search"><Search size={16} /><input placeholder={L('ابحث بالمنتج أو اللون…', 'Search product or colour…')} value={query} onChange={e => setQuery(e.target.value)} aria-label={L('بحث المخزون', 'Search inventory')} /></label>
+        <select value={category} onChange={e => setCategory(e.target.value)} aria-label={L('التصنيف', 'Category')}><option value="">{L('كل التصنيفات', 'All categories')}</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select>
+        <select value={filter} onChange={e => setFilter(e.target.value as typeof filter)} aria-label={L('الحالة', 'Status')}><option value="all">{L('كل الحالات', 'Every status')}</option><option value="low">{L('قليل', 'Low')}</option><option value="out">{L('نافد', 'Sold out')}</option></select>
+        <select value={sort} onChange={e => setSort(e.target.value as typeof sort)} aria-label={L('الترتيب', 'Sort')}><option value="name">{L('ترتيب: الاسم', 'Sort: name')}</option><option value="stock">{L('ترتيب: الأقل متوفر', 'Sort: least available')}</option><option value="value">{L('ترتيب: الأعلى قيمة', 'Sort: highest value')}</option><option value="margin">{L('ترتيب: الأقل ربحاً', 'Sort: lowest margin')}</option><option value="sold">{L('ترتيب: الأكثر بيعاً', 'Sort: best selling')}</option></select>
+        <label className="inv-reason"><span>{L('سبب التعديل', 'Adjustment reason')}</span><select value={reason} onChange={e => setReason(e.target.value)}>{[['Stock count', L('جرد', 'Stock count')], ['Damaged', L('تالف', 'Damaged')], ['Returned by customer', L('مرتجع من زبون', 'Returned')], ['Transfer', L('نقل', 'Transfer')], ['Correction', L('تصحيح', 'Correction')]].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
+      </div>
+
+      <div className="admin-table-wrap"><table className="admin-table inv-table">
+        <thead><tr>
+          <th>{L('المنتج', 'Product')}</th><th className="num">{L('المتوفر', 'Available')}</th><th className="num">{L('التكلفة/قطعة', 'Cost/unit')}</th><th className="num">{L('سعر البيع', 'Sale price')}</th><th className="num">{L('الربح/قطعة', 'Profit/unit')}</th><th className="num">{L('الهامش', 'Margin')}</th><th className="num">{L('قيمة المخزون', 'Stock value')}</th><th className="num">{L('مبيع 30 يوم', 'Sold 30d')}</th><th>{L('الحالة', 'Status')}</th><th />
+        </tr></thead>
+        {groups.map(g => { const isOpen = open[g.id] ?? (g.colors.length === 1); const profit = g.avgCost !== null && g.price ? g.price - g.avgCost : null; return <tbody key={g.id} className={`inv-group${isOpen ? ' is-open' : ''}`}>
+          <tr className="inv-product" onClick={() => setOpen(o => ({ ...o, [g.id]: !isOpen }))}>
+            <td><div className="admin-product-cell"><img src={g.first.image} alt="" /><div><strong>{g.first.productName}</strong><small>{g.first.category} · {L(`${g.colors.length} لون`, `${g.colors.length} colours`)}{!g.first.published && L(' · مسودة', ' · draft')}</small></div></div></td>
+            <td className="num"><b>{n(g.available)}</b>{g.units !== g.available && <small>{L(`من ${n(g.units)}`, `of ${n(g.units)}`)}</small>}</td>
+            <td className="num">{g.avgCost === null ? <span className="inv-missing">{L('بدون تكلفة', 'No cost')}</span> : iqd(g.avgCost)}</td>
+            <td className="num">{g.price ? <>{g.priceVaries && <small>{L('من', 'from')}</small>}{iqd(g.price)}</> : '—'}</td>
+            <td className="num">{profit === null ? '—' : iqd(profit)}</td>
+            <td className="num"><span className={`inv-margin${marginTone(g.margin)}`}>{pct(g.margin)}</span></td>
+            <td className="num">{iqd(g.costValue)}</td>
+            <td className="num">{g.sold || '—'}</td>
+            <td>{g.out ? <span className="inv-chip is-out">{L(`${g.out} نافد`, `${g.out} out`)}</span> : g.low ? <span className="inv-chip is-low">{L(`${g.low} قليل`, `${g.low} low`)}</span> : <span className="inv-chip is-ok">{L('متوفر', 'In stock')}</span>}</td>
+            <td><button type="button" className="inv-toggle" aria-expanded={isOpen} aria-label={L('عرض الألوان', 'Show colours')}><ChevronDown size={17} /></button></td>
+          </tr>
+          {isOpen && g.colors.map(row => { const m = metric(row); const draft = drafts[row.variantId] ?? ''; return <tr key={row.variantId} className="inv-variant">
+            <td><div className="inv-color"><span className="admin-swatch" style={{ background: row.hex }} /><span>{row.color}</span>{row.photos === 0 && <small className="inv-missing">{L('بدون صور', 'No photos')}</small>}</div></td>
+            <td className="num"><b>{n(m.available)}</b>{(row.reserved ?? 0) > 0 && <small>{L(`${row.reserved} محجوز`, `${row.reserved} reserved`)}</small>}</td>
+            <td className="num">{m.unitCost === null ? <span className="inv-missing">—</span> : iqd(m.unitCost)}</td>
+            <td className="num">{m.price ? iqd(m.price) : '—'}</td>
+            <td className="num">{m.profit === null ? '—' : iqd(m.profit)}</td>
+            <td className="num"><span className={`inv-margin${marginTone(m.margin)}`}>{pct(m.margin)}</span></td>
+            <td className="num">{iqd(m.costValue)}</td>
+            <td className="num">{row.sold30 || '—'}{m.days !== null && <small>{L(`يكفي ${m.days} يوم`, `${m.days} days left`)}</small>}</td>
+            <td>{chip(m.level, m.available)}</td>
+            <td><div className="inv-actions">
+              <button type="button" className="admin-icon-btn" aria-label={L('نقص قطعة', 'Remove one')} disabled={busy === row.variantId || row.stock <= 0} onClick={() => void apply(row, { delta: -1 })}><Minus size={14} /></button>
+              <input type="number" min="0" inputMode="numeric" value={draft} placeholder={String(row.stock)} onChange={e => setDrafts(d => ({ ...d, [row.variantId]: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter' && draft !== '') { void apply(row, { set: Number(draft) }); setDrafts(d => ({ ...d, [row.variantId]: '' })); } }} aria-label={L('العدد الفعلي', 'Exact count')} title={L('اكتب العدد الفعلي واضغط Enter', 'Type the exact count and press Enter')} />
+              <button type="button" className="admin-icon-btn" aria-label={L('زيد قطعة', 'Add one')} disabled={busy === row.variantId} onClick={() => void apply(row, { delta: 1 })}><Plus size={14} /></button>
+              <button type="button" className="admin-icon-btn" onClick={() => openReceiveBatch(row)} aria-label={L('استلام وجبة جديدة بتكلفتها', 'Receive a new batch with its cost')} title={L('استلام وجبة جديدة بتكلفتها', 'Receive a new batch with its cost')}><PackagePlus size={15} /></button>
+              <Link className="admin-icon-btn" href={`/admin/products/${row.productId}`} aria-label={L('تعديل المنتج', 'Edit product')} title={L('تعديل المنتج', 'Edit product')}><Pencil size={14} /></Link>
+            </div></td>
+          </tr>; })}
+        </tbody>; })}
+        {!groups.length && <tbody><tr><td colSpan={10}><p className="admin-empty">{L('ماكو منتجات بهذا البحث.', 'No products match.')}</p></td></tr></tbody>}
+      </table></div>
+      <p className="inv-foot">{L('التكلفة = متوسط تكلفة الشراء للقطع الموجودة (مع الشحن والجمرك إذا انحسبت بالمشتريات). الهامش = الربح ÷ سعر البيع. «يكفي» = المتوفر ÷ معدل البيع اليومي آخر 30 يوم.', 'Cost = average purchase cost of the units on hand (landed, when entered through purchases). Margin = profit ÷ sale price. "Days left" = available ÷ daily sales over the last 30 days.')}</p>
     </section>
     {purchaseRow && <div className="admin-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) closeReceiveBatch(); }}><section className="admin-card" style={{ width: 'min(860px, calc(100vw - 32px))', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }} role="dialog" aria-modal="true">
       <div className="admin-card-heading"><div><span className="admin-eyebrow">{language === 'ar' ? 'استلام وجبة جديدة' : 'Receive new batch'}</span><h2>{purchaseRow.productName}</h2></div><button className="admin-btn admin-btn-ghost admin-btn-sm" onClick={closeReceiveBatch}><X size={14} /></button></div>
