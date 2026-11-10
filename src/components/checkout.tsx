@@ -3,7 +3,7 @@ import { groupInt, numberFormat } from '@/lib/number-format';
 import { track } from '@/lib/track';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShieldCheck, ShoppingBag, Tag, Truck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
 import { useStore } from './store-provider';
 import { mediaSrc } from '@/lib/types';
 import { useLanguage } from './language-provider';
@@ -194,14 +194,13 @@ export function Checkout() {
       <form ref={formRef} className="co-form" onSubmit={submit} noValidate={false}>
         <header className="co-heading">
           <h1>{ar ? 'خطوة وحدة ويوصلك طلبك' : 'One step to your order'}</h1>
-          <p><LockKeyhole size={14} aria-hidden="true" /> {ar ? 'ما تدفع شي هسه. تدفع نقداً للمندوب عند الاستلام.' : 'Nothing to pay now. You pay the courier in cash on delivery.'}</p>
         </header>
 
         <fieldset className="co-section">
           <legend><span>1</span> {ar ? 'معلومات المستلم' : 'Who’s receiving it?'}</legend>
           <div className="co-grid">
             <div className="co-field full"><label htmlFor="name">{ar ? 'الاسم الكامل' : 'Full name'}</label><input id="name" name="name" autoComplete="name" maxLength={100} minLength={2} required /></div>
-            <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => checkPhone(event.target.value)} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError || (ar ? 'نتصل عليه لتأكيد الطلب قبل الشحن' : 'We call this number to confirm before dispatch')}</small></div>
+            <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => checkPhone(event.target.value)} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError}</small></div>
             <div className="co-field"><label htmlFor="altPhone">{ar ? 'رقم ثاني (اختياري)' : 'Second number (optional)'}</label><input id="altPhone" name="altPhone" type="tel" inputMode="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} /></div>
           </div>
         </fieldset>
@@ -211,7 +210,7 @@ export function Checkout() {
           <div className="co-grid">
             <div className="co-field full"><label htmlFor="governorate">{ar ? 'المحافظة' : 'Governorate'}</label><select id="governorate" name="governorate" required value={governorate} onChange={event => setGovernorate(event.target.value)}><option value="">{ar ? 'اختر المحافظة' : 'Choose your governorate'}</option>{config.zones.map(item => <option key={item.code} value={item.code}>{ar ? item.nameAr : item.nameEn}</option>)}</select>
             </div>
-            <div className="co-field"><label htmlFor="city">{ar ? 'المدينة أو القضاء' : 'City / district'}</label><input id="city" name="city" autoComplete="address-level2" placeholder={ar ? 'مثال: الكرادة، المنصور' : 'e.g. Karrada, Mansour'} maxLength={120} required /></div>
+            <div className="co-field"><label htmlFor="city">{ar ? 'المنطقة' : 'Area'}</label><input id="city" name="city" autoComplete="address-level2" placeholder={ar ? 'مثال: الكرادة، المنصور' : 'e.g. Karrada, Mansour'} maxLength={120} required /></div>
             <div className="co-field"><label htmlFor="landmark">{ar ? 'أقرب نقطة دالة (اختياري)' : 'Nearest landmark (optional)'}</label><input id="landmark" name="landmark" placeholder={ar ? 'مثال: قرب جامع…' : 'e.g. near … mosque'} maxLength={200} /></div>
           </div>
         </fieldset>
@@ -219,8 +218,8 @@ export function Checkout() {
         <fieldset className="co-section">
           <legend><span>3</span> {ar ? 'طريقة الدفع' : 'Payment'}</legend>
           <div className="co-pay-options" role="radiogroup">
-            <label className={`co-pay ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong><small>{ar ? 'تدفع للمندوب نقداً لما يوصلك الطلب.' : 'Pay the courier in cash when your order arrives.'}{config?.settings.codFee ? (ar ? ` تُضاف ${iqd(config.settings.codFee)} رسوم.` : ` A ${iqd(config.settings.codFee)} fee applies.`) : ''}</small></div></label>
-            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong className="co-pay-title">{isCard ? (ar ? 'بطاقة' : 'Card') : (ar ? 'الدفع الإلكتروني' : 'Electronic payment')}{isCard && <span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span>}</strong><small>{config?.gateway?.enabled ? (config.gateway.provider === 'alqaseh' ? (ar ? 'تكتب معلومات البطاقة بصفحة دفع آمنة ومشفّرة بعد تأكيد الطلب. ما نحتفظ بأي معلومة من بطاقتك.' : 'You enter your card on a secure, encrypted payment page after confirming. We never store your card details.') : config.gateway.provider === 'fib' ? (ar ? 'ادفع الآن عبر تطبيق FIB (المصرف العراقي الأول) بعد تأكيد الطلب مباشرة.' : 'Pay now with the FIB app right after you confirm.') : (ar ? 'ادفع الآن عبر زين كاش، تتحول لصفحة الدفع بعد تأكيد الطلب مباشرة.' : 'Pay now with ZainCash — you go to the payment page right after you confirm.')) : (ar ? 'زين كاش أو بطاقة. نتواصل وياك ونرسل لك رابط الدفع بعد تأكيد الطلب.' : 'ZainCash or card. We send you a payment link once the order is confirmed.')}</small></div></label>
+            <label className={`co-pay ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong>{config?.settings.codFee ? <small>{ar ? `تُضاف ${iqd(config.settings.codFee)} رسوم.` : `A ${iqd(config.settings.codFee)} fee applies.`}</small> : null}</div></label>
+            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong className="co-pay-title">{isCard ? (ar ? 'بطاقة' : 'Card') : (ar ? 'الدفع الإلكتروني' : 'Electronic payment')}{isCard && <span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span>}</strong></div></label>
           </div>
           <dl className="co-final">
             <div><dt>{ar ? 'مجموع الطلب' : 'Subtotal'}</dt><dd>{iqd(Math.max(0, subtotal - discount))}</dd></div>
@@ -233,10 +232,6 @@ export function Checkout() {
         {error && <p className="co-error co-error-box" role="alert">{error}</p>}
         <div className="co-submit">
           <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</> : payOnline ? <><LockKeyhole size={17} aria-hidden="true" /> {ar ? 'الانتقال إلى صفحة الدفع' : 'Continue to payment'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
-          <ul className="co-trust">
-            <li>{payment === 'electronic' && config?.gateway?.enabled ? <><ShieldCheck size={15} aria-hidden="true" /> {ar ? 'دفع آمن ومشفّر' : 'Secure, encrypted payment'}</> : <><Banknote size={15} aria-hidden="true" /> {ar ? 'تدفع عند الاستلام' : 'Pay on delivery'}</>}</li>
-            <li><PhoneCall size={15} aria-hidden="true" /> {ar ? 'نتصل بك قبل الشحن' : 'We call before dispatch'}</li>
-          </ul>
           <p className="co-legal">{t('By continuing, you agree to our')} <Link href="/info/terms">{ar ? 'الشروط والأحكام' : 'terms & conditions'}</Link>. {whatsapp ? <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">{ar ? 'عندك سؤال؟ راسلنا واتساب' : 'Questions? WhatsApp us'}</a> : <><MapPin size={11} aria-hidden="true" /> {config.settings.supportPhone}</>}</p>
         </div>
       </form>
