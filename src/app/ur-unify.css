@@ -1,0 +1,37 @@
+/* One look for the whole storefront (loaded last). Everything template-era is overridden here:
+   one primary button, one secondary button, soft corners everywhere, one heading weight. */
+:root{--u-primary:#8b5a2b;--u-primary-hover:#74481f;--u-ink:#3b2a1c;--u-line:#d9c9b6;--u-r-card:18px;--u-r-field:12px}
+
+/* Primary button: solid brand brown, pill. */
+html body:has(.site-header) .button.button-orange:not(.whatsapp-inquiry-button),html body:has(.site-header) .product-add-to-cart,html body:has(.site-header) .bag-checkout,html body:has(.site-header) .co-primary,html body:has(.site-header) .hring-cta,html body:has(.site-header) .hs-cta,html body:has(.site-header) .pay-btn:not(.ghost),html body:has(.site-header) .newsletter-input button,html body:has(.site-header) .sticky-buy-bar button{background:var(--u-primary)!important;background-image:none!important;border:1px solid var(--u-primary)!important;color:#fff!important;border-radius:999px!important;box-shadow:0 10px 20px -12px rgba(59,42,28,.6)!important;letter-spacing:0!important;font-weight:700!important;text-transform:none!important}
+html body:has(.site-header) .button.button-orange:not(.whatsapp-inquiry-button):hover,html body:has(.site-header) .product-add-to-cart:hover,html body:has(.site-header) .bag-checkout:hover,html body:has(.site-header) .co-primary:hover,html body:has(.site-header) .hring-cta:hover,html body:has(.site-header) .hs-cta:hover,html body:has(.site-header) .pay-btn:not(.ghost):hover,html body:has(.site-header) .newsletter-input button:hover{background:var(--u-primary-hover)!important;border-color:var(--u-primary-hover)!important;color:#fff!important}
+html body:has(.site-header) .button.button-orange svg,html body:has(.site-header) .product-add-to-cart svg,html body:has(.site-header) .co-primary svg,html body:has(.site-header) .bag-checkout svg{color:currentColor}
+html body:has(.site-header) .button.button-orange:disabled,html body:has(.site-header) .product-add-to-cart:disabled,html body:has(.site-header) .co-primary:disabled{opacity:.55!important;box-shadow:none!important}
+
+/* Secondary button: outline, same shape. WhatsApp keeps only its green icon. */
+html body:has(.site-header) .button.button-outline,html body:has(.site-header) .whatsapp-inquiry-button,html body:has(.site-header) .pay-btn.ghost{background:transparent!important;background-image:none!important;border:1.5px solid var(--u-primary)!important;color:var(--u-ink)!important;border-radius:999px!important;box-shadow:none!important;letter-spacing:0!important;font-weight:700!important;text-transform:none!important}
+html body:has(.site-header) .button.button-outline:hover,html body:has(.site-header) .whatsapp-inquiry-button:hover,html body:has(.site-header) .pay-btn.ghost:hover{background:rgba(139,90,43,.08)!important;color:var(--u-ink)!important;transform:none}
+html body:has(.site-header) .whatsapp-inquiry-button svg,html body:has(.site-header) .whatsapp-inquiry-button .whatsapp-brand-icon{color:#1faa52!important}
+html body:has(.site-header) .button{font-size:14.5px!important;min-height:48px}
+
+/* Soft corners everywhere. */
+html body:has(.site-header) main :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea),html body:has(.site-header) footer :is(input,select){border-radius:var(--u-r-field)!important}
+html body:has(.site-header) .newsletter-input{border-radius:999px!important;overflow:hidden;border-color:var(--u-line)!important}
+html body:has(.site-header) .newsletter-input input{border-radius:0!important}
+html body:has(.site-header) :is(.bundle-tile,.bundle-mini,.co-final,.co-totals,.co-coupon,.co-summary-toggle,.product-description,.product-page-banner,.cat-hero,.highlight-card,.collection-card,.purpose-card,.story-card,.social-card,.video-card,.info-card,.content-card,.review-card,.track-card,.empty-state,.catalog-empty){border-radius:var(--u-r-card)!important}
+html body:has(.site-header) .co-grand{border-radius:12px!important}
+html body:has(.site-header) .product-main-image{border-radius:22px;overflow:hidden}
+html body:has(.site-header) :is(.bundle-tile,.highlight-card,.collection-card,.purpose-card,.story-card,.social-card,.video-card,.cat-hero){overflow:hidden}
+html body:has(.site-header) main :is(.highlight-card,.collection-card,.purpose-card,.story-card,.social-card,.video-card) img{border-radius:inherit}
+@media (max-width:767px){html body:has(.site-header) .product-main-image{border-radius:0}}
+
+/* Headings: one weight. */
+html body:has(.site-header) main :is(h1,h2),html body:has(.site-header) .bag-drawer h2{font-weight:700!important;letter-spacing:0!important}
+html body:has(.site-header) main h3,html body:has(.site-header) footer h3{font-weight:600!important}
+html body:has(.site-header) main .section-heading h2,html body:has(.site-header) main > section > h2{color:var(--u-ink)}
+
+/* Product page (phones): these two were restyled with heavier selectors; bring them into the same pair. */
+html body:has(.site-header) main.product-page .buy-actions .product-add-to-cart{background:var(--u-primary)!important;background-image:none!important;color:#fff!important;border-radius:999px!important;box-shadow:0 10px 20px -12px rgba(59,42,28,.6)!important}
+html body:has(.site-header) main.product-page .buy-actions .whatsapp-inquiry-button{background:transparent!important;background-image:none!important;border:1.5px solid var(--u-primary)!important;color:var(--u-ink)!important;border-radius:999px!important;box-shadow:none!important}
+html body:has(.site-header) :is(.newsletter-section,.newsletter-inner,footer) h2{font-weight:700!important;color:var(--u-ink)}
+html body:has(.site-header) .brand-values > *{border-radius:var(--u-r-card)!important}
