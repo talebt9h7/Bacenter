@@ -25,6 +25,20 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
   const [newColors, setNewColors] = useState<Array<{ id: number; name: string; hex: string; quantity: string }>>([]);
   const [newColorDraft, setNewColorDraft] = useState({ name: '', hex: '#8b6f47', quantity: '' });
   const { flash, success, fail } = useFlash();
+  const [costDraft, setCostDraft] = useState<{ id: number; value: string } | null>(null);
+  async function saveCost(row: InventoryRow) {
+    if (!costDraft) return;
+    const cost = Number(costDraft.value.replace(/[,\s]/g, ''));
+    if (!Number.isFinite(cost) || cost < 0) return fail(language === 'ar' ? 'اكتب تكلفة صحيحة بالدينار.' : 'Enter a valid cost in IQD.');
+    setBusy(row.variantId);
+    try {
+      const data = await api<{ costIqd: number; units: number }>('/api/admin/inventory/cost', { method: 'POST', json: { variantId: row.variantId, costIqd: cost } });
+      setRows(current => current.map(item => item.variantId === row.variantId ? { ...item, knownCostIqd: data.costIqd * data.units, costedUnits: data.units, unknownCostUnits: 0, lastCostIqd: data.costIqd } : item));
+      setCostDraft(null);
+      success(language === 'ar' ? `${row.productName} · ${row.color}: التكلفة صارت ${data.costIqd.toLocaleString('en-US')} د.ع` : `${row.productName} · ${row.color}: cost is now ${data.costIqd.toLocaleString('en-US')} IQD`);
+    } catch (error) { fail(error); }
+    finally { setBusy(null); }
+  }
   async function apply(row: InventoryRow, body: { delta?: number; set?: number }) {
     setBusy(row.variantId);
     try { const data = await api<{ stock: number }>('/api/admin/inventory', { method: 'POST', json: { variantId: row.variantId, reason, ...body } }); setRows(current => current.map(item => item.variantId === row.variantId ? { ...item, stock: data.stock } : item)); setDrafts(current => { const next = { ...current }; delete next[row.variantId]; return next; }); success(language === 'ar' ? `${row.productName} · ${row.color}: صار ${data.stock}` : `${row.productName} · ${row.color} is now ${data.stock} in stock`); router.refresh(); }
@@ -176,7 +190,9 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
           {isOpen && g.colors.map(row => { const m = metric(row); const draft = drafts[row.variantId] ?? ''; return <tr key={row.variantId} className="inv-variant">
             <td><div className="inv-color"><span className="admin-swatch" style={{ background: row.hex }} /><span>{row.color}</span>{row.photos === 0 && <small className="inv-missing">{L('بدون صور', 'No photos')}</small>}</div></td>
             <td className="num"><b>{n(m.available)}</b>{(row.reserved ?? 0) > 0 && <small>{L(`${row.reserved} محجوز`, `${row.reserved} reserved`)}</small>}</td>
-            <td className="num">{m.unitCost === null ? <span className="inv-missing">—</span> : iqd(m.unitCost)}</td>
+            <td className="num">{costDraft?.id === row.variantId
+              ? <span className="inv-cost-edit"><input autoFocus type="text" inputMode="numeric" value={costDraft.value} onChange={e => setCostDraft({ id: row.variantId, value: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') void saveCost(row); if (e.key === 'Escape') setCostDraft(null); }} aria-label={L('التكلفة للقطعة بالدينار', 'Cost per unit in IQD')} placeholder="15000" /><button type="button" className="admin-btn admin-btn-primary admin-btn-sm" disabled={busy === row.variantId} onClick={() => void saveCost(row)}>{L('حفظ', 'Save')}</button><button type="button" className="admin-icon-btn" onClick={() => setCostDraft(null)} aria-label={L('إلغاء', 'Cancel')}><X size={14} /></button></span>
+              : <button type="button" className={`inv-cost-btn${m.unitCost === null ? ' is-missing' : ''}`} onClick={() => setCostDraft({ id: row.variantId, value: m.unitCost === null ? '' : String(Math.round(m.unitCost)) })} title={L('اضغط لإضافة أو تعديل التكلفة', 'Tap to add or change the cost')}>{m.unitCost === null ? L('+ أضف تكلفة', '+ Add cost') : iqd(m.unitCost)}<Pencil size={12} /></button>}</td>
             <td className="num">{m.price ? iqd(m.price) : '—'}</td>
             <td className="num">{m.profit === null ? '—' : iqd(m.profit)}</td>
             <td className="num"><span className={`inv-margin${marginTone(m.margin)}`}>{pct(m.margin)}</span></td>
@@ -194,7 +210,7 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
         </tbody>; })}
         {!groups.length && <tbody><tr><td colSpan={10}><p className="admin-empty">{L('ماكو منتجات بهذا البحث.', 'No products match.')}</p></td></tr></tbody>}
       </table></div>
-      <p className="inv-foot">{L('التكلفة = متوسط تكلفة الشراء للقطع الموجودة (مع الشحن والجمرك إذا انحسبت بالمشتريات). الهامش = الربح ÷ سعر البيع. «يكفي» = المتوفر ÷ معدل البيع اليومي آخر 30 يوم.', 'Cost = average purchase cost of the units on hand (landed, when entered through purchases). Margin = profit ÷ sale price. "Days left" = available ÷ daily sales over the last 30 days.')}</p>
+      <p className="inv-foot">{L('اضغط على تكلفة أي لون حتى تضيفها أو تعدلها، وتنطبق على القطع الموجودة هسه (القطع المباعة تبقى بتكلفتها القديمة). التكلفة = متوسط تكلفة الشراء للقطع الموجودة (مع الشحن والجمرك إذا انحسبت بالمشتريات). الهامش = الربح ÷ سعر البيع. «يكفي» = المتوفر ÷ معدل البيع اليومي آخر 30 يوم.', 'Tap a colour\'s cost to add or change it; it applies to the units on hand (sold units keep their old cost). Cost = average purchase cost of the units on hand (landed, when entered through purchases). Margin = profit ÷ sale price. "Days left" = available ÷ daily sales over the last 30 days.')}</p>
     </section>
     {purchaseRow && <div className="admin-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) closeReceiveBatch(); }}><section className="admin-card" style={{ width: 'min(860px, calc(100vw - 32px))', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }} role="dialog" aria-modal="true">
       <div className="admin-card-heading"><div><span className="admin-eyebrow">{language === 'ar' ? 'استلام وجبة جديدة' : 'Receive new batch'}</span><h2>{purchaseRow.productName}</h2></div><button className="admin-btn admin-btn-ghost admin-btn-sm" onClick={closeReceiveBatch}><X size={14} /></button></div>
