@@ -32,7 +32,7 @@ async function createTable(client, table) {
  const {orders,orderEvents,activityLog,customers,coupons,shippingZones}=schema;
  for(const t of [orders,orderEvents,activityLog,customers,coupons,shippingZones]) await createTable(client,t);
  const {transitionOrder,updateOrderDetails}=load(path.join(root,'src/lib/orders.ts'));
- const {paymentSummary}=load(path.join(root,'src/lib/payment-summary.ts'));
+ const {paymentSummary,paymentMethodSummary}=load(path.join(root,'src/lib/payment-summary.ts'));
  const date=new Date('2026-11-10T09:00:00Z');
  async function insert(ref,extra={}){return (await database.insert(orders).values({reference:ref,sessionId:ref,name:'Test',email:'',address:{},items:[],status:'shipped',paymentStatus:'unpaid',subtotalCents:10000,totalCents:12000,shippingCents:2000,createdAt:date,...extra}).returning())[0];}
  async function get(id){return (await database.select().from(orders).where(eq(orders.id,id)))[0];}
@@ -48,5 +48,20 @@ async function createTable(client, table) {
  const editTarget=await insert('edit',{status:'delivered',paymentStatus:'paid'});
  await updateOrderDetails(editTarget.id,{name:'Test',phone:editTarget.phone,governorate:'baghdad',city:'Baghdad',address:'Street',shippingCents:2000,discountCents:0,paymentMethod:'cash',paymentStatus:'unpaid'});assert.equal((await get(editTarget.id)).paymentStatus,'paid');
  const empty=await paymentSummary(new Date('2030-01-01'),new Date('2030-02-01'));assert(empty.every(r=>r.count===0&&r.total===0));
+ await insert('cash-1',{paymentStatus:'paid',paymentMethod:'cash',phone:'07701234567'});
+ await insert('cash-2',{paymentStatus:'paid',paymentMethod:'cash',phone:'07701234567'});
+ await insert('bank-1',{paymentStatus:'paid',paymentMethod:'bank_transfer',phone:'07701234567'});
+ await insert('unpaid-cash',{paymentStatus:'unpaid',paymentMethod:'cash',phone:'07709999999',totalCents:999999});
+ await insert('refunded-cash',{paymentStatus:'refunded',paymentMethod:'cash',totalCents:999999});
+ await insert('partial-cash',{paymentStatus:'partial',paymentMethod:'cash',totalCents:999999});
+ await insert('outside-paid',{createdAt:new Date('2026-10-01'),paymentStatus:'paid',paymentMethod:'cash',totalCents:999999});
+ await insert('email-1',{paymentStatus:'paid',paymentMethod:'electronic',email:'TEST@example.com'});
+ await insert('email-2',{paymentStatus:'paid',paymentMethod:'electronic',email:'test@example.com'});
+ const methods=Object.fromEntries((await paymentMethodSummary(new Date('2026-11-01'),new Date('2026-12-01'))).map(r=>[r.method,r]));
+ assert.equal(methods.cash.count,4);assert.equal(methods.cash.total,38000);assert.equal(methods.cash.customers,1);
+ assert.equal(methods.bank_transfer.count,2);assert.equal(methods.bank_transfer.customers,1);
+ assert.equal(methods.electronic.count,3);assert.equal(methods.electronic.customers,1);
+ assert.equal(methods.cod.count,1);
+ const noMethods=await paymentMethodSummary(new Date('2030-01-01'),new Date('2030-02-01'));assert.equal(noMethods.length,4);assert(noMethods.every(r=>r.total===0&&r.count===0&&r.customers===0));
  console.log('PASS: all payment methods, stale unpaid override, delivery timestamp, wholesale credit, returns, period totals, empty totals');await client.close();
 })().catch(e=>{console.error(e);process.exitCode=1});
