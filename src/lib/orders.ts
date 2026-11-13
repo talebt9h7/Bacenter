@@ -242,7 +242,7 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
     if (items !== order.items) await tx.update(orders).set({ items }).where(eq(orders.id, orderId));
     if (!wasCancelled && willCancel) await releaseCoupon(tx, order.couponCode);
     if (wasCancelled && !willCancel) await reclaimCoupon(tx, order.couponCode);
-    const paymentStatus = extra.paymentStatus ?? (next === 'delivered' && order.paymentMethod === 'cod' ? 'paid' : willCancel ? (order.paymentStatus === 'paid' ? 'refunded' : 'unpaid') : order.paymentStatus);
+    const paymentStatus = next === 'delivered' && order.source !== 'wholesale' ? 'paid' : extra.paymentStatus ?? (willCancel ? (order.paymentStatus === 'paid' ? 'refunded' : 'unpaid') : order.paymentStatus);
     // Financial recognition starts only when the order is delivered. Pending/confirmed/processing/shipped
     // orders are operationally active but must not contribute to realized revenue or profit yet.
     const recognizedProfit = next === 'delivered'
@@ -332,7 +332,7 @@ export async function updateOrderDetails(orderId: number, input: {
     } else if (oldCustomerId) {
       await tx.update(customers).set({ name: input.name, email: input.email || null, governorate: zone.code, updatedAt: new Date(), totalSpent: sql`GREATEST(${customers.totalSpent} - ${customerOrderValue(order.subtotalCents, order.discountCents)} + ${customerOrderValue(subtotal, safeDiscount)}, 0)`, lastOrderAt: new Date() }).where(eq(customers.id, oldCustomerId));
     }
-    await tx.update(orders).set({ customerId, name: input.name, phone: input.phone, email: input.email || '', governorate: zone.code, address: { ...(order.address as Record<string, unknown>), governorate: zone.nameEn, governorateAr: zone.nameAr, city: input.city, line1: input.address, landmark: input.landmark || '', altPhone: (order.address as Record<string, unknown>)?.altPhone || '', country: 'Iraq' }, items: nextItems, subtotalCents: subtotal, source: input.source || order.source, sourceNote: input.sourceNote || null, shippingCents: shipping, discountCents: safeDiscount, totalCents: total, profitIqd: orderProfitIqd, paymentMethod: input.paymentMethod, paymentStatus: input.paymentStatus, customerNote: input.customerNote || null, updatedAt: new Date() }).where(eq(orders.id, orderId));
+    await tx.update(orders).set({ customerId, name: input.name, phone: input.phone, email: input.email || '', governorate: zone.code, address: { ...(order.address as Record<string, unknown>), governorate: zone.nameEn, governorateAr: zone.nameAr, city: input.city, line1: input.address, landmark: input.landmark || '', altPhone: (order.address as Record<string, unknown>)?.altPhone || '', country: 'Iraq' }, items: nextItems, subtotalCents: subtotal, source: input.source || order.source, sourceNote: input.sourceNote || null, shippingCents: shipping, discountCents: safeDiscount, totalCents: total, profitIqd: orderProfitIqd, paymentMethod: input.paymentMethod, paymentStatus: order.status === 'delivered' && order.source !== 'wholesale' ? 'paid' : input.paymentStatus, customerNote: input.customerNote || null, updatedAt: new Date() }).where(eq(orders.id, orderId));
     await tx.insert(orderEvents).values({ orderId, type: 'edited', message: 'Order details updated' });
     return orderId;
   });

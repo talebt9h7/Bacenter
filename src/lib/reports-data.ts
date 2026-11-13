@@ -1,3 +1,4 @@
+import { paymentSummary } from './payment-summary';
 import { memo } from './memo-cache';
 import { variantNameSql, variantNameArSql } from '@/lib/variant-sql';
 import { and, desc, gte, lte } from 'drizzle-orm';
@@ -33,7 +34,7 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
   const velocityFrom = new Date(now.getTime() - 30 * DAY);
   const windowFrom = new Date(Math.min(prev.from.getTime(), velocityFrom.getTime()));
 
-  const [settings, windowOrders, productRows, variantRows, batchRows, reserved, customerRows, zones, expenseRows, movementRows] = await Promise.all([
+  const [settings, windowOrders, productRows, variantRows, batchRows, reserved, customerRows, zones, expenseRows, movementRows, paymentTotals] = await Promise.all([
     getSettings(),
     db.select().from(orders).where(ordersTouchingRange(windowFrom, to)).orderBy(desc(orders.createdAt)).limit(30000),
     db.select({ id: products.id, name: products.name, nameAr: products.nameAr, category: products.category, salePriceIqd: products.salePriceIqd, published: products.published }).from(products),
@@ -44,6 +45,7 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
     db.select({ code: shippingZones.code, nameEn: shippingZones.nameEn, nameAr: shippingZones.nameAr, rate: shippingZones.rate, minDays: shippingZones.minDays, maxDays: shippingZones.maxDays, enabled: shippingZones.enabled }).from(shippingZones),
     db.select({ amountIqd: expenses.amountIqd, expenseDate: expenses.expenseDate, category: expenses.category }).from(expenses).where(and(gte(expenses.expenseDate, prev.from), lte(expenses.expenseDate, to))),
     db.select({ variantId: inventoryMovements.variantId, delta: inventoryMovements.delta, reason: inventoryMovements.reason, createdAt: inventoryMovements.createdAt }).from(inventoryMovements).where(and(gte(inventoryMovements.createdAt, from), lte(inventoryMovements.createdAt, to))),
+    paymentSummary(from, to),
   ]);
 
   const productMap = new Map(productRows.map(p => [p.id, p]));
@@ -184,7 +186,7 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
     productTable, variantTable, categoryTable,
     inventory: { ...valuation, lowThreshold, ...stockAdvice(inventoryTable, lowThreshold), table: inventoryTable, batches, movements: [...movementSummary.entries()].map(([reason, r]) => ({ reason, ...r })).sort((a, b) => (b.in + b.out) - (a.in + a.out)), lowCount: inventoryTable.filter(v => v.published && v.available > 0 && v.available <= lowThreshold).length, soldOutCount: inventoryTable.filter(v => v.published && v.available === 0).length },
     customers: customerStats, topBuyers,
-    statusCounts, funnel, avgDeliveryDays, ordersList, deliveredList,
+    paymentTotals, statusCounts, funnel, avgDeliveryDays, ordersList, deliveredList,
     governorates,
     coupons, discountedOrders, offers,
   };
