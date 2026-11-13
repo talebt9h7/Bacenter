@@ -1,4 +1,4 @@
-import { paymentSummary } from '@/lib/payment-summary';
+import { paymentSummary, paymentMethodSummary } from '@/lib/payment-summary';
 import { NextRequest } from 'next/server';
 import { and, gte, lte, desc } from 'drizzle-orm';
 import { db } from '@/db';
@@ -17,10 +17,10 @@ const sheet=(name:string,headers:string[],rows:unknown[][])=>`<Worksheet ss:Name
 export async function GET(req:NextRequest){
   const actor=await requireAdminSection('finance','view'); if(!actor) return new Response('Forbidden',{status:403});
   const sp=req.nextUrl.searchParams; const {from,to}=reportRange(sp.get('period')||'30d',sp.get('from')||undefined,sp.get('to')||undefined);
-  const [os,ps,vs,bs,es,payments]=await Promise.all([
+  const [os,ps,vs,bs,es,payments,paymentMethods]=await Promise.all([
     db.select().from(orders).where(ordersTouchingRange(from,to)).orderBy(desc(orders.createdAt)).limit(20000),
     db.select().from(products), db.select().from(productVariants), db.select().from(inventoryBatches),
-    db.select().from(expenses).where(and(gte(expenses.expenseDate,from),lte(expenses.expenseDate,to))).orderBy(desc(expenses.expenseDate)), paymentSummary(from,to)
+    db.select().from(expenses).where(and(gte(expenses.expenseDate,from),lte(expenses.expenseDate,to))).orderBy(desc(expenses.expenseDate)), paymentSummary(from,to), paymentMethodSummary(from,to)
   ]);
   const pm=new Map(ps.map(p=>[p.id,p])); const vm=new Map(vs.map(v=>[v.id,v]));
   const live=os.filter(o=>isRecognizedIn(o,from,to));
@@ -42,6 +42,6 @@ export async function GET(req:NextRequest){
   const money=summarize(live); const {revenue,discounts,profit,units}=money;
   const operating=es.reduce((s,e)=>s+n(e.amountIqd),0);
   const summaryRows=[['From',baghdadDayKey(from)],['To',baghdadDayKey(to)],['Total orders',live.length],['Total units sold',units],['Total revenue',revenue],['Total discounts',discounts],['Total product profit',profit],['Cost of goods sold (known cost)',money.cogs],['Revenue of units with unknown cost',money.unknownCostRevenue],['Profit margin (known-cost sales)',money.margin],['Average product profit / delivered order',live.length?profit/live.length:0],['Operating expenses',operating],['Net after operating expenses',profit-operating],['Stock value (purchase basis)',bs.reduce((s,b)=>s+(b.purchaseCostIqd==null?0:n(b.purchaseCostIqd)*n(b.quantityRemaining)),0)]];
-  const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="Header"><Font ss:Bold="1"/></Style></Styles>${sheet('Summary',['Metric','Value'],summaryRows)}${sheet('Payment status',['حالة الدفع','عدد الطلبات','قيمة الطلبات المنشأة بالفترة مع التوصيل'],payments.map(p=>[({paid:'مدفوع',unpaid:'غير مدفوع',refunded:'مسترجع',partial:'مدفوع جزئياً'} as Record<string,string>)[p.status]||p.status,p.count,p.total]))}${sheet('Orders',['رقم الطلب','تاريخ التسليم','العميل','الحالة','إيرادات المنتجات بعد الخصم','التوصيل','الخصم','الربح','إجمالي الطلب'],orderRows)}${sheet('Products',['المنتج','اللون / المتغير','الوحدات المباعة','سعر البيع للوحدة','إجمالي الإيرادات','إجمالي الربح','هامش الربح','عدد الطلبات'],productRows)}${sheet('Inventory',['المنتج','المتغير','الدفعة','المستلم','المتبقي','سعر الشراء للوحدة','قيمة المخزون','تاريخ الاستلام'],inventoryRows)}</Workbook>`;
+  const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="Header"><Font ss:Bold="1"/></Style></Styles>${sheet('Summary',['Metric','Value'],summaryRows)}${sheet('Payment methods',['طريقة الدفع — طلبات مدفوعة منشأة بالفترة','الزبائن حسب الهاتف أو البريد','عدد الطلبات','المبلغ مع التوصيل'],paymentMethods.map(p=>[({cash:'نقداً',bank_transfer:'تحويل بنكي',electronic:'إلكتروني',cod:'عند الاستلام',credit:'آجل'} as Record<string,string>)[p.method]||p.method,p.customers,p.count,p.total]))}${sheet('Payment status',['حالة الدفع','عدد الطلبات','قيمة الطلبات المنشأة بالفترة مع التوصيل'],payments.map(p=>[({paid:'مدفوع',unpaid:'غير مدفوع',refunded:'مسترجع',partial:'مدفوع جزئياً'} as Record<string,string>)[p.status]||p.status,p.count,p.total]))}${sheet('Orders',['رقم الطلب','تاريخ التسليم','العميل','الحالة','إيرادات المنتجات بعد الخصم','التوصيل','الخصم','الربح','إجمالي الطلب'],orderRows)}${sheet('Products',['المنتج','اللون / المتغير','الوحدات المباعة','سعر البيع للوحدة','إجمالي الإيرادات','إجمالي الربح','هامش الربح','عدد الطلبات'],productRows)}${sheet('Inventory',['المنتج','المتغير','الدفعة','المستلم','المتبقي','سعر الشراء للوحدة','قيمة المخزون','تاريخ الاستلام'],inventoryRows)}</Workbook>`;
   return new Response(xml,{headers:{'Content-Type':'application/vnd.ms-excel; charset=utf-8','Content-Disposition':`attachment; filename="UR-profit-report-${new Date().toISOString().slice(0,10)}.xls"`}});
 }
