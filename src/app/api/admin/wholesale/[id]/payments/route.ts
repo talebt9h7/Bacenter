@@ -4,6 +4,9 @@ import { db } from '@/db';
 import { orderEvents, orders, wholesalePayments } from '@/db/schema';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { logActivity } from '@/lib/orders';
+import { correctWholesalePayment } from '@/lib/wholesale-payment-edit';
+import { WholesaleEditError } from '@/lib/wholesale-edit';
+import { clearMemo } from '@/lib/memo-cache';
 
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
@@ -31,4 +34,18 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status });
   await logActivity('update', 'order', id, `Wholesale payment ${amount} IQD · ${result.reference}`);
   return NextResponse.json(result);
+}
+
+/** Correct a receipt while retaining its identity, original date and an audit trail. */
+export async function PATCH(request: NextRequest, { params }: Ctx) {
+  if (!(await requireAdminSection('sales', 'manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    const result = await correctWholesalePayment(Number((await params).id), await request.json().catch(() => null));
+    clearMemo('stats:');
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof WholesaleEditError) return NextResponse.json({ error: error.message }, { status: error.status });
+    console.error('Wholesale payment correction failed', error);
+    return NextResponse.json({ error: 'تعذر تصحيح الدفعة. لم يتم تغيير السجل.' }, { status: 500 });
+  }
 }
