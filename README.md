@@ -98,3 +98,16 @@ node --experimental-strip-types scripts/financial-calculation-test.mjs
 ```
 
 Notes from earlier versions are kept in `docs/history/`.
+
+## Editing wholesale invoices
+
+Admin → Wholesale → **Edit** opens the latest delivered wholesale invoice. Update trader details,
+products, quantities, wholesale/retail prices, discount and note, then save. Inventory changes only
+by the quantity difference; retained units keep their original cost snapshots and accounting dates.
+Recorded receipts are preserved. An unpaid increase becomes credit; a total below receipts is rejected
+until the refund is resolved. Cancelled/returned invoices cannot be edited. A stale editor must reload
+after another edit or payment. No database migration is required.
+
+```bash
+npm run test:wholesale  # isolated in-memory PostgreSQL, never the production database
+```
