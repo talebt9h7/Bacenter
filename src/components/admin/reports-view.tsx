@@ -218,6 +218,11 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
       </div>
     </>}
 
+    {(section === 'overview' || section === 'orders') && <Card icon={<Wallet size={17}/>} title={tt('Order totals by payment status', 'مجموع مبالغ الطلبات حسب حالة الدفع')}>
+      <p className="dash-muted">{tt('Orders placed in the selected period, including cancelled orders. Full order values including delivery; these are not collected receipts or net revenue.', 'الطلبات المنشأة بالفترة المختارة، بما فيها الملغاة. المبالغ هي قيمة الطلب كاملة مع التوصيل، وليست الدفعات المقبوضة أو صافي الإيراد.')}</p>
+      <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>{tt('Payment status', 'حالة الدفع')}</th><th className="num">{tt('Orders', 'عدد الطلبات')}</th><th className="num">{tt('Total value', 'مجموع المبالغ')}</th></tr></thead><tbody>{data.paymentTotals.map(row => <tr key={row.status}><td>{({paid:tt('Paid','مدفوع'),unpaid:tt('Unpaid','غير مدفوع'),refunded:tt('Refunded','مسترجع'),partial:tt('Partially paid','مدفوع جزئياً')} as Record<string,string>)[row.status] || row.status}</td><td className="num">{row.count}</td><td className="num"><strong>{iqd(row.total)}</strong></td></tr>)}</tbody></table></div>
+    </Card>}
+
     {section === 'orders' && <>
       <section className="dash-kpis">
         <Kpi lang={lang} icon={<ShoppingCart size={17} />} tone="accent" label={tt('Orders placed', 'طلبات جديدة')} value={data.placed.count} current={data.placed.count} previous={data.placed.previous} spark={data.series.map(s => s.placed)} />
