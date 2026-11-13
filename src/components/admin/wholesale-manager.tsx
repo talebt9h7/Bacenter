@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, Banknote, Check, CheckCheck, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Download, Eye, FileText, HandCoins, LayoutTemplate, LoaderCircle, Minus, Pencil, Plus, Printer, Save, Search, SlidersHorizontal, TrendingUp, Trash2, Users, Wallet, X } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { VariantOption } from '@/lib/admin-catalog';
@@ -98,6 +99,12 @@ function InvoiceDetails({ invoice:r,canManage,onClose,onEdit,onPayment }: {invoi
   return <Modal title={`تفاصيل الفاتورة · ${r.reference}`} onClose={onClose} wide><div className="wd-detail-heading"><div><span>فاتورة بيع بالجملة</span><h3>{r.name}</h3><p>{r.shop}{r.city?` · ${r.city}`:''} · <bdi>{r.phone}</bdi></p></div><b>{iqd(r.total)}</b></div><div className="wd-detail-meta"><span>تاريخ البيع <b>{day(r.createdAt)}</b></span><span>الدفع <b>{r.payment==='credit'?'آجل':'نقد'}</b></span><span>المقبوض <b>{iqd(r.paid)}</b></span><span>المتبقي <b>{iqd(r.remaining)}</b></span></div><div className="wd-table-scroll"><table className="wd-table"><thead><tr><th>المنتج</th><th>الكمية</th><th>سعر الجملة</th><th>الإجمالي</th></tr></thead><tbody>{r.items.map((i,k)=><tr key={k}><td><b>{i.nameAr||i.name}</b><small>{i.colorAr||i.color}</small></td><td>{i.quantity}</td><td>{iqd(i.unitPrice)}</td><td>{iqd(i.unitPrice*i.quantity)}</td></tr>)}</tbody></table></div>{r.discount>0&&<p className="wd-detail-note">الخصم: {iqd(r.discount)}</p>}{r.note&&<p className="wd-detail-note">{r.note}</p>}<h4 className="wd-section-title">الدفعات المسجلة <span>{r.payments.length}</span></h4>{r.payments.length?<div className="wd-payment-list">{r.payments.map(p=><div key={p.id}><span className="wd-payment-icon"><Banknote size={16}/></span><span><b>{iqd(p.amount)}</b><small>{day(p.createdAt)}{p.note?` · ${p.note}`:''}</small></span><Check size={16}/></div>)}</div>:<p className="admin-hint">لا توجد دفعات مسجلة.</p>}<div className="admin-modal-actions"><a className="wd-btn" href={`/admin/print/wholesale/${r.id}`} target="_blank" rel="noreferrer"><Printer size={16}/>معاينة وطباعة</a>{canManage&&r.status==='delivered'&&<><button type="button" className="wd-btn" onClick={onEdit}><Pencil size={15}/>تعديل الفاتورة</button><button type="button" className="wd-btn wd-primary" onClick={onPayment}><HandCoins size={16}/>إدارة الدفعات</button></>}</div></Modal>;
 }
 
+/** Keep invoice entry on the original admin theme and outside the page's stacking context. */
+function LegacyInvoiceModal(props: React.ComponentProps<typeof Modal>) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(<div className="admin-shell wholesale-legacy-editor" style={{ display: 'contents' }}><Modal {...props} /></div>, document.body);
+}
+
 function InvoiceEditor({ catalog: sourceCatalog, invoice, onClose, onCreated, onError }: { catalog: VariantOption[]; invoice?: WholesaleInvoice; onClose: () => void; onCreated: (id: number) => void; onError: (e: unknown) => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
@@ -140,7 +147,7 @@ function InvoiceEditor({ catalog: sourceCatalog, invoice, onClose, onCreated, on
       onCreated(r.id);
     } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)); onError(e); } finally { setBusy(false); }
   }
-  return <Modal title={invoice ? tt(`Edit invoice · ${invoice.reference}`, `تعديل الفاتورة · ${invoice.reference}`) : tt('New wholesale invoice', 'فاتورة جملة جديدة')} onClose={() => { if (!busy) onClose(); }} wide>
+  return <LegacyInvoiceModal title={invoice ? tt(`Edit invoice · ${invoice.reference}`, `تعديل الفاتورة · ${invoice.reference}`) : tt('New wholesale invoice', 'فاتورة جملة جديدة')} onClose={() => { if (!busy) onClose(); }} wide>
     <div className="ws-editor">
       <section>
         <h3 className="pce-title">{tt('1. Trader', '1. التاجر')}</h3>
@@ -183,7 +190,7 @@ function InvoiceEditor({ catalog: sourceCatalog, invoice, onClose, onCreated, on
     </div>
     {saveError && <p role="alert" className="admin-error">{saveError}</p>}
     <div className="admin-modal-actions"><button type="button" className="admin-btn admin-btn-ghost" disabled={busy} onClick={onClose}><X size={14} /> {tt('Cancel', 'إلغاء')}</button><button type="button" className="admin-btn admin-btn-primary" disabled={!valid || busy} onClick={() => void submit()}>{busy ? <LoaderCircle size={14} className="spin" /> : invoice ? <Save size={14} /> : <Printer size={14} />} {invoice ? tt('Save changes', 'حفظ التعديلات') : tt('Create invoice & print', 'إنشاء الفاتورة وطباعتها')}</button></div>
-  </Modal>;
+  </LegacyInvoiceModal>;
 }
 
 function PaymentModal({ invoice, onClose, onDone, onError }: { invoice: WholesaleInvoice; onClose: () => void; onDone: (paid: number, remaining: number) => void; onError: (e: unknown) => void }) {
