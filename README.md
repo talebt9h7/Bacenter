@@ -111,3 +111,22 @@ after another edit or payment. No database migration is required.
 ```bash
 npm run test:wholesale  # isolated in-memory PostgreSQL, never the production database
 ```
+
+### Wholesale workspace and receipt studio
+
+The wholesale workspace includes invoice/trader views, search, payment-state and date filters,
+pagination, CSV export and a focused invoice-details view. Phones use invoice cards with visible
+edit, detail and receipt actions. Staff without sales-manage permission can view but cannot edit.
+
+**Receipt design** opens a live preview with store branding, logo upload/URL, contact details,
+editable field labels, visible columns, terms, signatures, accent colour and density. A4 and 80 mm
+thermal layouts are available. Templates are saved server-side in the existing `settings` table
+under `wholesaleReceipt` and reused on the printable invoice route; no migration is required.
+Printing hides the designer controls and repeats table headers for multi-page invoices.
+
+**Manage payments** also allows correcting an existing receipt's amount or note. The original
+receipt ID/date remain unchanged, the old/new values are audited, and the invoice balance is
+reconciled in one transaction. A zero correction reverses the recorded receipt without deleting
+its identity. This corrects the accounting record; it does not initiate an external bank refund.
+The invoice editor can switch a fully collected invoice between cash and credit; any unpaid
+increase stays credit. Existing inventory and cost protections remain in force.

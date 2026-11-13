@@ -3,12 +3,14 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path'), Module = require('node:module');
 const ts = require('typescript'), { PGlite } = require('@electric-sql/pglite');
 const { drizzle } = require('drizzle-orm/pglite'), { getTableConfig, PgDialect } = require('drizzle-orm/pg-core'), { eq } = require('drizzle-orm');
-const root = path.resolve(__dirname, '..'), cache = new Map(); let database;
+const root = path.resolve(__dirname, '..'), cache = new Map(); let database; let allowSettingsWrite = true;
 function load(file) {
   if (cache.has(file)) return cache.get(file).exports;
   const m = new Module(file, module); cache.set(file, m); m.filename = file; m.paths = Module._nodeModulePaths(path.dirname(file));
   m.require = spec => {
     if (spec === '@/db') return { db: database };
+    if (spec === '@/lib/settings') return { getSettings: async () => ({ logoUrl: '/images/UR-logo.svg', supportPhone: '07700000000', address: 'Iraq' }) };
+    if (spec === '@/lib/admin-auth') return { requireAdminSection: async (_, level) => level === 'manage' && !allowSettingsWrite ? null : { type: 'owner' } };
     if (spec === 'next/cache') return { revalidateTag() {} };
     if (spec.startsWith('@/') || spec.startsWith('.')) { let p = spec.startsWith('@/') ? path.join(root, 'src', spec.slice(2)) : path.resolve(path.dirname(file), spec); if (!path.extname(p)) p += '.ts'; return load(p); }
     return require(spec);
@@ -27,8 +29,8 @@ async function createTable(client, table) {
 }
 (async () => {
   const client = new PGlite(); database = drizzle(client);
-  const { orders, customers, products, productVariants, inventoryBatches, inventoryMovements, orderEvents, activityLog, coupons, wholesalePayments } = schema;
-  for (const t of [orders, customers, products, productVariants, inventoryBatches, inventoryMovements, orderEvents, activityLog, coupons, wholesalePayments]) await createTable(client, t);
+  const { orders, customers, products, productVariants, inventoryBatches, inventoryMovements, orderEvents, activityLog, coupons, wholesalePayments, settings } = schema;
+  for (const t of [orders, customers, products, productVariants, inventoryBatches, inventoryMovements, orderEvents, activityLog, coupons, wholesalePayments, settings]) await createTable(client, t);
   const { editWholesaleInvoice } = load(path.join(root, 'src/lib/wholesale-edit.ts'));
   const { getWholesale } = load(path.join(root, 'src/lib/wholesale-data.ts'));
   await database.insert(products).values({ id: 'wallet', name: 'Wallet', nameAr: 'محفظة', category: 'wallets', priceCents: 100, salePriceIqd: 30000 });
@@ -75,6 +77,42 @@ async function createTable(client, table) {
     await assert.rejects(edit(data), e => e.status === 409); assert.equal(await stock(), oldStock); assert.deepEqual((await current()).items, before.items);
     await edit({ ...data, items: [{ variantId: other.id, quantity: 1, unitPrice: 100000, retailPrice: 100000 }] });
     assert.equal(await stock(), oldStock + 3); const o = await current(); assert.equal(o.items[0].variantId, other.id); assert.equal(o.items[0].purchaseCostCents, null); assert.equal(o.profitIqd, 0);
+  });
+  const { correctWholesalePayment } = load(path.join(root, 'src/lib/wholesale-payment-edit.ts'));
+  await test('payment correction reconciles balance and retains original receipt date and stock', async () => {
+    const [receipt] = await database.select().from(wholesalePayments);
+    // Previous cash-increase fixture set the total paid directly; reconcile that fixture's receipt.
+    await database.update(wholesalePayments).set({ amountIqd: 93000 }).where(eq(wholesalePayments.id, receipt.id));
+    const before = await current(), beforeStock = await stock();
+    await correctWholesalePayment(order.id, { paymentId: receipt.id, amount: 80000, note: 'Correction', expectedUpdatedAt: before.updatedAt.toISOString() }, database);
+    const after = await current(), [updated] = await database.select().from(wholesalePayments);
+    assert.equal(after.paidCents, 80000); assert.equal(after.totalCents, 100000); assert.equal(after.profitIqd, before.profitIqd); assert.equal(after.paymentStatus, 'partial'); assert.equal(await stock(), beforeStock); assert.equal(updated.id, receipt.id); assert.equal(updated.createdAt.toISOString(), receipt.createdAt.toISOString());
+    const events = await database.select().from(orderEvents).where(eq(orderEvents.type, 'payment_corrected')); assert.match(events[0].message, /93000 → 80000/);
+    await assert.rejects(correctWholesalePayment(order.id, { paymentId: receipt.id, amount: 70000, expectedUpdatedAt: before.updatedAt.toISOString() }, database), e => e.status === 409);
+    await assert.rejects(correctWholesalePayment(order.id, { paymentId: receipt.id, amount: 100001, expectedUpdatedAt: after.updatedAt.toISOString() }, database), e => e.status === 400);
+    assert.equal((await current()).paidCents, 80000);
+  });
+  await test('a mistaken receipt can be zeroed without deleting its audit identity', async () => {
+    const [receipt] = await database.select().from(wholesalePayments);
+    await correctWholesalePayment(order.id, { paymentId: receipt.id, amount: 0, note: 'Entered in error', expectedUpdatedAt: (await current()).updatedAt.toISOString() }, database);
+    assert.equal((await current()).paidCents, 0); assert.equal((await current()).paymentStatus, 'unpaid'); assert.equal((await database.select().from(wholesalePayments)).length, 1);
+  });
+  await test('receipt settings normalize safe colors, logo URLs, labels and visibility', async () => {
+    const { normalizeReceiptSettings, defaultWholesaleReceipt } = load(path.join(root, 'src/lib/wholesale-receipt.ts'));
+    const r = normalizeReceiptSettings({ brand: '  My Store  ', accent: 'red; } html { display:none', paper: 'thermal', logoUrl: 'javascript:bad', showImages: false, labels: { total: 'Amount due', date: '' } });
+    assert.equal(r.brand, 'My Store'); assert.equal(r.accent, defaultWholesaleReceipt.accent); assert.equal(r.logoUrl, defaultWholesaleReceipt.logoUrl); assert.equal(r.paper, 'thermal'); assert.equal(r.showImages, false); assert.equal(r.labels.total, 'Amount due'); assert.equal(r.labels.date, defaultWholesaleReceipt.labels.date);
+    assert.equal(normalizeReceiptSettings({ terms: 'x'.repeat(2000), accent: '#112233' }).terms.length, 1000);
+    assert.equal(normalizeReceiptSettings({ accent: '#112233' }).accent, '#112233');
+  });
+  await test('saved receipt settings survive subsequent API reads and require manage permission', async () => {
+    const route = load(path.join(root, 'src/app/api/admin/wholesale/receipt-settings/route.ts'));
+    const { NextRequest } = require('next/server');
+    const response = await route.PUT(new NextRequest('https://test.local/api/admin/wholesale/receipt-settings', { method: 'PUT', body: JSON.stringify({ brand: 'Test brand', paper: 'thermal', showImages: false, labels: { total: 'المبلغ النهائي' } }) }));
+    assert.equal(response.status, 200); const saved = await response.json(); assert.equal(saved.settings.brand, 'Test brand');
+    const next = await (await route.GET()).json(); assert.equal(next.settings.brand, 'Test brand'); assert.equal(next.settings.paper, 'thermal'); assert.equal(next.settings.showImages, false); assert.equal(next.settings.labels.total, 'المبلغ النهائي');
+    allowSettingsWrite = false;
+    const blocked = await route.PUT(new NextRequest('https://test.local/api/admin/wholesale/receipt-settings', { method: 'PUT', body: JSON.stringify({ brand: 'Unauthorized' }) })); assert.equal(blocked.status, 403); assert.equal((await (await route.GET()).json()).settings.brand, 'Test brand');
+    allowSettingsWrite = true;
   });
   await test('cancelled and ordinary invoices are not editable through wholesale', async () => {
     await database.update(orders).set({ status: 'cancelled' }).where(eq(orders.id, order.id)); await assert.rejects(edit(await input()), e => e.status === 409); await database.update(orders).set({ status: 'delivered', source: 'website' }).where(eq(orders.id, order.id)); await assert.rejects(edit(await input()), e => e.status === 404);
