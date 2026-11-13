@@ -1,3 +1,4 @@
+import { loadOrderCatalog } from '@/lib/order-catalog';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { notFound, redirect } from 'next/navigation';
 import { orderWithEvents } from '@/lib/orders';
@@ -14,5 +15,6 @@ export default async function AdminOrderPage({ params }: Props) {
   if (!data) notFound();
   const order = { ...data.order, createdAt: data.order.createdAt.toISOString(), updatedAt: data.order.updatedAt.toISOString() } as unknown as OrderRow;
   const events = data.events.map(event => ({ ...event, createdAt: event.createdAt.toISOString() })) as OrderEvent[];
-  return <OrderDetail key={order.id} initial={order} events={events} />;
+  const catalog = await loadOrderCatalog();
+  return <OrderDetail key={order.id} initial={order} events={events} catalog={catalog} />;
 }
