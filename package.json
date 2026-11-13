@@ -7,7 +7,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "perf": "bash scripts/perf.sh"
+    "perf": "bash scripts/perf.sh",
+    "test:wholesale": "node scripts/wholesale-edit-test.cjs"
   },
   "dependencies": {
     "@vercel/blob": "2.8.2",
@@ -21,6 +22,7 @@
     "sharp": "0.34.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "4.1.17",
     "@types/node": "22.19.15",

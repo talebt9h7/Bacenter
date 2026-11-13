@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Banknote, CircleDollarSign, Clock, FileText, HandCoins, LoaderCircle, Minus, Plus, Printer, Search, Store, Trash2, Users, X } from 'lucide-react';
+import { Banknote, CircleDollarSign, Clock, FileText, HandCoins, LoaderCircle, Minus, Pencil, Plus, Printer, Save, Search, Store, Trash2, Users, X } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { VariantOption } from '@/lib/admin-catalog';
 import type { WholesaleInvoice } from '@/lib/wholesale-data';
@@ -22,6 +22,8 @@ export function WholesaleManager({ initial, catalog }: { initial: WholesaleInvoi
   const lang = ar ? 'ar' : 'en';
   const [rows, setRows] = useState(initial);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<WholesaleInvoice | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState<number | null>(null);
   const [paying, setPaying] = useState<WholesaleInvoice | null>(null);
   const [filter, setFilter] = useState<'all' | 'owed' | 'cash' | 'credit'>('all');
   const [q, setQ] = useState('');
@@ -39,6 +41,11 @@ export function WholesaleManager({ initial, catalog }: { initial: WholesaleInvoi
   })();
 
   const refresh = () => location.reload();
+  async function openEdit(id: number) {
+    setLoadingEdit(id);
+    try { const { invoice } = await api<{ invoice: WholesaleInvoice }>(`/api/admin/wholesale/${id}`); setEditing(invoice); }
+    catch (e) { fail(e); } finally { setLoadingEdit(null); }
+  }
 
   return <main className="admin-page dash">
     {flash}
@@ -56,7 +63,7 @@ export function WholesaleManager({ initial, catalog }: { initial: WholesaleInvoi
         {!visible.length ? <p className="admin-empty">{rows.length ? tt('No invoices match.', 'ماكو فواتير مطابقة.') : tt('No wholesale invoices yet.', 'ماكو فواتير جملة بعد.')}</p> :
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{tt('Invoice', 'الفاتورة')}</th><th>{tt('Trader', 'التاجر')}</th><th className="num">{tt('Total', 'الإجمالي')}</th><th className="num">{tt('Paid', 'المدفوع')}</th><th className="num">{tt('Remaining', 'المتبقي')}</th><th>{tt('Type', 'النوع')}</th><th /></tr></thead><tbody>
             {visible.map(r => <tr key={r.id} className={r.status === 'cancelled' ? 'is-muted' : ''}><td><Link className="admin-strong-link" href={`/admin/orders/${r.id}`}>{r.reference}</Link><br /><small>{day(r.createdAt)} · {r.items.reduce((s, i) => s + i.quantity, 0)} {tt('pcs', 'قطعة')}</small></td><td>{r.name}<br /><small dir="ltr">{r.phone}</small>{r.shop && <small> · {r.shop}</small>}</td><td className="num"><b>{iqd(r.total)}</b></td><td className="num">{iqd(r.paid)}</td><td className="num">{r.remaining > 0 ? <b className="ws-owed">{iqd(r.remaining)}</b> : <span className="admin-badge success">{tt('Paid', 'مسدد')}</span>}</td><td><span className={`admin-badge ${r.payment === 'credit' ? 'warning' : 'info'}`}>{r.payment === 'credit' ? tt('Credit', 'آجل') : tt('Cash', 'نقد')}</span></td>
-              <td><div className="admin-order-actions"><a className="admin-btn admin-btn-ghost admin-btn-sm" href={`/admin/print/wholesale/${r.id}`} target="_blank" rel="noreferrer"><Printer size={13} /> {tt('Invoice', 'الوصل')}</a>{r.remaining > 0 && <button type="button" className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => setPaying(r)}><HandCoins size={13} /> {tt('Receive payment', 'قبض دفعة')}</button>}</div></td></tr>)}
+              <td><div className="admin-order-actions">{r.status === 'delivered' && <button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={loadingEdit !== null} onClick={() => void openEdit(r.id)}>{loadingEdit === r.id ? <LoaderCircle size={13} className="spin" /> : <Pencil size={13} />} {tt('Edit', 'تعديل')}</button>}<a className="admin-btn admin-btn-ghost admin-btn-sm" href={`/admin/print/wholesale/${r.id}`} target="_blank" rel="noreferrer"><Printer size={13} /> {tt('Invoice', 'الوصل')}</a>{r.remaining > 0 && <button type="button" className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => setPaying(r)}><HandCoins size={13} /> {tt('Receive payment', 'قبض دفعة')}</button>}</div></td></tr>)}
           </tbody></table></div>}
       </Card>
       <Card title={tt('Traders & balances', 'التجار والأرصدة')} icon={<Users size={16} />}>
@@ -64,20 +71,36 @@ export function WholesaleManager({ initial, catalog }: { initial: WholesaleInvoi
       </Card>
     </div>
     {creating && <InvoiceEditor catalog={catalog} onClose={() => setCreating(false)} onCreated={id => { setCreating(false); success(tt('Invoice created. Stock updated.', 'انسوت الفاتورة وانقص المخزون.')); window.open(`/admin/print/wholesale/${id}`, '_blank'); void refresh(); }} onError={fail} />}
+    {editing && <InvoiceEditor key={editing.updatedAt} invoice={editing} catalog={catalog} onClose={() => setEditing(null)} onCreated={() => { setEditing(null); void refresh(); }} onError={fail} />}
     {paying && <PaymentModal invoice={paying} onClose={() => setPaying(null)} onDone={(paid, remaining) => { setRows(rs => rs.map(r => r.id === paying.id ? { ...r, paid, remaining, paymentStatus: remaining <= 0 ? 'paid' : 'partial' } : r)); setPaying(null); success(tt('Payment recorded.', 'انسجلت الدفعة.')); }} onError={fail} />}
   </main>;
 }
 
-function InvoiceEditor({ catalog, onClose, onCreated, onError }: { catalog: VariantOption[]; onClose: () => void; onCreated: (id: number) => void; onError: (e: unknown) => void }) {
+function InvoiceEditor({ catalog: sourceCatalog, invoice, onClose, onCreated, onError }: { catalog: VariantOption[]; invoice?: WholesaleInvoice; onClose: () => void; onCreated: (id: number) => void; onError: (e: unknown) => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const tt = (en: string, a: string) => ar ? a : en;
-  const [name, setName] = useState(''), [phone, setPhone] = useState(''), [shop, setShop] = useState(''), [city, setCity] = useState(''), [note, setNote] = useState('');
-  const [payment, setPayment] = useState<'cash' | 'credit'>('cash');
-  const [paid, setPaid] = useState(''), [discount, setDiscount] = useState('');
-  const [lines, setLines] = useState<Line[]>([]);
+  const [name, setName] = useState(invoice?.name ?? ''), [phone, setPhone] = useState(invoice?.phone ?? ''), [shop, setShop] = useState(invoice?.shop ?? ''), [city, setCity] = useState(invoice?.city ?? ''), [note, setNote] = useState(invoice?.note ?? '');
+  const [payment, setPayment] = useState<'cash' | 'credit'>(invoice?.payment ?? 'cash');
+  const [paid, setPaid] = useState(''), [discount, setDiscount] = useState(invoice ? String(invoice.discount) : '');
+  const [lines, setLines] = useState<Line[]>(() => {
+    const grouped = new Map<number, Line>();
+    for (const item of invoice?.items ?? []) {
+      const before = grouped.get(item.variantId);
+      grouped.set(item.variantId, { variantId: item.variantId, quantity: (before?.quantity ?? 0) + item.quantity, unitPrice: before?.unitPrice ?? String(item.unitPrice), retailPrice: before?.retailPrice ?? String(item.listPrice) });
+    }
+    return [...grouped.values()];
+  });
+  const catalog = useMemo(() => {
+    const own = new Map<number, number>();
+    for (const item of invoice?.items ?? []) own.set(item.variantId, (own.get(item.variantId) ?? 0) + item.quantity);
+    const result = sourceCatalog.map(v => ({ ...v, available: v.available + (own.get(v.variantId) ?? 0) }));
+    for (const item of invoice?.items ?? []) if (!result.some(v => v.variantId === item.variantId)) result.push({ variantId: item.variantId, productId: item.productId, productName: item.name, productNameAr: item.nameAr || item.name, color: item.color, colorAr: item.colorAr || item.color, hex: '#777', available: own.get(item.variantId) ?? 0, salePriceIqd: item.listPrice, wholesalePriceIqd: item.unitPrice, image: item.image, published: false, category: '' });
+    return result;
+  }, [sourceCatalog, invoice]);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const byId = useMemo(() => new Map(catalog.map(v => [v.variantId, v])), [catalog]);
   const results = catalog.filter(v => !q || `${v.productName} ${v.productNameAr} ${v.color} ${v.colorAr}`.toLowerCase().includes(q.toLowerCase())).slice(0, 40);
   const add = (v: VariantOption) => setLines(ls => ls.some(l => l.variantId === v.variantId) ? ls.map(l => l.variantId === v.variantId ? { ...l, quantity: l.quantity + 1 } : l) : [...ls, { variantId: v.variantId, quantity: 1, unitPrice: String(v.wholesalePriceIqd || ''), retailPrice: String(v.salePriceIqd || '') }]);
@@ -85,15 +108,16 @@ function InvoiceEditor({ catalog, onClose, onCreated, onError }: { catalog: Vari
   const subtotal = lines.reduce((s, l) => s + (Number(l.unitPrice) || 0) * l.quantity, 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
   const over = lines.some(l => l.quantity > (byId.get(l.variantId)?.available ?? 0));
-  const valid = name.trim().length >= 2 && /^07\d{9}$/.test(normalizeIraqPhone(phone)) && lines.length > 0 && lines.every(l => Number(l.unitPrice) > 0) && !over;
+  const overpaid = !!invoice && total < invoice.paid;
+  const valid = !overpaid && name.trim().length >= 2 && /^07\d{9}$/.test(normalizeIraqPhone(phone)) && lines.length > 0 && lines.every(l => Number(l.unitPrice) > 0) && !over;
   async function submit() {
-    setBusy(true);
+    setBusy(true); setSaveError('');
     try {
-      const r = await api<{ id: number }>('/api/admin/wholesale', { method: 'POST', json: { name, phone, shop, city, note, payment, paid: payment === 'credit' ? Number(paid) || 0 : undefined, discount: Number(discount) || 0, items: lines.map(l => ({ variantId: l.variantId, quantity: l.quantity, unitPrice: Math.round(Number(l.unitPrice)), retailPrice: Math.round(Number(l.retailPrice) || 0) })) } });
+      const r = await api<{ id: number }>(invoice ? `/api/admin/wholesale/${invoice.id}` : '/api/admin/wholesale', { method: invoice ? 'PUT' : 'POST', json: { expectedUpdatedAt: invoice?.updatedAt, name, phone, shop, city, note, payment, paid: payment === 'credit' ? Number(paid) || 0 : undefined, discount: Number(discount) || 0, items: lines.map(l => ({ variantId: l.variantId, quantity: l.quantity, unitPrice: Math.round(Number(l.unitPrice)), retailPrice: Math.round(Number(l.retailPrice) || 0) })) } });
       onCreated(r.id);
-    } catch (e) { onError(e); } finally { setBusy(false); }
+    } catch (e) { setSaveError(e instanceof Error ? e.message : String(e)); onError(e); } finally { setBusy(false); }
   }
-  return <Modal title={tt('New wholesale invoice', 'فاتورة جملة جديدة')} onClose={onClose} wide>
+  return <Modal title={invoice ? tt(`Edit invoice · ${invoice.reference}`, `تعديل الفاتورة · ${invoice.reference}`) : tt('New wholesale invoice', 'فاتورة جملة جديدة')} onClose={() => { if (!busy) onClose(); }} wide>
     <div className="ws-editor">
       <section>
         <h3 className="pce-title">{tt('1. Trader', '1. التاجر')}</h3>
@@ -127,13 +151,15 @@ function InvoiceEditor({ catalog, onClose, onCreated, onError }: { catalog: Vari
           <div><span>{tt('Subtotal', 'المجموع')}</span><b>{iqd(subtotal)}</b></div>
           <label className="admin-field"><span>{tt('Discount (IQD, optional)', 'خصم (دينار، اختياري)')}</span><input type="number" min="0" step="250" value={discount} onChange={e => setDiscount(e.target.value)} /></label>
           <div className="good"><span>{tt('Invoice total', 'إجمالي الفاتورة')}</span><b>{iqd(total)}</b></div>
-          <div className="ws-pay-type">{(['cash', 'credit'] as const).map(p => <button key={p} type="button" className={payment === p ? 'on' : ''} onClick={() => setPayment(p)}>{p === 'cash' ? <><Banknote size={15} /> {tt('Cash — paid now', 'نقد — مدفوع هسه')}</> : <><Clock size={15} /> {tt('Credit (آجل)', 'آجل')}</>}</button>)}</div>
-          {payment === 'credit' && <label className="admin-field"><span>{tt('Paid now (optional)', 'المدفوع هسه (اختياري)')}</span><input type="number" min="0" step="250" max={total} value={paid} onChange={e => setPaid(e.target.value)} placeholder="0" /><small>{tt('Remaining', 'المتبقي')}: {iqd(Math.max(0, total - (Number(paid) || 0)))}</small></label>}
+          <div className="ws-pay-type" style={invoice ? { display: 'none' } : undefined}>{(['cash', 'credit'] as const).map(p => <button key={p} type="button" className={payment === p ? 'on' : ''} onClick={() => setPayment(p)}>{p === 'cash' ? <><Banknote size={15} /> {tt('Cash — paid now', 'نقد — مدفوع هسه')}</> : <><Clock size={15} /> {tt('Credit (آجل)', 'آجل')}</>}</button>)}</div>
+          {!invoice && payment === 'credit' && <label className="admin-field"><span>{tt('Paid now (optional)', 'المدفوع هسه (اختياري)')}</span><input type="number" min="0" step="250" max={total} value={paid} onChange={e => setPaid(e.target.value)} placeholder="0" /><small>{tt('Remaining', 'المتبقي')}: {iqd(Math.max(0, total - (Number(paid) || 0)))}</small></label>}
+          {invoice && <><div><span>{tt('Already received', 'المقبوض سابقاً')}</span><b>{iqd(invoice.paid)}</b></div><div><span>{tt('Remaining after saving', 'المتبقي بعد التعديل')}</span><b>{iqd(Math.max(0, total - invoice.paid))}</b></div><p className="admin-hint">{tt('Recorded payments stay unchanged. An unpaid increase becomes credit. Use Receive payment to collect more.', 'الدفعات المسجلة تبقى مثل ما هي. الزيادة غير المقبوضة تصير آجل؛ استخدم قبض دفعة لتسجيل مبلغ جديد.')}</p>{overpaid && <p role="alert" className="admin-error">{tt('The total cannot be lower than money already received. Resolve the refund before reducing this invoice.', 'الإجمالي أقل من المقبوض. عالج ردّ المبلغ قبل تقليل الفاتورة.')}</p>}</>}
         </div>
         <label className="admin-field"><span>{tt('Note (optional)', 'ملاحظة (اختياري)')}</span><textarea rows={2} value={note} onChange={e => setNote(e.target.value)} /></label>
       </section>
     </div>
-    <div className="admin-modal-actions"><button type="button" className="admin-btn admin-btn-ghost" onClick={onClose}><X size={14} /> {tt('Cancel', 'إلغاء')}</button><button type="button" className="admin-btn admin-btn-primary" disabled={!valid || busy} onClick={() => void submit()}>{busy ? <LoaderCircle size={14} className="spin" /> : <Printer size={14} />} {tt('Create invoice & print', 'إنشاء الفاتورة وطباعتها')}</button></div>
+    {saveError && <p role="alert" className="admin-error">{saveError}</p>}
+    <div className="admin-modal-actions"><button type="button" className="admin-btn admin-btn-ghost" disabled={busy} onClick={onClose}><X size={14} /> {tt('Cancel', 'إلغاء')}</button><button type="button" className="admin-btn admin-btn-primary" disabled={!valid || busy} onClick={() => void submit()}>{busy ? <LoaderCircle size={14} className="spin" /> : invoice ? <Save size={14} /> : <Printer size={14} />} {invoice ? tt('Save changes', 'حفظ التعديلات') : tt('Create invoice & print', 'إنشاء الفاتورة وطباعتها')}</button></div>
   </Modal>;
 }
 
