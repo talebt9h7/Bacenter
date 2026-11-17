@@ -1,0 +1,54 @@
+/* Bag as a side sheet (like an "Added to bag" sheet): white, narrower than the screen so the page
+   stays visible behind it, compact item rows, suggestions as tiles, two clear buttons at the bottom. */
+html body .bag-drawer.bag-sheet{background:rgba(20,16,12,.38)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body .bag-drawer.bag-sheet .modal-panel{background:#fff!important;width:min(400px,86vw)!important;height:calc(100dvh - 16px)!important;margin:8px!important;border-radius:26px!important;box-shadow:0 20px 60px rgba(0,0,0,.22)!important;border:0!important}
+html body .bag-drawer.bag-sheet .modal-heading{padding:18px 18px 10px!important}
+html body .bag-drawer.bag-sheet .modal-heading h2{display:flex;align-items:center;gap:10px;font-size:21px!important;font-weight:700!important;color:#1d1b18}
+html body .bag-drawer.bag-sheet .modal-heading h2 span{color:#9a948a;font-weight:500}
+html body .bag-drawer.bag-sheet.is-added .modal-heading h2::before{content:'';flex:none;width:26px;height:26px;border-radius:50%;background:#2f8a57 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/15px no-repeat}
+html body .bag-drawer.bag-sheet .modal-heading .icon-button{width:40px!important;height:40px!important;min-width:40px;background:#fff!important;border:1px solid #ebe7e1!important;box-shadow:none!important}
+html body .bag-drawer.bag-sheet .modal-heading .icon-button svg{width:17px!important;height:17px!important}
+
+html body .bag-drawer.bag-sheet .bag-body{padding:4px 0 12px!important}
+html body .bag-drawer.bag-sheet .bag-items{gap:10px!important;padding:0 16px!important}
+html body .bag-drawer.bag-sheet .bag-item{display:grid!important;grid-template-columns:84px minmax(0,1fr)!important;gap:12px!important;align-items:center;padding:10px!important;border:1px solid #efebe5!important;border-radius:18px!important;background:#fff!important;box-shadow:none!important}
+html body .bag-drawer.bag-sheet .bag-item-image{width:84px!important;height:84px!important;border-radius:13px!important;background:#f3f1ed!important;display:block}
+html body .bag-drawer.bag-sheet .bag-item-image img{width:100%;height:100%;object-fit:cover}
+html body .bag-drawer.bag-sheet .bag-item-info{display:flex;flex-direction:column;gap:3px;min-width:0}
+html body .bag-drawer.bag-sheet .bag-item-name{font-size:15.5px!important;font-weight:700!important;color:#1d1b18;line-height:1.35}
+html body .bag-drawer.bag-sheet .bag-item-meta{margin:0!important;font-size:13px!important;color:#8a847a!important}
+html body .bag-drawer.bag-sheet .bag-item-note{margin:0!important;font-size:12px!important}
+html body .bag-drawer.bag-sheet .bag-item-actions{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px;margin-top:6px!important}
+html body .bag-drawer.bag-sheet .bag-item-price{font-size:17px!important;font-weight:800!important;color:#1d1b18;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;line-height:1.2}
+html body .bag-drawer.bag-sheet .bag-item-price s{font-size:11.5px;font-weight:500;color:#a39d93}
+html body .bag-drawer.bag-sheet .bag-qty{display:inline-flex!important;align-items:center;gap:2px;height:34px;padding:0 3px;border:1px solid #e6e1d9!important;border-radius:999px!important;background:#fff!important}
+html body .bag-drawer.bag-sheet .bag-qty button{width:28px!important;height:28px!important;min-width:28px;border-radius:50%!important;display:grid;place-items:center;border:0!important;background:transparent!important;color:#3a352e}
+html body .bag-drawer.bag-sheet .bag-qty button:last-child{border:1.5px solid #2a2520!important}
+html body .bag-drawer.bag-sheet .bag-qty span{min-width:20px;text-align:center;font-size:14px!important;font-weight:700}
+
+html body .bag-drawer.bag-sheet .bag-picks{margin:18px 16px 0!important;padding:0!important;background:transparent!important;border:0!important}
+html body .bag-drawer.bag-sheet .bag-picks h3{font-size:16px!important;font-weight:700!important;margin:0 0 10px!important;color:#1d1b18}
+html body .bag-drawer.bag-sheet .bag-picks ul{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+html body .bag-drawer.bag-sheet .bag-picks li{display:grid!important;grid-template-columns:60px minmax(0,1fr) auto!important;align-items:center;gap:12px;padding:8px 10px 8px 8px!important;border-radius:16px!important;background:#f4f2ee!important;border:0!important}
+html body .bag-drawer.bag-sheet .bag-picks li img{width:60px;height:60px;object-fit:cover;border-radius:11px;background:#fff;display:block}
+html body .bag-drawer.bag-sheet .bag-picks li>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+html body .bag-drawer.bag-sheet .bag-pick-name{font-size:14px!important;font-weight:700!important;color:#1d1b18;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .bag-drawer.bag-sheet .bag-picks li>div>span{font-size:13px!important;color:#7d776d}
+html body .bag-drawer.bag-sheet .bag-pick-add{width:34px!important;height:34px!important;min-width:34px;border-radius:50%!important;border:0!important;background:#1f1b16!important;color:#fff!important;display:grid;place-items:center}
+html body .bag-drawer.bag-sheet .bag-pick-add:disabled{opacity:.5}
+
+html body .bag-drawer.bag-sheet .bag-footer{padding:12px 16px calc(14px + env(safe-area-inset-bottom))!important;background:#fff!important;border-top:1px solid #f0ece6!important;display:flex;flex-direction:column;gap:10px;box-shadow:none!important}
+html body .bag-drawer.bag-sheet .bag-total{display:flex;align-items:baseline;justify-content:space-between;margin:0!important}
+html body .bag-drawer.bag-sheet .bag-total span{font-size:15px!important;color:#7d776d}
+html body .bag-drawer.bag-sheet .bag-total strong{font-size:22px!important;font-weight:800!important;color:#1d1b18;font-variant-numeric:tabular-nums}
+html body .bag-drawer.bag-sheet .bag-delivery{margin:0!important;padding:0!important;background:transparent!important;border:0!important}
+html body .bag-drawer.bag-sheet .bag-delivery p{display:flex;align-items:center;gap:6px;margin:0 0 6px!important;font-size:13px!important;color:#6f685e}
+html body .bag-drawer.bag-sheet .bag-delivery.is-unlocked p{color:#2f8a57;font-weight:600}
+html body .bag-drawer.bag-sheet .bag-delivery .bag-progress{height:5px!important;margin:0!important;border-radius:99px!important;background:#efebe5!important}
+html body .bag-drawer.bag-sheet .bag-delivery .bag-progress i{border-radius:99px;background:#8b5a2b}
+html body .bag-drawer.bag-sheet .bag-delivery.is-unlocked .bag-progress{display:none}
+html body .bag-drawer.bag-sheet .bag-checkout{display:flex!important;align-items:center;justify-content:center;gap:8px;height:54px!important;border-radius:999px!important;background:#1f1b16!important;color:#fff!important;font-size:16px!important;font-weight:700!important;text-decoration:none;box-shadow:none!important;margin:2px 0 0!important}
+html body .bag-drawer.bag-sheet .bag-keep-shopping{height:52px!important;border-radius:999px!important;border:1.5px solid #1f1b16!important;background:#fff!important;color:#1f1b16!important;font-size:15.5px!important;font-weight:600!important;text-decoration:none!important;width:100%;margin:0!important}
+html body .bag-drawer.bag-sheet .bag-savings{margin:0!important;font-size:13px}
+html body .bag-drawer.bag-sheet .bag-checkout{border:0!important;outline:0}
+html body .bag-drawer.bag-sheet .modal-heading .icon-button{color:#1d1b18!important}

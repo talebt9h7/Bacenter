@@ -22,6 +22,8 @@ export const baseRegions: Region[] = [
 ];
 type Store = {
   cart: CartLine[]; loaded: boolean; busy: boolean; cartOpen: boolean; setCartOpen: (open: boolean) => void;
+  /** The variant just added (the bag then opens as "Added to bag"); cleared when the bag closes. */
+  justAdded: number | null;
   addToCart: (variantId: number, quantity?: number, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>, fly?: Fly) => Promise<boolean>; addBundleToCart: (bundleId: number, quantity?: number, selection?: Record<string, number>) => Promise<boolean>;
   updateQuantity: (id: number, quantity: number) => Promise<void>; refreshCart: () => Promise<void>;
   count: number; subtotal: number; region: Region; regions: Region[]; setRegion: (region: Region) => void;
@@ -35,7 +37,9 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   const [cart, setCart] = useState<CartLine[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
+  const [cartOpen, setBagOpen] = useState(false);
+  const [justAdded, setJustAdded] = useState<number | null>(null);
+  const setCartOpen = (open: boolean) => { setBagOpen(open); if (!open) setJustAdded(null); };
   const [inFlight, setInFlight] = useState(0);
   const [frozenCount, setFrozenCount] = useState(0);
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null);
@@ -57,6 +61,7 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
    */
   async function addToCart(variantId: number, quantity = 1, preview?: Omit<CartLine, 'id' | 'quantity' | 'price'>, fly?: Fly) {
     const before = cart;
+    setJustAdded(variantId);
     // With a photo to fly, the product travels to the bag icon instead of the bag opening; the
     // counter only goes up when it lands.
     let flying = false;
@@ -87,7 +92,7 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
         if (line) track.addToCart({ id: line.productId, name: line.name, variant: line.color, price: line.salePriceIqd, quantity });
       }
       return true;
-    } catch (error) { if (preview) setCart(before); notify(error instanceof Error ? error.message : 'Please check your connection.', true); return false; }
+    } catch (error) { setJustAdded(null); if (preview) setCart(before); notify(error instanceof Error ? error.message : 'Please check your connection.', true); return false; }
     finally { if (!preview) setBusy(false); }
   }
   async function addBundleToCart(bundleId: number, quantity = 1, selection?: Record<string, number>) {
@@ -128,7 +133,7 @@ export function StoreProvider({ children, settings }: { children: ReactNode; set
   }
   const moneyIqd = useCallback((priceIqd: number) => { if (region.currency === 'IQD') return fmtIqd(Math.round(priceIqd)); return numberFormat(region.locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(priceIqd / settings.exchangeRate); }, [region, settings.exchangeRate, fmtIqd]);
   const freeShippingUsd = settings.freeShippingThreshold / settings.exchangeRate;
-  return <Context.Provider value={{ cart, loaded, busy, cartOpen, setCartOpen, addToCart, updateQuantity, refreshCart, addBundleToCart, count, subtotal, region, regions, setRegion, money, moneyIqd, notify, settings, freeShippingUsd }}>
+  return <Context.Provider value={{ cart, loaded, busy, cartOpen, setCartOpen, justAdded, addToCart, updateQuantity, refreshCart, addBundleToCart, count, subtotal, region, regions, setRegion, money, moneyIqd, notify, settings, freeShippingUsd }}>
     {children}
     {toast && <div className={`toast ${toast.error ? 'toast-error' : ''}`} role="status">{toast.error ? <AlertCircle size={19} /> : <Check size={19} />}<span>{toast.message}</span><button aria-label="Dismiss notification" onClick={() => setToast(null)}><X size={17} /></button></div>}
   </Context.Provider>;

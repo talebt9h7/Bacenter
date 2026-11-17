@@ -14,7 +14,7 @@ import { Modal, ModalHeading } from './modal';
  * to create pressure.
  */
 export function CartDrawer() {
-  const { cartOpen, setCartOpen, cart, count, moneyIqd, busy, updateQuantity, addToCart, loaded, settings } = useStore();
+  const { cartOpen, setCartOpen, cart, count, moneyIqd, busy, updateQuantity, addToCart, loaded, settings, justAdded } = useStore();
   const { language } = useLanguage();
   const ar = language === 'ar';
   const t = (label: string) => storeT(label, language);
@@ -45,19 +45,18 @@ export function CartDrawer() {
   const name = (item: { name: string; nameAr: string }) => ar ? (item.nameAr || item.name) : item.name;
   const colorName = (item: { color: string; colorAr: string }) => ar ? (item.colorAr || item.color) : item.color;
 
-  return <Modal title={t('Shopping bag')} className="drawer-overlay cart-overlay bag-drawer" onClose={close}>
-    <ModalHeading title={t('Shopping bag')} count={count} onClose={close} />
+  // Just added: the bag opens as a short confirmation with that item first (like a store's "Added to bag" sheet).
+  const added = justAdded !== null && cart.some(item => item.variantId === justAdded && !item.bundle);
+  const lines = added ? [...cart].sort((a, b) => Number(b.variantId === justAdded && !b.bundle) - Number(a.variantId === justAdded && !a.bundle)) : cart;
+  const title = added ? (ar ? 'انضافت للسلة' : 'Added to bag') : t('Shopping bag');
+
+  return <Modal title={title} className={`drawer-overlay cart-overlay bag-drawer bag-sheet${added ? ' is-added' : ''}`} onClose={close}>
+    <ModalHeading title={title} count={added ? undefined : count} onClose={close} />
     {cart.length > 0 ? <>
       <div className="bag-body">
-        {threshold > 0 && <div className={`bag-delivery ${remaining === 0 ? 'is-unlocked' : ''}`}>
-          <p>{remaining === 0
-            ? <><Check size={16} aria-hidden="true" /> {ar ? 'مبروك! حصلت على التوصيل المجاني لأي محافظة.' : 'You’ve unlocked free delivery to any governorate.'}</>
-            : <><Truck size={16} aria-hidden="true" /> {ar ? <>أضف <strong>{moneyIqd(remaining)}</strong> وتحصل على توصيل مجاني</> : <>Add <strong>{moneyIqd(remaining)}</strong> for free delivery</>}</>}</p>
-          <div className="bag-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-label={ar ? 'التقدم نحو التوصيل المجاني' : 'Progress to free delivery'}><i style={{ width: `${progress}%` }} /></div>
-        </div>}
 
         <ul className="bag-items">
-          {cart.map(item => {
+          {lines.map(item => {
             const href = item.bundle ? `/bundles/${encodeURIComponent(item.bundle.slug)}` : `/products/${item.productId}?color=${encodeURIComponent(item.color)}`;
             const max = Math.min(10, item.stock);
             return <li className="bag-item" key={item.id}>
@@ -65,19 +64,18 @@ export function CartDrawer() {
               <div className="bag-item-info">
                 <div className="bag-item-top">
                   <Link href={href} onClick={close} className="bag-item-name">{name(item)}</Link>
-                  <strong className="bag-item-price">{moneyIqd(item.salePriceIqd * item.quantity)}{item.originalPriceIqd && item.originalPriceIqd > item.salePriceIqd && <s className="price-was">{moneyIqd(item.originalPriceIqd * item.quantity)}</s>}</strong>
                 </div>
                 {item.bundle ? <ul className="bag-bundle-parts">{item.bundle.parts.map(p => <li key={p.productId + p.color}>{p.quantity > 1 ? `${p.quantity}× ` : ''}{ar ? p.nameAr || p.name : p.name} — {ar ? p.colorAr || p.color : p.color}</li>)}</ul> : <p className="bag-item-meta">{colorName(item)}{item.capacity ? ` · ${item.capacity}` : ''}{item.quantity > 1 && <> · {moneyIqd(item.salePriceIqd)} {ar ? 'للقطعة' : 'each'}</>}</p>}
                 {item.quantity > item.stock
                   ? <p className="bag-item-note is-warning">{ar ? `المتوفر ${item.stock} فقط، قلّل الكمية` : `Only ${item.stock} available — reduce the quantity`}</p>
                   : item.stock <= lowStock && <p className="bag-item-note">{item.bundle ? (ar ? `بقي ${item.stock} فقط من هذا البكج` : `Only ${item.stock} left of this bundle`) : (ar ? `بقي ${item.stock} فقط بهذا اللون` : `Only ${item.stock} left in this colour`)}</p>}
                 <div className="bag-item-actions">
+                  <strong className="bag-item-price">{moneyIqd(item.salePriceIqd * item.quantity)}{item.originalPriceIqd && item.originalPriceIqd > item.salePriceIqd && <s className="price-was">{moneyIqd(item.originalPriceIqd * item.quantity)}</s>}</strong>
                   <div className="bag-qty">
-                    <button type="button" disabled={busy || item.quantity <= 1} aria-label={ar ? 'إنقاص الكمية' : 'Decrease quantity'} onClick={() => void updateQuantity(item.id, item.quantity - 1)}><Minus size={14} /></button>
+                    <button type="button" disabled={busy} aria-label={item.quantity <= 1 ? t('Remove') : ar ? 'إنقاص الكمية' : 'Decrease quantity'} onClick={() => void updateQuantity(item.id, item.quantity - 1)}>{item.quantity <= 1 ? <Trash2 size={13} /> : <Minus size={14} />}</button>
                     <span aria-live="polite">{item.quantity}</span>
                     <button type="button" disabled={busy || item.quantity >= max} aria-label={ar ? 'زيادة الكمية' : 'Increase quantity'} onClick={() => void updateQuantity(item.id, item.quantity + 1)}><Plus size={14} /></button>
                   </div>
-                  <button type="button" className="bag-remove" disabled={busy} onClick={() => void updateQuantity(item.id, 0)}><Trash2 size={14} aria-hidden="true" /> {t('Remove')}</button>
                 </div>
               </div>
             </li>;
@@ -85,7 +83,7 @@ export function CartDrawer() {
         </ul>
 
         {picks.length > 0 && <section className="bag-picks" aria-label={ar ? 'منتجات مقترحة' : 'Suggested products'}>
-          <h3>{ar ? 'يكمّل اختيارك' : 'Goes well with your pick'}</h3>
+          <h3>{ar ? 'كمّل الطقم' : 'Complete the set'}</h3>
           <ul>{picks.map(product => {
             const color = product.colors.find(c => c.stock > 0)!;
             return <li key={product.id}>
@@ -105,6 +103,12 @@ export function CartDrawer() {
       <div className="bag-footer">
         {promoSavings > 0 && <div className="bag-savings"><span>{ar ? 'وفّرت بالعروض' : 'You save with offers'}</span><strong>− {moneyIqd(promoSavings)}</strong></div>}
         <div className="bag-total"><span>{t('Subtotal')}</span><strong>{moneyIqd(subtotal)}</strong></div>
+        {threshold > 0 && <div className={`bag-delivery ${remaining === 0 ? 'is-unlocked' : ''}`}>
+          <p>{remaining === 0
+            ? <><Check size={16} aria-hidden="true" /> {ar ? 'مبروك! حصلت على التوصيل المجاني لأي محافظة.' : 'You’ve unlocked free delivery to any governorate.'}</>
+            : <><Truck size={16} aria-hidden="true" /> {ar ? <>أضف <strong>{moneyIqd(remaining)}</strong> وتحصل على توصيل مجاني</> : <>Add <strong>{moneyIqd(remaining)}</strong> for free delivery</>}</>}</p>
+          <div className="bag-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-label={ar ? 'التقدم نحو التوصيل المجاني' : 'Progress to free delivery'}><i style={{ width: `${progress}%` }} /></div>
+        </div>}
         <Link className="bag-checkout" href="/checkout" onClick={close}>{ar ? 'إتمام الطلب' : 'Checkout'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</Link>
         <button type="button" className="bag-keep-shopping" onClick={close}>{ar ? 'متابعة التسوق' : 'Keep shopping'}</button>
       </div>
