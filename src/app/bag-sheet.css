@@ -52,3 +52,21 @@ html body .bag-drawer.bag-sheet .bag-keep-shopping{height:52px!important;border-
 html body .bag-drawer.bag-sheet .bag-savings{margin:0!important;font-size:13px}
 html body .bag-drawer.bag-sheet .bag-checkout{border:0!important;outline:0}
 html body .bag-drawer.bag-sheet .modal-heading .icon-button{color:#1d1b18!important}
+
+/* Free-delivery progress, above the bag items: a track with a truck that moves toward the goal. */
+html body .bag-drawer.bag-sheet .bag-ship{margin:0 16px 12px;padding:14px 16px 10px;border-radius:20px;background:#f4f2ee}
+.bag-ship-head{display:flex;align-items:center;gap:12px}
+.bag-ship-icon{flex:none;width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#1f1b16}
+html body .bag-drawer.bag-sheet .bag-ship-head p{margin:0!important;font-size:14px!important;line-height:1.5;color:#55504a}
+html body .bag-drawer.bag-sheet .bag-ship-head strong{color:#1f1b16;font-weight:800}
+.bag-ship-track{position:relative;height:12px;margin:16px 14px 4px;border-radius:99px;background:#e4e0da}
+.bag-ship-fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:linear-gradient(90deg,#c98a4b,#a8692e);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+[dir="rtl"] .bag-ship-fill{background:linear-gradient(270deg,#c98a4b,#a8692e)}
+.bag-ship-knob{position:absolute;top:50%;width:34px;height:34px;margin-inline-start:-17px;transform:translateY(-50%);border-radius:50%;background:#1f1b16;color:#fff;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.25);transition:inset-inline-start .5s cubic-bezier(.2,.8,.2,1)}
+[dir="rtl"] .bag-ship-knob svg{transform:scaleX(-1)}
+.bag-ship-scale{display:flex;justify-content:space-between;margin-top:6px}
+html body .bag-drawer.bag-sheet .bag-ship-scale span{font-size:11.5px!important;color:#a39d93;font-variant-numeric:tabular-nums}
+.bag-ship.is-unlocked .bag-ship-icon{background:#2f8a57;color:#fff}
+.bag-ship.is-unlocked .bag-ship-fill{background:#2f8a57}
+.bag-ship.is-unlocked .bag-ship-knob{background:#2f8a57}
+html body .bag-drawer.bag-sheet .bag-ship.is-unlocked .bag-ship-head strong{color:#2f8a57}

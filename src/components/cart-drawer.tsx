@@ -55,6 +55,19 @@ export function CartDrawer() {
     {cart.length > 0 ? <>
       <div className="bag-body">
 
+        {threshold > 0 && <div className={`bag-ship ${remaining === 0 ? 'is-unlocked' : ''}`}>
+          <div className="bag-ship-head"><span className="bag-ship-icon" aria-hidden="true">{remaining === 0 ? <Check size={18} /> : <Truck size={18} />}</span>
+            <p>{remaining === 0
+              ? (ar ? <>حصلت على <strong>توصيل مجاني</strong></> : <>You’ve unlocked <strong>free delivery</strong></>)
+              : (ar ? <>باقي <strong>{moneyIqd(remaining)}</strong> وتحصل على <strong>توصيل مجاني</strong></> : <>You’re <strong>{moneyIqd(remaining)}</strong> away from <strong>free delivery</strong></>)}</p>
+          </div>
+          <div className="bag-ship-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-label={ar ? 'التقدم نحو التوصيل المجاني' : 'Progress to free delivery'}>
+            <i className="bag-ship-fill" style={{ width: `${progress}%` }} />
+            <span className="bag-ship-knob" style={{ insetInlineStart: `${progress}%` }} aria-hidden="true"><Truck size={14} /></span>
+          </div>
+          <div className="bag-ship-scale"><span>{moneyIqd(0)}</span><span>{moneyIqd(threshold)}</span></div>
+        </div>}
+
         <ul className="bag-items">
           {lines.map(item => {
             const href = item.bundle ? `/bundles/${encodeURIComponent(item.bundle.slug)}` : `/products/${item.productId}?color=${encodeURIComponent(item.color)}`;
@@ -103,12 +116,6 @@ export function CartDrawer() {
       <div className="bag-footer">
         {promoSavings > 0 && <div className="bag-savings"><span>{ar ? 'وفّرت بالعروض' : 'You save with offers'}</span><strong>− {moneyIqd(promoSavings)}</strong></div>}
         <div className="bag-total"><span>{t('Subtotal')}</span><strong>{moneyIqd(subtotal)}</strong></div>
-        {threshold > 0 && <div className={`bag-delivery ${remaining === 0 ? 'is-unlocked' : ''}`}>
-          <p>{remaining === 0
-            ? <><Check size={16} aria-hidden="true" /> {ar ? 'مبروك! حصلت على التوصيل المجاني لأي محافظة.' : 'You’ve unlocked free delivery to any governorate.'}</>
-            : <><Truck size={16} aria-hidden="true" /> {ar ? <>أضف <strong>{moneyIqd(remaining)}</strong> وتحصل على توصيل مجاني</> : <>Add <strong>{moneyIqd(remaining)}</strong> for free delivery</>}</>}</p>
-          <div className="bag-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-label={ar ? 'التقدم نحو التوصيل المجاني' : 'Progress to free delivery'}><i style={{ width: `${progress}%` }} /></div>
-        </div>}
         <Link className="bag-checkout" href="/checkout" onClick={close}>{ar ? 'إتمام الطلب' : 'Checkout'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</Link>
         <button type="button" className="bag-keep-shopping" onClick={close}>{ar ? 'متابعة التسوق' : 'Keep shopping'}</button>
       </div>
