@@ -1,8 +1,9 @@
 'use client';
+import Link from 'next/link';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Banknote, Check, CheckCheck, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Download, Eye, FileText, HandCoins, LayoutTemplate, LoaderCircle, Minus, Pencil, Plus, Printer, Save, Search, SlidersHorizontal, TrendingUp, Trash2, Users, Wallet, X } from 'lucide-react';
+import { ArrowLeft, Banknote, Check, CheckCheck, ChevronLeft, ChevronRight, CircleDollarSign, Clock, Download, Eye, FileText, HandCoins, LayoutTemplate, LoaderCircle, Minus, Pencil, Plus, Printer, Save, Search, SlidersHorizontal, TrendingUp, Trash2, Users, Wallet, X , FileSpreadsheet } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { VariantOption } from '@/lib/admin-catalog';
 import type { WholesaleInvoice } from '@/lib/wholesale-data';
@@ -63,7 +64,7 @@ export function WholesaleManager({ initial, catalog, receiptSettings = defaultWh
   return <main className="admin-page ws-page" dir={ar?'rtl':'ltr'}>
     {flash}
     <div className="wd-breadcrumb"><span>{tt('Administration','الإدارة')}</span><ChevronLeft size={12}/><span>{tt('Sales','المبيعات')}</span><ChevronLeft size={12}/><b>{tt('Wholesale','بيع الجملة')}</b></div>
-    <header className="wd-header"><div><div className="wd-eyebrow"><span/> WHOLESALE MANAGEMENT</div><h1>{tt('Wholesale, made simple.','بيع الجملة، بكل وضوح.')}<span>{tt('Your invoices, traders and balances in one workspace.','فواتيرك، تجارك وأرصدتك بمكان واحد.')}</span></h1></div><div className="wd-header-actions">{canManage&&<><button type="button" className="wd-btn" onClick={()=>setDesigning(true)}><LayoutTemplate size={16}/>{tt('Receipt design','تصميم الوصل')}</button><button type="button" className="wd-btn wd-primary" onClick={()=>setCreating(true)}><Plus size={17}/>{tt('New invoice','فاتورة جديدة')}</button></>}</div></header>
+    <header className="wd-header"><div><div className="wd-eyebrow"><span/> WHOLESALE MANAGEMENT</div><h1>{tt('Wholesale, made simple.','بيع الجملة، بكل وضوح.')}<span>{tt('Your invoices, traders and balances in one workspace.','فواتيرك، تجارك وأرصدتك بمكان واحد.')}</span></h1></div><div className="wd-header-actions"><Link className="wd-btn" href="/admin/print/price-list"><FileSpreadsheet size={16}/>{tt('Price list','قائمة الأسعار')}</Link>{canManage&&<><button type="button" className="wd-btn" onClick={()=>setDesigning(true)}><LayoutTemplate size={16}/>{tt('Receipt design','تصميم الوصل')}</button><button type="button" className="wd-btn wd-primary" onClick={()=>setCreating(true)}><Plus size={17}/>{tt('New invoice','فاتورة جديدة')}</button></>}</div></header>
     <section className="wd-metrics" aria-label={tt('Wholesale summary','ملخص بيع الجملة')}>
       <div className="wd-metric"><span className="wd-metric-icon"><CircleDollarSign size={19}/></span><span>{tt('Sales this month','مبيعات هذا الشهر')}</span><strong>{number(month.reduce((s,r)=>s+r.total,0))}<small>{tt('IQD','د.ع')}</small></strong><p><TrendingUp size={12}/>{month.length} {tt('invoices recorded','فاتورة مسجلة')}</p></div>
       <button className="wd-metric wd-metric-owed" type="button" onClick={()=>{setTab('invoices');changeFilter('owed');}}><span className="wd-metric-icon"><Wallet size={19}/></span><span>{tt('Outstanding balances','مبالغ بذمة التجار')}</span><strong>{number(owed)}<small>{tt('IQD','د.ع')}</small></strong><p>{live.filter(r=>r.remaining>0).length} {tt('invoices to collect','فاتورة بانتظار التسديد')}<ArrowLeft size={13}/></p></button>

@@ -9,13 +9,15 @@ export type ReceiptLabel = keyof typeof receiptLabelDefaults;
 export type WholesaleReceiptSettings = {
   brand: string; englishName: string; tagline: string; title: string; logoUrl: string; phone: string; address: string;
   footer: string; terms: string; currency: string; accent: string; paper: 'a4' | 'thermal'; density: 'comfortable' | 'compact';
+  /** 'catalog' = the look of the wholesale price list (centred Ruqaa title, framed tables); 'classic' = the earlier layout. */
+  template: 'catalog' | 'classic'; showEnglish: boolean; retailNote: string;
   showLogo: boolean; showImages: boolean; showSku: boolean; showRetail: boolean; showProfit: boolean; showMargin: boolean;
   showPayments: boolean; showNote: boolean; showSignatures: boolean; showTraderPhone: boolean; showShop: boolean; showCity: boolean;
   labels: Record<ReceiptLabel, string>;
 };
 export const defaultWholesaleReceipt: WholesaleReceiptSettings = {
   brand: 'أور للجلود', englishName: 'UR LEATHER', tagline: 'جلد طبيعي · صناعة يدوية', title: 'فاتورة بيع بالجملة', logoUrl: '/images/UR-logo.svg', phone: '', address: '',
-  footer: 'شكراً لثقتكم بأور للجلود.', terms: 'أسعار البيع للمستهلك كما هو موضح في الفاتورة.', currency: 'د.ع', accent: '#76533b', paper: 'a4', density: 'comfortable',
+  footer: 'شكراً لثقتكم بأور للجلود.', terms: 'أسعار البيع للمستهلك كما هو موضح في الفاتورة.', currency: 'د.ع', accent: '#7a5a2b', paper: 'a4', density: 'comfortable', template: 'catalog', showEnglish: true, retailNote: 'سعر ثابت — غير قابل للتخفيض',
   showLogo: true, showImages: true, showSku: false, showRetail: true, showProfit: false, showMargin: false, showPayments: true, showNote: true, showSignatures: true, showTraderPhone: true, showShop: true, showCity: true,
   labels: receiptLabelDefaults,
 };
@@ -29,6 +31,9 @@ export function normalizeReceiptSettings(value: unknown, defaults = defaultWhole
   if (typeof raw.accent === 'string' && /^#[0-9a-f]{6}$/i.test(raw.accent)) next.accent = raw.accent;
   if (raw.paper === 'a4' || raw.paper === 'thermal') next.paper = raw.paper;
   if (raw.density === 'comfortable' || raw.density === 'compact') next.density = raw.density;
+  if (raw.template === 'catalog' || raw.template === 'classic') next.template = raw.template;
+  if (typeof raw.showEnglish === 'boolean') next.showEnglish = raw.showEnglish;
+  if (typeof raw.retailNote === 'string') next.retailNote = raw.retailNote.trim().slice(0, 80);
   for (const key of ['showLogo','showImages','showSku','showRetail','showProfit','showMargin','showPayments','showNote','showSignatures','showTraderPhone','showShop','showCity'] as const) if (typeof raw[key] === 'boolean') next[key] = raw[key];
   if (isRecord(raw.labels)) for (const key of Object.keys(receiptLabelDefaults) as ReceiptLabel[]) if (typeof raw.labels[key] === 'string' && raw.labels[key].trim()) next.labels[key] = raw.labels[key].trim().slice(0, 80);
   return next;

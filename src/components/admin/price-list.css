@@ -1,0 +1,76 @@
+/* Wholesale price list sheet (A4), modelled on the brand's printed list. */
+.pl-sheet{--pl-accent:#7a5a2b;--pl-ink:#2b2a27;--pl-muted:#8a8478;--pl-line:#e8e2d8;background:#fff;color:var(--pl-ink);width:794px;max-width:100%;margin:0 auto;padding:44px 40px 36px;font-family:'IBM Plex Sans Arabic','Noto Sans Arabic',Arial,sans-serif;font-size:12.5px;line-height:1.7;box-shadow:0 3px 7px #00000010,0 12px 28px #00000010;border:1px solid #ebe6dd}
+.pl-sheet *{box-sizing:border-box}
+.pl-sheet h1,.pl-sheet h2,.pl-sheet p{margin:0}
+.pl-cover{text-align:center;padding:10px 0 26px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.pl-en{font-size:11px;letter-spacing:6px;color:var(--pl-accent);font-weight:500}
+html body .pl-sheet .pl-cover h1{font-family:'Aref Ruqaa',serif!important;font-size:46px;line-height:1.35;color:var(--pl-accent);font-weight:700}
+.pl-tagline{font-size:12.5px;color:var(--pl-muted)}
+.pl-title{margin-top:12px;padding:7px 22px;border:1.5px solid var(--pl-accent);border-radius:4px;color:var(--pl-accent);font-size:13px;font-weight:600}
+.pl-rule{border:0;border-top:1px solid #d9d3c8;margin:6px 0 26px}
+.pl-category{margin:0 0 26px}
+html body .pl-sheet h2{font-family:'Aref Ruqaa',serif!important;font-size:26px;line-height:1.4;color:var(--pl-accent);font-weight:700;margin:0 0 10px;break-after:avoid}
+.pl-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--pl-line);border-radius:6px;overflow:hidden}
+.pl-table th{font-size:11px;font-weight:600;color:var(--pl-accent);padding:12px 8px;text-align:center;border-bottom:1px solid var(--pl-line);line-height:1.45;background:#fff}
+.pl-table th small{font-size:10px;font-weight:500}
+.pl-table td{padding:12px 8px;border-bottom:1px solid #f0ebe3;text-align:center;vertical-align:middle}
+.pl-table tr:last-child td{border-bottom:0}
+.pl-table tr{break-inside:avoid}
+.pl-img-col{width:72px}
+.pl-table img,.pl-noimg{width:52px;height:52px;object-fit:cover;border-radius:5px;border:1px solid #ece6dc;display:block;margin:0 auto;background:#faf8f4}
+.pl-noimg{display:grid;place-items:center;color:#c2b49c;font-size:11px}
+.pl-name-col{text-align:start!important;min-width:150px}
+.pl-name-col b{display:block;font-size:13.5px;font-weight:600;color:var(--pl-ink)}
+.pl-name-col small{display:block;font-size:10.5px;color:var(--pl-muted);text-align:start}
+.pl-num{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+.pl-retail{display:block;font-size:14px;font-weight:700;color:var(--pl-accent)}
+.pl-fixed{display:block;font-size:9.5px;color:#a66a3a;white-space:normal;line-height:1.4;margin-top:2px}
+.pl-profit{color:#3f6b3a;font-weight:700}
+.pl-profit small,.pl-line small{font-size:10px;font-weight:500}
+.pl-line{font-weight:700;color:var(--pl-accent)}
+.pl-qty{width:58px;height:32px;border:1px solid #d8d1c4;border-radius:5px;text-align:center;font:inherit;font-size:13px;background:#fff}
+.pl-empty{text-align:center;color:var(--pl-muted);padding:40px 0}
+.pl-grand{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin:6px 0 28px;padding:16px 18px;border:1.5px solid var(--pl-accent);border-radius:6px;break-inside:avoid}
+.pl-grand span{font-size:15px}
+.pl-grand strong{font-size:20px;color:var(--pl-accent);font-variant-numeric:tabular-nums}
+.pl-grand strong small{font-size:12px}
+.pl-grand em{font-style:normal;color:var(--pl-muted);font-size:12px;margin-inline-start:auto}
+.pl-block{margin:8px 0 26px;break-inside:avoid}
+.pl-tiers{display:grid;gap:14px}
+.pl-tier{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:20px 12px;border:1px solid var(--pl-line);border-radius:6px}
+html body .pl-sheet .pl-tier b{font-family:'Aref Ruqaa',serif!important;font-size:22px;color:var(--pl-accent);font-weight:700;line-height:1.4}
+.pl-tier strong{font-size:13px;font-weight:700}
+.pl-tier small{font-size:10.5px;color:var(--pl-muted)}
+.pl-terms{border:1px solid var(--pl-line);border-radius:6px;padding:20px 22px}
+.pl-terms ol{margin:0;padding-inline-start:22px;list-style:decimal!important;display:flex;flex-direction:column;gap:10px;font-size:12.5px}
+.pl-terms li b{color:var(--pl-accent)}
+.pl-policy{margin-top:18px;padding:14px 16px;border:1.5px solid #c9786a;border-radius:6px;background:#fdf6f4}
+.pl-policy b{display:block;color:#a8432e;font-size:13px;margin-bottom:6px}
+.pl-policy p{font-size:11.5px;line-height:1.9;white-space:pre-wrap}
+.pl-footer{text-align:center;margin-top:26px;display:flex;flex-direction:column;align-items:center;gap:4px;break-inside:avoid}
+.pl-footer .pl-rule{width:100%;margin:0 0 16px}
+.pl-sign{display:flex;align-items:baseline;gap:8px;color:var(--pl-accent)}
+html body .pl-sheet .pl-sign-ar{font-family:'Aref Ruqaa',serif!important;font-size:22px}
+.pl-sign-en{font-size:13px;letter-spacing:1px}
+.pl-footer p{font-size:11.5px;color:var(--pl-muted)}
+.pl-footer small{font-size:10.5px;color:var(--pl-muted)}
+
+/* studio */
+.pl-pick-group{display:grid;gap:6px;padding-bottom:10px;border-bottom:1px dashed #e6e3dc}
+.pl-pick{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-size:12px;color:#3f453f;cursor:pointer}
+.pl-pick small{color:#8a8f86;font-variant-numeric:tabular-nums}
+.pl-edit-card{display:grid;gap:6px;padding:10px;border:1px solid #e6e8e2;border-radius:9px;background:#fafbf8}
+.pl-edit-card input,.pl-edit-card textarea{width:100%;padding:8px 9px;border:1px solid #e0e4dd;border-radius:7px;font:inherit;font-size:12px;background:#fff}
+.pl-stage{overflow-x:auto}
+@media screen and (max-width:860px){.pl-sheet{width:794px;max-width:none}}
+
+@media print{
+  html,body{background:#fff!important}
+  body *{visibility:hidden}
+  .pl-sheet,.pl-sheet *{visibility:visible}
+  .pl-sheet{position:absolute;inset:0 0 auto 0;width:auto;max-width:none;margin:0;padding:0;border:0;box-shadow:none}
+  .pl-qty{border:0;width:auto;-moz-appearance:textfield}
+  .pl-qty::-webkit-outer-spin-button,.pl-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .pl-category,.pl-block{break-inside:auto}
+  .pl-tiers,.pl-terms,.pl-grand{break-inside:avoid}
+}
