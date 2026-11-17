@@ -1,0 +1,16 @@
+/* Product page: size select in the bag's style (soft pill + round chevron like the qty "+"), and add-to-bag with a WhatsApp icon button beside it. */
+html body main.product-page .size-select{position:relative;display:block}
+html body main.product-page .size-select select{height:52px!important;padding:0 18px!important;padding-inline-end:56px!important;border:1px solid #e6e1d9!important;border-radius:999px!important;background:#fff!important;font-size:16px!important;font-weight:600!important;color:#2a2520!important;box-shadow:none!important;transition:border-color .15s}
+html body main.product-page .size-select select:hover{border-color:#cfc6b8!important}
+html body main.product-page .size-select select:focus-visible{outline:none;border-color:#2a2520!important;box-shadow:0 0 0 3px rgba(42,37,32,.08)!important}
+html body main.product-page .size-select .size-chev{position:absolute;top:50%;inset-inline-end:12px;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:1.5px solid #2a2520;display:grid;place-items:center;color:#2a2520;background:#fff;pointer-events:none}
+html body main.product-page .size-select .size-chev svg{position:static!important;transform:none!important;width:16px;height:16px}
+
+html body main.product-page .buy-actions{display:flex!important;flex-direction:row!important;align-items:stretch;gap:10px!important;margin-bottom:16px!important}
+html body main.product-page .buy-actions .product-add-to-cart{flex:1 1 auto;width:auto!important;min-width:0}
+html body main.product-page .buy-actions .whatsapp-inquiry-button.is-icon{flex:0 0 60px;width:60px!important;min-width:60px;height:60px!important;padding:0!important;border-radius:50%!important;display:grid!important;place-items:center;gap:0!important;letter-spacing:0!important}
+html body main.product-page .buy-actions .whatsapp-inquiry-button.is-icon .whatsapp-brand-icon{width:28px!important;height:28px!important;flex:none!important;margin:0!important}
+@media (max-width:767px){
+  html body main.product-page .buy-actions .whatsapp-inquiry-button.is-icon{flex-basis:56px;width:56px!important;min-width:56px;height:56px!important;min-height:56px!important}
+  html body main.product-page .buy-actions .product-add-to-cart{height:56px!important;min-height:56px!important}
+}

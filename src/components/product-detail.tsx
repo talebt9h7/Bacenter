@@ -153,7 +153,7 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
           <span className="material-label">{language === 'ar' ? 'القياس:' : 'Size:'}</span>
           <span className="size-select"><select value={color.size} aria-label={t('Size')} onChange={event => { const size = event.target.value; const same = product.colors.find(c => c.name === color.name && c.size === size && c.images.length); const v = same ?? product.colors.find(c => c.size === size && c.images.length && c.stock > 0) ?? product.colors.find(c => c.size === size && c.images.length) ?? findVariant(product, color.name, size); if (v) selectVariant(v); }}>
             {sizes.map(option => { const v = product.colors.find(c => c.name === color.name && c.size === option.size && c.images.length) ?? product.colors.find(c => c.size === option.size && c.images.length); const out = !v || v.stock <= 0; return <option key={option.size} value={option.size} disabled={!v}>{language === 'ar' ? option.sizeAr : option.size}{out && v ? (language === 'ar' ? ' (نفد)' : ' (sold out)') : ''}</option>; })}
-          </select><ChevronDown size={20} aria-hidden="true" /></span>
+          </select><span className="size-chev" aria-hidden="true"><ChevronDown size={16} strokeWidth={2.2} /></span></span>
         </label>}
 
         {!sized && product.capacity && <label className="capacity-field"><span>{t('Size')}</span><select value={product.capacity} aria-label={t('Size')} onChange={() => undefined}><option>{product.capacity}</option></select></label>}
@@ -179,7 +179,9 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
         <div className="buy-actions">
           <button className="button button-orange product-add-to-cart" disabled={soldOut} onClick={event => void addToCart(color.id, quantity, { variantId: color.id, productId: product.id, name: product.name, nameAr: product.nameAr || product.name, color: variantLabel(color.name, color.size), colorAr: variantLabel(color.nameAr || color.name, color.sizeAr || color.size), salePriceIqd: pricing.price, originalPriceIqd: promoLive ? pricing.regular : undefined, image: primaryImage(color), capacity: sized ? null : product.capacity ?? null, stock: color.stock }, { from: [document.querySelector('.product-main-image img'), event.currentTarget], image: mediaSrc(primaryImage(color), 320) })}>{soldOut ? (sized ? (language === 'ar' ? 'نفد هذا القياس بهذا اللون' : 'Sold out in this size') : t('Sold out in this color')) : <>{language === 'ar' ? 'إضافة إلى السلة' : 'ADD TO CART'}</>}</button>
           <a
-            className="button button-orange whatsapp-inquiry-button"
+            className="button button-orange whatsapp-inquiry-button is-icon"
+            aria-label={language === 'ar' ? 'استفسر عبر الواتساب' : 'Ask via WhatsApp'}
+            title={language === 'ar' ? 'استفسر عبر الواتساب' : 'Ask via WhatsApp'}
             href={`https://wa.me/${String(settings.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(language === 'ar' ? `مرحباً، أرغب بطلب:\n${displayName}\nالسعر: ${moneyIqd(pricing.price)}\nالكمية: ${quantity}\nاللون: ${displayColorName(color)}${color.size ? `\nالقياس: ${displaySize(color)}` : ''}` : `Hello, I would like to place an order:\n${displayName}\nPrice: ${moneyIqd(pricing.price)}\nQuantity: ${quantity}\nColor: ${displayColorName(color)}${color.size ? `\nSize: ${displaySize(color)}` : ''}`)}`}
             target="_blank"
             rel="noreferrer"
@@ -187,7 +189,6 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
             <svg className="whatsapp-brand-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.273.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982 1-3.648-.235-.374a9.86 9.86 0 1 1 8.372 4.632m8.14-18.012A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.893c0 2.096.547 4.142 1.588 5.946L.057 24l6.304-1.654a11.893 11.893 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.82 11.82 0 0 0-3.751-8.128"/>
             </svg>
-            <span>{language === 'ar' ? 'استفسر عبر الواتساب' : 'Ask via WhatsApp'}</span>
           </a>
         </div>
         {displayDescription && <p className="product-description">{displayDescription}</p>}
