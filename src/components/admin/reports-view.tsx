@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountsTabs } from './accounts-views';
 import { useMemo, useState } from 'react';
 import { ArrowRight, BarChart3, Boxes, CalendarDays, CircleDollarSign, Clock, Download, MapPin, Package, Percent, Printer, Receipt, ShoppingBag, ShoppingCart, Tag, TrendingUp, Truck, Users, Wallet, PackageX, Layers, Coins } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
@@ -64,6 +65,7 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
   const govs = useSort(data.governorates as unknown as Record<string, unknown>[], 'orders');
 
   return <main className="admin-page dash">
+    <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {dateFmt(data.from)} – {dateFmt(data.to)}</>} title={tt('Reports', 'التقارير')}
       description={tt('Sales, profit, products, stock, customers, orders and delivery for the selected period, compared with the period before. Money counts delivered orders on their delivery date; delivery fees are kept apart.', 'المبيعات والأرباح والمنتجات والمخزون والزبائن والطلبات والتوصيل للفترة المختارة، مقارنة بالفترة اللي قبلها. المبالغ تُحتسب للطلبات المُسلّمة بتاريخ التسليم، وأجور التوصيل منفصلة.')}
       actions={<>

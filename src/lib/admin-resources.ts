@@ -83,7 +83,8 @@ function parseExpense(body: Row) {
   const description = str(body.description, 240); const amountIqd = int(body.amountIqd, -1); const expenseDate = date(body.expenseDate) || new Date();
   if (!description) return { error: 'Every expense needs a description.' };
   if (amountIqd <= 0 || amountIqd > 1000000000) return { error: 'Enter a valid expense amount in IQD.' };
-  return { data: { category, description, amountIqd, expenseDate, paymentMethod, reference: str(body.reference, 120) || null, notes: str(body.notes, 1000) || null } };
+  const account = body.account === 'cash' || body.account === 'master' || body.account === 'qaseh' ? String(body.account) : paymentMethod === 'cash' ? 'cash' : 'master';
+  return { data: { category, description, amountIqd, expenseDate, paymentMethod, account, reference: str(body.reference, 120) || null, notes: str(body.notes, 1000) || null } };
 }
 
 function parseCoupon(body: Row) {

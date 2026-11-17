@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { couriers, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { accountForMethod, courierFee, gatewayFee, methodAllowed } from '@/lib/accounts-rules';
+import { defaultCourier, getAccountsSettings } from '@/lib/accounts';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { normalizeIraqPhone, iraqPhonePattern } from '@/lib/iraq';
 import { assertAvailable, consumeInventoryBatches, logActivity, orderProductProfit } from '@/lib/orders';
@@ -17,7 +19,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const text = (key: string, max = 300) => typeof body[key] === 'string' ? body[key].trim().slice(0, max) : '';
     const name = text('name', 100), phone = normalizeIraqPhone(text('phone', 30)), altPhone = normalizeIraqPhone(text('altPhone', 30));
-    const email = text('email', 254).toLowerCase(), governorate = text('governorate', 40), city = text('city', 120), address = text('address', 300), landmark = text('landmark', 200), note = text('note', 500);
+    const pickup = text('fulfillment', 20) === 'pickup';
+    const email = text('email', 254).toLowerCase(), governorate = text('governorate', 40), city = text('city', 120) || (pickup ? 'استلام من المحل' : ''), address = text('address', 300) || (pickup ? 'استلام من المحل' : ''), landmark = text('landmark', 200), note = text('note', 500);
     const source = text('source', 40) || 'instagram', sourceNote = text('sourceNote', 200) || null;
     const paymentMethod = text('paymentMethod', 30) || 'cod', paymentStatus = text('paymentStatus', 30) || 'unpaid', status = text('status', 30) || 'pending';
     // A new order reserves or takes stock, so it cannot start out cancelled or returned.
@@ -32,7 +35,11 @@ export async function POST(request: NextRequest) {
     if (!governorate) return NextResponse.json({ error: 'Choose a governorate.' }, { status: 400 });
     if (!city || address.length < 3) return NextResponse.json({ error: 'Enter the city/district and detailed address.' }, { status: 400 });
     if (!rawItems.length) return NextResponse.json({ error: 'Add at least one product.' }, { status: 400 });
-    const settings = await getSettings();
+    const fulfillment = text('fulfillment', 20) === 'pickup' ? 'pickup' : 'courier';
+    if (!methodAllowed(fulfillment, paymentMethod)) return NextResponse.json({ error: fulfillment === 'pickup' ? 'الاستلام من المحل يكون نقد أو تحويل ماستر أو دفع إلكتروني.' : 'التوصيل يكون دفع عند الاستلام أو تحويل ماستر أو دفع إلكتروني.' }, { status: 400 });
+    const [settings, accounts] = await Promise.all([getSettings(), getAccountsSettings()]);
+    const requestedCourier = Number(body.courierId);
+    const courier = fulfillment === 'courier' ? (Number.isInteger(requestedCourier) && requestedCourier > 0 ? (await db.select().from(couriers).where(eq(couriers.id, requestedCourier)))[0] ?? null : await defaultCourier()) : null;
     const result = await db.transaction(async tx => {
       const [zone] = await tx.select().from(shippingZones).where(eq(shippingZones.code, governorate));
       if (!zone || !zone.enabled) throw new Error('INVALID_GOVERNORATE');
@@ -59,12 +66,17 @@ export async function POST(request: NextRequest) {
         items.push({ productId: line.productId, variantId, name: line.name, color: line.color, quantity, unitPrice: enteredPrice, profitIqd: unitProfit, purchaseCostCents: purchaseCost, batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })), image });
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-      const safeDiscount = Math.min(discount, subtotal), shipping = shippingOverride === null ? zone.rate : Math.max(0, Math.round(shippingOverride));
+      const safeDiscount = Math.min(discount, subtotal), shipping = shippingOverride === null ? (fulfillment === 'pickup' ? 0 : zone.rate) : Math.max(0, Math.round(shippingOverride));
       const total = Math.max(0, subtotal - safeDiscount) + shipping + codFee;
       const orderProfitIqd = orderProductProfit(items, safeDiscount);
+      // Money: cash in the shop is received on hand-over; transfers and Al Qaseh when marked paid;
+      // cash on delivery only through a settlement with the delivery company.
+      const finalPaymentStatus = paymentMethod === 'cod' ? 'unpaid' : paymentMethod === 'cash' && status === 'delivered' ? 'paid' : paymentStatus;
+      const account = accountForMethod(paymentMethod);
+      const moneyAt = finalPaymentStatus === 'paid' && account ? { paidTo: account, paidAt: new Date(), gatewayFeeIqd: account === 'qaseh' ? gatewayFee(total, accounts.qasehFeePercent) : 0 } : {};
       const [customer] = await tx.insert(customers).values({ phone, name, email: email || null, governorate: zone.code, ordersCount: 1, totalSpent: Math.max(0, subtotal - discount), lastOrderAt: new Date() }).onConflictDoUpdate({ target: customers.phone, set: { name, email: sql`COALESCE(NULLIF(${email}, ''), ${customers.email})`, governorate: zone.code, ordersCount: sql`${customers.ordersCount} + 1`, totalSpent: sql`${customers.totalSpent} + ${Math.max(0, subtotal - safeDiscount)}`, lastOrderAt: new Date() } }).returning({ id: customers.id });
       const sessionId = `manual-${randomBytes(8).toString('hex')}`;
-      const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: settings.exchangeRate, subtotalCents: subtotal, shippingCents: shipping, discountCents: safeDiscount, codFeeCents: codFee, totalCents: total, profitIqd: status === 'delivered' ? orderProfitIqd : 0, deliveredAt: status === 'delivered' ? new Date() : null, paymentMethod, paymentStatus: status === 'delivered' ? 'paid' : paymentStatus, status, customerNote: note || null, source, sourceNote }).returning({ id: orders.id });
+      const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: settings.exchangeRate, subtotalCents: subtotal, shippingCents: shipping, discountCents: safeDiscount, codFeeCents: codFee, totalCents: total, profitIqd: status === 'delivered' ? orderProfitIqd : 0, deliveredAt: status === 'delivered' ? new Date() : null, paymentMethod, paymentStatus: finalPaymentStatus, ...moneyAt, fulfillment, courierId: courier?.id ?? null, courierFeeIqd: fulfillment === 'courier' && courier ? (status === 'delivered' ? courierFee(courier, zone.code) : null) : null, status, customerNote: note || null, source, sourceNote }).returning({ id: orders.id });
       await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Manual order · ${source} · ${paymentMethod}` });
       return { id: created.id, reference, total };
     });

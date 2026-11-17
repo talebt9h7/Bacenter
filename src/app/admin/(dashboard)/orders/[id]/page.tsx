@@ -1,6 +1,7 @@
 import { requireAdminSection } from '@/lib/admin-auth';
 import { notFound, redirect } from 'next/navigation';
 import { orderWithEvents } from '@/lib/orders';
+import { listCouriers } from '@/lib/accounts';
 import { OrderDetail, type OrderEvent, type OrderRow } from '@/components/admin/orders-client';
 
 type Props = { params: Promise<{ id: string }> };
@@ -11,8 +12,9 @@ export default async function AdminOrderPage({ params }: Props) {
   const { id } = await params;
   if (!Number.isInteger(Number(id))) notFound();
   const data = await orderWithEvents(Number(id));
-  if (!data) notFound();
-  const order = { ...data.order, createdAt: data.order.createdAt.toISOString(), updatedAt: data.order.updatedAt.toISOString() } as unknown as OrderRow;
+  if (!data?.order) notFound();
+  const order = { ...data.order, createdAt: data.order.createdAt.toISOString(), updatedAt: data.order.updatedAt.toISOString(), paidAt: data.order.paidAt?.toISOString() ?? null, deliveredAt: data.order.deliveredAt?.toISOString() ?? null } as unknown as OrderRow;
+  const couriers = (await listCouriers()).map(c => ({ id: c.id, name: c.name, active: c.active, defaultFeeIqd: c.defaultFeeIqd, returnFeeIqd: c.returnFeeIqd, rates: (c.rates ?? {}) as Record<string, number> }));
   const events = data.events.map(event => ({ ...event, createdAt: event.createdAt.toISOString() })) as OrderEvent[];
-  return <OrderDetail key={order.id} initial={order} events={events} />;
+  return <OrderDetail key={order.id} initial={order} events={events} couriers={couriers} />;
 }

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     const remaining = order.total - order.paid;
     if (remaining <= 0) return { error: 'This invoice is already paid in full.', status: 409 };
     if (amount > remaining) return { error: `Only ${remaining.toLocaleString('en-US')} IQD is still owed on this invoice.`, status: 400 };
-    await tx.insert(wholesalePayments).values({ orderId: id, amountIqd: amount, note });
+    await tx.insert(wholesalePayments).values({ orderId: id, amountIqd: amount, note, account: body.account === 'master' || body.account === 'qaseh' ? body.account : 'cash' });
     const paid = order.paid + amount;
     await tx.update(orders).set({ paidCents: sql`${orders.paidCents} + ${amount}`, paymentStatus: paid >= order.total ? 'paid' : 'partial', updatedAt: new Date() }).where(eq(orders.id, id));
     await tx.insert(orderEvents).values({ orderId: id, type: 'payment', message: `Payment received · ${amount} IQD` });

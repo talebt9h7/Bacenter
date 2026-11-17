@@ -1,3 +1,5 @@
+import { getAccountsSettings } from '@/lib/accounts';
+import { gatewayFee } from '@/lib/accounts-rules';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
@@ -81,7 +83,8 @@ export async function applyStatus(payment: PaymentRow, status: PayStatus, raw?: 
     .where(and(eq(payments.id, payment.id), eq(payments.status, payment.status))).returning();
   if (!updated) return payment; // another request got there first
   if (status === 'paid') {
-    const [order] = await db.update(orders).set({ paymentStatus: 'paid', paymentMethod: 'electronic', paidCents: payment.amountIqd, updatedAt: now }).where(eq(orders.id, payment.orderId)).returning();
+    const { qasehFeePercent } = await getAccountsSettings();
+    const [order] = await db.update(orders).set({ paymentStatus: 'paid', paymentMethod: 'electronic', paidCents: payment.amountIqd, paidTo: 'qaseh', paidAt: now, gatewayFeeIqd: gatewayFee(payment.amountIqd, qasehFeePercent), updatedAt: now }).where(eq(orders.id, payment.orderId)).returning();
     await db.insert(orderEvents).values({ orderId: payment.orderId, type: 'payment', message: `Paid electronically · ${providerName(payment.provider)} · ${payment.amountIqd.toLocaleString('en-US')} IQD` });
     if (order) {
       const settings = await getSettings();
@@ -94,7 +97,7 @@ export async function applyStatus(payment: PaymentRow, status: PayStatus, raw?: 
       ].filter(Boolean).join('\n')).catch(() => {});
     }
   } else if (status === 'refunded') {
-    await db.update(orders).set({ paymentStatus: 'refunded', updatedAt: now }).where(eq(orders.id, payment.orderId));
+    await db.update(orders).set({ paymentStatus: 'refunded', paidTo: null, paidAt: null, gatewayFeeIqd: 0, updatedAt: now }).where(eq(orders.id, payment.orderId));
     await db.insert(orderEvents).values({ orderId: payment.orderId, type: 'payment', message: 'Electronic payment refunded' });
   } else if (status !== 'pending') {
     await db.insert(orderEvents).values({ orderId: payment.orderId, type: 'payment', message: `Electronic payment ${status}` });

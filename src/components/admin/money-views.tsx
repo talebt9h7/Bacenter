@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountsTabs } from './accounts-views';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ArrowRight, CalendarDays, CircleDollarSign, Coins, LoaderCircle, Percent, Plus, Receipt, ShoppingBag, Tag, Trash2, TrendingUp, Truck, Wallet, Boxes } from 'lucide-react';
@@ -20,6 +21,7 @@ export function RevenueView({ data, finance }: { data: ReportsData; finance: boo
   const m = data.money, p = data.moneyPrevious;
   const labels = data.series.map(s => s.key);
   return <main className="admin-page dash">
+    <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {range(data, lang)}</>} title={tt('Revenue', 'الإيرادات')} description={tt('Product sales recognised on delivery. Delivery fees and cash handling are collected for couriers and kept apart from revenue.', 'مبيعات المنتجات المُحتسبة عند التسليم. أجور التوصيل ورسوم التحصيل تبقى منفصلة عن الإيراد.')}
       actions={<><PeriodNav base="/admin/revenue" period={data.period} lang={lang} /><div className="dash-quick">{finance && <Link href={`/admin/profit?period=${data.period}`} className="dash-btn">{tt('Profit', 'الأرباح')} <ArrowRight size={14} /></Link>}<Link href={`/admin/reports?period=${data.period}&section=sales`} className="dash-btn primary">{tt('Sales report', 'تقرير المبيعات')}</Link></div></>} />
     <section className="dash-kpis">
@@ -49,6 +51,7 @@ export function ProfitView({ data, expenses }: { data: ReportsData; expenses: { 
   const net = m.profit - data.expenses.current, netPrev = p.profit - data.expenses.previous;
   const labels = data.series.map(s => s.key);
   return <main className="admin-page dash">
+    <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {range(data, lang)}</>} title={tt('Profit', 'الأرباح')} description={tt('Gross profit uses the FIFO purchase cost saved on each sold unit; net profit subtracts operating expenses. Units with no purchase cost are reported apart instead of being given an invented cost.', 'إجمالي الربح يعتمد على تكلفة الشراء (أول داخل أول خارج) المحفوظة على كل قطعة مباعة، والصافي بعد طرح المصاريف. القطع بدون تكلفة تُعرض لحالها وما تنحسب بتكلفة وهمية.')}
       actions={<><PeriodNav base="/admin/profit" period={data.period} lang={lang} /><div className="dash-quick"><Link href={`/admin/finance?period=${data.period}`} className="dash-btn">{tt('Expenses', 'المصاريف')} <ArrowRight size={14} /></Link><Link href={`/admin/reports?period=${data.period}&section=profit`} className="dash-btn primary">{tt('Profit report', 'تقرير الأرباح')}</Link></div></>} />
     <section className="dash-kpis">
@@ -90,6 +93,7 @@ export function FinanceView({ data, rows, purchases, canManage }: { data: Report
     finally { setBusy(null); }
   }
   return <main className="admin-page dash">
+    <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {range(data, lang)}</>} title={tt('Finance', 'المالية')} description={tt('Expenses, purchases and stock value next to sales and profit. Purchases are cash put into stock; they become cost only when the units are sold.', 'المصاريف والمشتريات وقيمة المخزون جنب المبيعات والأرباح. المشتريات فلوس داخلة بالمخزون، وتصير تكلفة بس من تنباع القطع.')}
       actions={<><PeriodNav base="/admin/finance" period={data.period} lang={lang} /><div className="dash-quick">{canManage && <a href="#add-expense" className="dash-btn primary"><Plus size={15} /> {tt('Add expense', 'إضافة مصروف')}</a>}<Link href={`/admin/reports?period=${data.period}&section=profit`} className="dash-btn">{tt('Reports', 'التقارير')} <ArrowRight size={14} /></Link></div></>} />
     <section className="dash-kpis">
@@ -113,7 +117,7 @@ export function FinanceView({ data, rows, purchases, canManage }: { data: Report
         <label>{tt('Description', 'الوصف')}<input name="description" required placeholder={tt('Meta ads, rent, packaging…', 'إعلانات ميتا، إيجار، تغليف…')} /></label>
         <label>{tt('Amount (IQD)', 'المبلغ (د.ع)')}<input name="amountIqd" type="number" min="1" required /></label>
         <label>{tt('Category', 'النوع')}<select name="category">{Object.entries(EXPENSE).map(([k, v]) => <option key={k} value={k}>{v[lang === 'ar' ? 1 : 0]}</option>)}</select></label>
-        <label>{tt('Payment method', 'طريقة الدفع')}<select name="paymentMethod">{Object.entries(PAYMENT).map(([k, v]) => <option key={k} value={k}>{v[lang === 'ar' ? 1 : 0]}</option>)}</select></label>
+        <label>{tt('Paid from', 'انصرف من')}<select name="account" defaultValue="cash"><option value="cash">{tt('Cash box', 'الصندوق (نقد)')}</option><option value="master">{tt('Master account', 'حساب الماستر')}</option><option value="qaseh">{tt('Al Qaseh account', 'حساب القاصة')}</option></select></label>
         <label>{tt('Date', 'التاريخ')}<input name="expenseDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></label>
         <label>{tt('Reference', 'المرجع')}<input name="reference" placeholder={tt('Invoice / receipt', 'فاتورة / وصل')} /></label>
         <label className="full">{tt('Notes', 'ملاحظات')}<textarea name="notes" rows={3} /></label>

@@ -187,9 +187,58 @@ export const orders = pgTable('orders', {
   deliveredAt: timestamp('delivered_at'),
   // Wholesale credit invoices: how much of the total has been received so far.
   paidCents: integer('paid_cents').notNull().default(0),
+  // Accounts: how the order reaches the customer and where its money ends up.
+  /** 'courier' (a delivery company carries it) or 'pickup' (handed over in the shop). */
+  fulfillment: text('fulfillment').notNull().default('courier'),
+  courierId: integer('courier_id'),
+  /** What the delivery company charges for this order (its fee, or its return fee when returned). */
+  courierFeeIqd: integer('courier_fee_iqd'),
+  /** The courier settlement (statement) that closed this order with the delivery company. */
+  settlementId: integer('settlement_id'),
+  /** Where the money was received: 'cash' | 'master' | 'qaseh'. */
+  paidTo: text('paid_to'),
+  paidAt: timestamp('paid_at'),
+  /** Al Qaseh commission kept from an electronic payment. */
+  gatewayFeeIqd: integer('gateway_fee_iqd').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [index('orders_status_idx').on(table.status), index('orders_phone_idx').on(table.phone)]);
+}, (table) => [index('orders_status_idx').on(table.status), index('orders_phone_idx').on(table.phone), index('orders_courier_idx').on(table.courierId), index('orders_settlement_idx').on(table.settlementId)]);
+
+/** Delivery companies. Their fee per order depends on the governorate (rates), else defaultFeeIqd. */
+export const couriers = pgTable('couriers', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  phone: text('phone'),
+  defaultFeeIqd: integer('default_fee_iqd').notNull().default(0),
+  returnFeeIqd: integer('return_fee_iqd').notNull().default(0),
+  rates: jsonb('rates').notNull().default({}),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/** Money received from a delivery company for a set of orders (the company's statement). */
+export const courierSettlements = pgTable('courier_settlements', {
+  id: serial('id').primaryKey(),
+  courierId: integer('courier_id').notNull().references(() => couriers.id),
+  expectedIqd: integer('expected_iqd').notNull(),
+  receivedIqd: integer('received_iqd').notNull(),
+  account: text('account').notNull(),
+  settledAt: timestamp('settled_at').defaultNow().notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [index('courier_settlements_courier_idx').on(table.courierId)]);
+
+/** Money moved by hand: opening balances, transfers between accounts, partner withdrawals, deposits. */
+export const moneyMovements = pgTable('money_movements', {
+  id: serial('id').primaryKey(),
+  kind: text('kind').notNull(),
+  fromAccount: text('from_account'),
+  toAccount: text('to_account'),
+  amountIqd: integer('amount_iqd').notNull(),
+  movedAt: timestamp('moved_at').defaultNow().notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 export const orderEvents = pgTable('order_events', {
   id: serial('id').primaryKey(),
@@ -346,6 +395,8 @@ export const expenses = pgTable('expenses', {
   amountIqd: integer('amount_iqd').notNull(),
   expenseDate: timestamp('expense_date').defaultNow().notNull(),
   paymentMethod: text('payment_method').notNull().default('cash'),
+  /** Account the expense was paid from: 'cash' | 'master' | 'qaseh' (null on old rows: read from paymentMethod). */
+  account: text('account'),
   reference: text('reference'),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -501,6 +552,8 @@ export const wholesalePayments = pgTable('wholesale_payments', {
   orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
   amountIqd: integer('amount_iqd').notNull(),
   note: text('note'),
+  /** Account the payment went into: 'cash' | 'master' | 'qaseh'. */
+  account: text('account').notNull().default('cash'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [index('wholesale_payments_order_idx').on(table.orderId)]);
 

@@ -2,11 +2,13 @@ import { clearMemo } from './memo-cache';
 import { variantNameSql } from '@/lib/variant-sql';
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { activityLog, coupons, customers, inventoryBatches, inventoryMovements, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { activityLog, coupons, couriers, customers, inventoryBatches, inventoryMovements, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
 import { roundIqd } from './iraq';
 import { invalidateCatalog } from './cache-tags';
 import type { OrderStatus } from './iraq';
 import { reservedForVariant, statusHoldsStock } from './reservations';
+import { accountForMethod, courierFee, gatewayFee, isMoneyAccount, methodAllowed } from './accounts-rules';
+import { defaultCourier, getAccountsSettings } from './accounts';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -218,7 +220,38 @@ export function orderProductProfit(items: ProfitItem[], discount: number) {
   // while preserving the exact proportional allocation for line reporting.
   return Math.round(items.reduce((sum, item) => sum + lineProductProfit(item, items, discount), 0));
 }
-export async function transitionOrder(orderId: number, next: OrderStatus, extra: { trackingNumber?: string | null; courier?: string | null; adminNote?: string | null; paymentStatus?: string } = {}) {
+/**
+ * Where the money of an order is when its payment status changes: paid directly → the account of
+ * its payment method (cash box, Master, Al Qaseh minus its commission); unpaid/refunded → nowhere.
+ * Cash-on-delivery money is only received through a courier settlement (accounts.ts).
+ */
+async function moneyFields(tx: Tx, order: typeof orders.$inferSelect, paymentStatus: string, paidTo?: string | null) {
+  if (paymentStatus === order.paymentStatus && !paidTo) return {};
+  if (paymentStatus !== 'paid') return order.paymentMethod === 'cod' && order.settlementId ? {} : { paidTo: null, paidAt: null, gatewayFeeIqd: 0 };
+  if (order.paymentMethod === 'cod') return {};
+  const account = isMoneyAccount(paidTo) ? paidTo : accountForMethod(order.paymentMethod);
+  const cfg = await getAccountsSettings(tx);
+  return { paidTo: account, paidAt: order.paidAt ?? new Date(), gatewayFeeIqd: account === 'qaseh' ? gatewayFee(order.totalCents, cfg.qasehFeePercent) : 0 };
+}
+
+/**
+ * The delivery company and its fee: an order shipped without a company gets the default one,
+ * a delivered order without a fee gets the company's rate for the governorate, and a returned
+ * order is charged the company's return fee.
+ */
+async function courierFields(tx: Tx, order: typeof orders.$inferSelect, next: string) {
+  if (order.source === 'wholesale' || order.fulfillment !== 'courier' || !['shipped', 'delivered', 'returned'].includes(next)) return {};
+  let courierId = order.courierId;
+  if (!courierId) courierId = (await defaultCourier(tx))?.id ?? null;
+  if (!courierId) return {};
+  const [courier] = await tx.select().from(couriers).where(eq(couriers.id, courierId));
+  if (!courier) return { courierId };
+  if (next === 'returned') return { courierId, courierFeeIqd: courier.returnFeeIqd };
+  if (next === 'delivered' && order.courierFeeIqd == null) return { courierId, courierFeeIqd: courierFee(courier, order.governorate) };
+  return { courierId };
+}
+
+export async function transitionOrder(orderId: number, next: OrderStatus, extra: { trackingNumber?: string | null; courier?: string | null; adminNote?: string | null; paymentStatus?: string; paidTo?: string | null } = {}) {
   clearMemo('stats:');
   const result = await db.transaction(async tx => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
@@ -242,7 +275,13 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
     if (items !== order.items) await tx.update(orders).set({ items }).where(eq(orders.id, orderId));
     if (!wasCancelled && willCancel) await releaseCoupon(tx, order.couponCode);
     if (wasCancelled && !willCancel) await reclaimCoupon(tx, order.couponCode);
-    const paymentStatus = next === 'delivered' && order.source !== 'wholesale' ? 'paid' : extra.paymentStatus ?? (willCancel ? (order.paymentStatus === 'paid' ? 'refunded' : 'unpaid') : order.paymentStatus);
+    // Money: a shop sale paid in cash is in the cash box once it is handed over. Cash on delivery stays
+    // with the delivery company until a settlement; transfers and Al Qaseh are marked when they arrive.
+    const handedOverForCash = next === 'delivered' && order.source !== 'wholesale' && order.paymentMethod === 'cash';
+    const requested = extra.paymentStatus === 'paid' && order.paymentMethod === 'cod' && !order.settlementId ? undefined : extra.paymentStatus;
+    const paymentStatus = handedOverForCash ? 'paid' : requested ?? (willCancel ? (order.paymentStatus === 'paid' ? 'refunded' : 'unpaid') : order.paymentStatus);
+    const money = await moneyFields(tx, order, paymentStatus, extra.paidTo);
+    const delivery = await courierFields(tx, order, next);
     // Financial recognition starts only when the order is delivered. Pending/confirmed/processing/shipped
     // orders are operationally active but must not contribute to realized revenue or profit yet.
     const recognizedProfit = next === 'delivered'
@@ -250,7 +289,7 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
       : 0;
     // Keep the original delivery date when a delivered order is only being annotated.
     const deliveredAt = next === 'delivered' ? (previous === 'delivered' && order.deliveredAt ? order.deliveredAt : new Date()) : null;
-    await tx.update(orders).set({ status: next, paymentStatus, profitIqd: recognizedProfit, deliveredAt, trackingNumber: extra.trackingNumber === undefined ? order.trackingNumber : extra.trackingNumber, courier: extra.courier === undefined ? order.courier : extra.courier, adminNote: extra.adminNote === undefined ? order.adminNote : extra.adminNote, updatedAt: new Date() }).where(eq(orders.id, orderId));
+    await tx.update(orders).set({ status: next, paymentStatus, ...money, ...delivery, profitIqd: recognizedProfit, deliveredAt, trackingNumber: extra.trackingNumber === undefined ? order.trackingNumber : extra.trackingNumber, courier: extra.courier === undefined ? order.courier : extra.courier, adminNote: extra.adminNote === undefined ? order.adminNote : extra.adminNote, updatedAt: new Date() }).where(eq(orders.id, orderId));
     if (order.customerId && !wasCancelled && willCancel) {
       const value = customerOrderValue(order.subtotalCents, order.discountCents);
       const [last] = await tx.select({ lastOrderAt: max(orders.createdAt) }).from(orders).where(and(eq(orders.customerId, order.customerId), sql`${orders.id} <> ${orderId}`, sql`${orders.status} NOT IN ('cancelled','returned')`));
@@ -266,9 +305,37 @@ export async function transitionOrder(orderId: number, next: OrderStatus, extra:
   return result;
 }
 
+/** Delivery company, fee and money fields after an order edit (see moneyFields / courierFields). */
+async function editedMoney(tx: Tx, order: typeof orders.$inferSelect, input: { fulfillment?: string; courierId?: number | null; courierFeeIqd?: number | null; paidTo?: string | null; paymentMethod: string; paymentStatus: string }, total: number) {
+  if (order.source === 'wholesale') return { paymentStatus: input.paymentStatus, fields: {} };
+  const fulfillment = input.fulfillment === 'pickup' || input.fulfillment === 'courier' ? input.fulfillment : order.fulfillment;
+  const method = input.paymentMethod;
+  if (!methodAllowed(fulfillment, method) && (method !== order.paymentMethod || fulfillment !== order.fulfillment)) throw new Error('INVALID_METHOD');
+  let courierId = fulfillment === 'pickup' ? null : input.courierId !== undefined ? input.courierId : order.courierId;
+  if (courierId) { const [exists] = await tx.select({ id: couriers.id }).from(couriers).where(eq(couriers.id, courierId)); if (!exists) courierId = null; }
+  let courierFeeIqd = fulfillment === 'pickup' || !courierId ? null : input.courierFeeIqd !== undefined ? input.courierFeeIqd : order.courierFeeIqd;
+  if (courierId && courierId !== order.courierId && input.courierFeeIqd === undefined && (order.status === 'delivered' || order.status === 'returned')) {
+    const [courier] = await tx.select().from(couriers).where(eq(couriers.id, courierId));
+    courierFeeIqd = order.status === 'returned' ? courier?.returnFeeIqd ?? null : courierFee(courier, order.governorate);
+  }
+  if (order.settlementId && (courierId !== order.courierId || courierFeeIqd !== order.courierFeeIqd || total !== order.totalCents || method !== order.paymentMethod)) throw new Error('SETTLED_ORDER');
+  // Cash on delivery is received only through a settlement with the delivery company.
+  const paymentStatus = method === 'cod' && input.paymentStatus === 'paid' && order.paymentStatus !== 'paid' ? 'unpaid' : input.paymentStatus;
+  const fields: Record<string, unknown> = { fulfillment, courierId, courierFeeIqd };
+  if (method === 'cod') {
+    if (paymentStatus !== 'paid') Object.assign(fields, { paidTo: null, paidAt: null, gatewayFeeIqd: 0 });
+  } else if (paymentStatus === 'paid') {
+    const account = isMoneyAccount(input.paidTo) ? input.paidTo : method === order.paymentMethod && isMoneyAccount(order.paidTo) ? order.paidTo : accountForMethod(method);
+    const cfg = await getAccountsSettings(tx);
+    Object.assign(fields, { paidTo: account, paidAt: order.paidAt ?? new Date(), gatewayFeeIqd: account === 'qaseh' ? gatewayFee(total, cfg.qasehFeePercent) : 0 });
+  } else Object.assign(fields, { paidTo: null, paidAt: null, gatewayFeeIqd: 0 });
+  return { paymentStatus, fields };
+}
+
 export async function updateOrderDetails(orderId: number, input: {
   name: string; phone: string; email?: string; governorate: string; city: string; address: string; landmark?: string;
   source?: string; sourceNote?: string | null; shippingCents: number; discountCents: number; paymentMethod: string; paymentStatus: string; customerNote?: string | null;
+  fulfillment?: string; courierId?: number | null; courierFeeIqd?: number | null; paidTo?: string | null;
   items?: { variantId: number; quantity: number; unitPrice: number; profitIqd?: number }[];
 }) {
   const result = await db.transaction(async tx => {
@@ -308,6 +375,7 @@ export async function updateOrderDetails(orderId: number, input: {
     const shipping = Math.max(0, Math.round(input.shippingCents));
     const total = Math.max(0, subtotal - safeDiscount) + shipping + order.codFeeCents;
     const orderProfitIqd = order.status === 'delivered' ? orderProductProfit(nextItems, safeDiscount) : 0;
+    const money = await editedMoney(tx, order, input, total);
     const oldCustomerId = order.customerId;
     const phoneChanged = input.phone !== order.phone;
     // Cancelled/returned orders were already taken out of the customer's order count and
@@ -332,7 +400,7 @@ export async function updateOrderDetails(orderId: number, input: {
     } else if (oldCustomerId) {
       await tx.update(customers).set({ name: input.name, email: input.email || null, governorate: zone.code, updatedAt: new Date(), totalSpent: sql`GREATEST(${customers.totalSpent} - ${customerOrderValue(order.subtotalCents, order.discountCents)} + ${customerOrderValue(subtotal, safeDiscount)}, 0)`, lastOrderAt: new Date() }).where(eq(customers.id, oldCustomerId));
     }
-    await tx.update(orders).set({ customerId, name: input.name, phone: input.phone, email: input.email || '', governorate: zone.code, address: { ...(order.address as Record<string, unknown>), governorate: zone.nameEn, governorateAr: zone.nameAr, city: input.city, line1: input.address, landmark: input.landmark || '', altPhone: (order.address as Record<string, unknown>)?.altPhone || '', country: 'Iraq' }, items: nextItems, subtotalCents: subtotal, source: input.source || order.source, sourceNote: input.sourceNote || null, shippingCents: shipping, discountCents: safeDiscount, totalCents: total, profitIqd: orderProfitIqd, paymentMethod: input.paymentMethod, paymentStatus: order.status === 'delivered' && order.source !== 'wholesale' ? 'paid' : input.paymentStatus, customerNote: input.customerNote || null, updatedAt: new Date() }).where(eq(orders.id, orderId));
+    await tx.update(orders).set({ customerId, name: input.name, phone: input.phone, email: input.email || '', governorate: zone.code, address: { ...(order.address as Record<string, unknown>), governorate: zone.nameEn, governorateAr: zone.nameAr, city: input.city, line1: input.address, landmark: input.landmark || '', altPhone: (order.address as Record<string, unknown>)?.altPhone || '', country: 'Iraq' }, items: nextItems, subtotalCents: subtotal, source: input.source || order.source, sourceNote: input.sourceNote || null, shippingCents: shipping, discountCents: safeDiscount, totalCents: total, profitIqd: orderProfitIqd, paymentMethod: input.paymentMethod, paymentStatus: money.paymentStatus, ...money.fields, customerNote: input.customerNote || null, updatedAt: new Date() }).where(eq(orders.id, orderId));
     await tx.insert(orderEvents).values({ orderId, type: 'edited', message: 'Order details updated' });
     return orderId;
   });
