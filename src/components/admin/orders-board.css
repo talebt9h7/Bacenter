@@ -12,7 +12,7 @@
 .admin-shell .ob-name{font-size:16px;font-weight:800;color:#1d1d1f;text-decoration:none;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin-shell .ob-name:hover{color:#8b5a2b}
 .ob-phone{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#6e6e73;text-decoration:none;font-variant-numeric:tabular-nums;align-self:flex-start}
-.admin-shell .ob-status{min-width:0;max-width:140px;height:32px;font-size:12.5px!important;padding-block:0!important}
+
 
 .ob-tags{display:flex;flex-wrap:wrap;gap:6px}
 .ob-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:7px;background:#f3f2ef;color:#55524d;font-size:11.5px;font-weight:600;line-height:1.5;white-space:nowrap;text-decoration:none}
@@ -28,27 +28,27 @@ a.ob-ref:hover{background:#ecdcc8}
 .ob-items b{font-size:12.5px;color:#55524d;font-variant-numeric:tabular-nums}
 .ob-items .ob-more{display:block;font-size:12px;color:#86868b;padding-inline-start:46px}
 
-.ob-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.ob-facts > div{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:9px 10px;border-radius:12px;background:#f8f7f5}
-.ob-facts span{font-size:11px;color:#86868b;font-weight:600}
-.ob-facts strong{font-size:15px;font-weight:800;color:#1d1d1f;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ob-facts small{font-size:11.5px;color:#6e6e73;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-width:100%}
-.ob-deliv{font-size:13px;font-weight:700;color:#33489a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-
+.ob-facts{margin:0;display:flex;flex-direction:column;border-radius:12px;background:#f8f7f5;padding:4px 12px}
+.ob-fact{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #eeebe6}
+.ob-fact:last-child{border-bottom:0}
+.ob-fact dt{font-size:12px;color:#86868b;font-weight:600}
+.ob-fact dd{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0}
+.ob-fact strong{font-size:17px;font-weight:800;color:#1d1d1f;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ob-fact small{font-size:12px;color:#6e6e73;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+.ob-fact .acc-pill{white-space:nowrap}
+.ob-deliv{font-size:13.5px;font-weight:700;color:#33489a;white-space:nowrap}
 .ob-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
 .ob-actions-end{display:flex;align-items:center;gap:6px}
 
 @media (max-width: 520px){
   .ob-grid{grid-template-columns:1fr}
   .ob-card{padding:14px;border-radius:16px}
-  .ob-facts{gap:6px}
-  .ob-facts > div{padding:8px}
-  .admin-shell .ob-status{max-width:120px}
 }
 
 /* The admin's minimum text size rule (14px) is meant for paragraphs, not these compact labels. */
-html body .admin-shell .ob-card small,html body .admin-shell .ob-facts small{font-size:11.5px!important;line-height:1.35!important}
-html body .admin-shell .ob-facts span{font-size:11px!important}
+html body .admin-shell .ob-card small,html body .admin-shell .ob-facts small{font-size:12px!important;line-height:1.4!important}
+html body .admin-shell .ob-fact dt{font-size:12px!important}
+html body .admin-shell .ob-fact .acc-pill{font-size:12px!important}
 html body .admin-shell .ob-tag{font-size:11.5px!important}
 html body .admin-shell .ob-items li{font-size:13.5px!important}
 html body .admin-shell .ob-item-name small{font-size:12px!important}
@@ -74,3 +74,23 @@ html body .admin-shell .ob-bulk-btn.is-primary:hover{background:#7a4e25}
 .ob-meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:2px 0 12px}
 .ob-meta .admin-orders-scope{margin:0}
 .ob-meta-tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+
+/* Status: coloured pill + small menu in the system's style. */
+.ob-status{position:relative}
+.ob-status-pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 12px;border-radius:999px;border:1px solid transparent;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:filter .15s}
+.ob-status-pill:hover{filter:brightness(.97)}
+.ob-status-pill:disabled{opacity:.6;cursor:default}
+.ob-status-pill i,.ob-status-menu i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.tone-pending{--t-bg:#f6eedc;--t-fg:#9a6b12}
+.tone-progress{--t-bg:#e6ecf4;--t-fg:#3d5a80}
+.tone-shipped{--t-bg:#eee8f6;--t-fg:#6d4c9a}
+.tone-done{--t-bg:#e4f1ea;--t-fg:#2f6b4f}
+.tone-stop{--t-bg:#f8e6e2;--t-fg:#b3402a}
+.ob-status-pill{background:var(--t-bg);color:var(--t-fg)}
+.ob-status-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:40;min-width:170px;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid #e7e4df;border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.06)}
+.ob-status-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:13.5px;font-weight:600;color:#1d1d1f;cursor:pointer;text-align:start}
+.ob-status-menu button i{color:var(--t-fg)}
+.ob-status-menu button:hover{background:#f5f3ef}
+.ob-status-menu button.is-current{background:var(--t-bg);color:var(--t-fg)}
+.ob-status-menu button svg{margin-inline-start:auto}
+html body .admin-shell .ob-status-menu button,html body .admin-shell .ob-status-pill{font-size:13px!important}

@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, useTransition } from 'react';
-import { ArrowRight, Banknote, Clock, LoaderCircle, MapPin, Phone, Printer, Save, Search, Truck, Plus, Pencil, Trash2, Check, Download, X, MessageCircle } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { ArrowRight, Banknote, Clock, LoaderCircle, MapPin, Phone, Printer, Save, Search, Truck, Plus, Pencil, Trash2, Check, Download, X, MessageCircle, ChevronDown } from 'lucide-react';
 import { orderStatuses, statusLabels, statusTransitions, type OrderStatus } from '@/lib/iraq';
 import { api, money, Modal, StatusBadge, useFlash, when } from './ui';
 import { ManualOrderModal } from './manual-order-modal';
@@ -161,6 +161,27 @@ function orderWhen(iso: string, language: string) {
   return language === 'ar' ? `${d.getUTCDate()} ${MONTHS_AR[d.getUTCMonth()]} · ${time}` : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })} · ${time}`;
 }
 
+const STATUS_TONE: Record<string, string> = { pending: 'pending', confirmed: 'progress', processing: 'progress', shipped: 'shipped', delivered: 'done', cancelled: 'stop', returned: 'stop' };
+/** Order status as a coloured pill that opens a small menu (the browser's own list looked out of place). */
+function StatusMenu({ status, disabled, language, label, onChange }: { status: string; disabled?: boolean; language: AppLanguage; label: string; onChange: (s: OrderStatus) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => { if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', close);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
+  }, [open]);
+  return <div className="ob-status" ref={ref}>
+    <button type="button" className={`ob-status-pill tone-${STATUS_TONE[status] ?? 'pending'}`} disabled={disabled} aria-haspopup="listbox" aria-expanded={open} aria-label={label} onClick={() => setOpen(v => !v)}>
+      <i aria-hidden="true" />{orderStatusT(status as OrderStatus, language)}<ChevronDown size={13} />
+    </button>
+    {open && <ul className="ob-status-menu" role="listbox" aria-label={label}>{orderStatuses.map(item => <li key={item} role="option" aria-selected={item === status}>
+      <button type="button" className={`tone-${STATUS_TONE[item]}${item === status ? ' is-current' : ''}`} onClick={() => { setOpen(false); if (item !== status) onChange(item); }}><i aria-hidden="true" />{orderStatusT(item, language)}{item === status && <Check size={14} />}</button>
+    </li>)}</ul>}
+  </div>;
+}
+
 /** One order on the orders page: who, when, what, where it goes, money, and the next step — each in its own place. */
 function OrderCard({ row, couriers, names, language, selected, busy, next, onToggle, onAdvance, onStatus, onEdit, onDelete }: { row: OrderRow; couriers: CourierOption[]; names: Map<number, { product?: string; color?: string }>; language: AppLanguage; selected: boolean; busy: boolean; next?: OrderStatus; onToggle: () => void; onAdvance: () => void; onStatus: (s: OrderStatus) => void; onEdit: () => void; onDelete: () => void }) {
   const ar = language === 'ar';
@@ -176,7 +197,7 @@ function OrderCard({ row, couriers, names, language, selected, busy, next, onTog
         <Link href={`/admin/orders/${row.id}`} className="ob-name">{row.name || '—'}</Link>
         <a className="ob-phone" href={row.phone ? `tel:${row.phone}` : undefined} dir="ltr"><Phone size={11} /> {row.phone || row.email || '—'}</a>
       </div>
-      <select className={`admin-status-select status-${row.status} ob-status`} value={row.status} disabled={busy} aria-label={`${ar ? 'الحالة' : 'Status'} ${row.reference}`} onChange={e => onStatus(e.target.value as OrderStatus)}>{orderStatuses.map(item => <option key={item} value={item}>{orderStatusT(item, language)}</option>)}</select>
+      <StatusMenu status={row.status} disabled={busy} language={language} label={`${ar ? 'الحالة' : 'Status'} ${row.reference}`} onChange={onStatus} />
     </header>
     <div className="ob-tags">
       <Link href={`/admin/orders/${row.id}`} className="ob-tag ob-ref" dir="ltr">{row.reference}</Link>
@@ -191,11 +212,11 @@ function OrderCard({ row, couriers, names, language, selected, busy, next, onTog
       </li>)}
       {row.items.length > 3 && <li className="ob-more">+{row.items.length - 3} {ar ? 'منتج آخر' : 'more'}</li>}
     </ul>
-    <div className="ob-facts">
-      <div><span>{ar ? 'الإجمالي' : 'Total'}</span><strong>{money(row.totalCents, row.currency)}</strong><small>{units} {ar ? 'قطعة' : units === 1 ? 'item' : 'items'}{row.discountCents > 0 ? ` · ${ar ? 'خصم' : 'off'} ${money(row.discountCents, row.currency)}` : ''}</small></div>
-      <div><span>{ar ? 'الفلوس' : 'Money'}</span><MoneyPill order={row} /><small>{paymentMethodLabel(row.paymentMethod, language)}</small></div>
-      <div><span>{ar ? 'التسليم' : 'Delivery'}</span><b className="ob-deliv">{o.source === 'wholesale' ? (ar ? 'جملة' : 'Wholesale') : o.fulfillment === 'pickup' ? (ar ? 'من المحل' : 'Pick-up') : courierName ?? (ar ? 'توصيل' : 'Delivery')}</b><small>{o.fulfillment === 'pickup' ? '' : where || '—'}</small></div>
-    </div>
+    <dl className="ob-facts">
+      <div className="ob-fact ob-fact-total"><dt>{ar ? 'الإجمالي' : 'Total'}</dt><dd><strong>{money(row.totalCents, row.currency)}</strong><small>{units} {ar ? 'قطعة' : units === 1 ? 'item' : 'items'}{row.discountCents > 0 ? ` · ${ar ? 'خصم' : 'off'} ${money(row.discountCents, row.currency)}` : ''}</small></dd></div>
+      <div className="ob-fact"><dt>{ar ? 'الفلوس' : 'Money'}</dt><dd><MoneyPill order={row} /><small>{paymentMethodLabel(row.paymentMethod, language)}</small></dd></div>
+      <div className="ob-fact"><dt>{ar ? 'التسليم' : 'Delivery'}</dt><dd><b className="ob-deliv">{o.source === 'wholesale' ? (ar ? 'جملة' : 'Wholesale') : o.fulfillment === 'pickup' ? (ar ? 'من المحل' : 'Pick-up') : courierName ?? (ar ? 'توصيل' : 'Delivery')}</b>{o.fulfillment !== 'pickup' && where && <small>{where}</small>}</dd></div>
+    </dl>
     <footer className="ob-actions">
       {next ? <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={onAdvance} disabled={busy}>{busy ? <LoaderCircle size={13} className="spin" /> : <ArrowRight size={13} />} {orderStatusT(next, language)}</button> : <span />}
       <div className="ob-actions-end">
