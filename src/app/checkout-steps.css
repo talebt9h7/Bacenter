@@ -1,7 +1,7 @@
 /* Checkout in three steps (contact → delivery → payment), in the bag sheet's style:
    white page, soft grey cards, round dark buttons, the brand brown for the current step. */
 html body .cs-page{--cs-ink:#1f1b16;--cs-muted:#8a847a;--cs-soft:#f4f2ee;--cs-line:#ece8e1;--cs-brand:#8b5a2b;background:#fff!important;padding-top:0!important}
-html body:has(.cs-page) .site-header,html body:has(.cs-page) .site-footer,html body:has(.cs-page) .newsletter,html body:has(.cs-page) .announcement-bar{display:none!important}
+html body:has(.cs-page) .site-header,html body:has(.cs-page) .site-footer,html body:has(.cs-page) .newsletter-section,html body:has(.cs-page) .trust-strip,html body:has(.cs-page) .demo-disclaimer,html body:has(.cs-page) .announcement-bar{display:none!important}
 .cs-top{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;max-width:1080px;margin:0 auto;padding:14px 16px 4px}
 .cs-back{width:42px;height:42px;border-radius:50%;border:0;background:var(--cs-soft);color:var(--cs-ink);display:grid;place-items:center;cursor:pointer}
 html body .cs-brand{justify-self:center;font-size:15px!important;font-weight:800;letter-spacing:5px;color:var(--cs-ink)!important;text-decoration:none!important}
@@ -98,3 +98,13 @@ html body .cs-next{display:flex;align-items:center;justify-content:center;gap:8p
 html body .cs-page .co-summary .co-coupon{display:none!important}
 html body:has(.cs-page),html body:has(.cs-page) main,html body:has(.cs-page) .page-shell{background:#fff!important;background-image:none!important}
 html body .cs-page .co-summary h2{font-size:18px!important;font-weight:800!important;margin:0 0 12px!important;display:flex;align-items:center;gap:8px}
+
+html body .cs-brand{display:block;height:38px}
+html body .cs-brand img{height:38px;width:auto;display:block}
+.cs-cards{display:inline-flex;gap:6px;margin-top:4px}
+.cs-card-mark{width:44px;height:28px;display:block}
+.cs-skeleton span{width:64px;height:64px;border-radius:12px;background:#e9e6e0}
+.cs-skeleton i{display:block;height:11px;border-radius:6px;background:#e9e6e0;width:70%}
+.cs-skeleton i+i{width:40%;margin-top:8px}
+.cs-skeleton span,.cs-skeleton i{animation:cs-pulse 1.2s ease-in-out infinite}
+@keyframes cs-pulse{50%{opacity:.5}}

@@ -11,7 +11,7 @@ import { storeT } from '@/lib/i18n-store';
 import { iraqPhonePattern, normalizeIraqPhone } from '@/lib/iraq';
 
 type Zone = { code: string; nameEn: string; nameAr: string; rate: number; minDays: number; maxDays: number };
-type Config = { gateway?: { enabled: boolean; provider: 'zaincash' | 'fib' | 'alqaseh' }; zones: Zone[]; settings: { exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; supportPhone: string; whatsapp?: string | number } };
+type Config = { gateway?: { enabled: boolean; provider: 'zaincash' | 'fib' | 'alqaseh' }; zones: Zone[]; settings: { logoUrl?: string; exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; supportPhone: string; whatsapp?: string | number } };
 type Coupon = { code: string; discount: number; freeShipping: boolean; description: string };
 type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone; payment?: 'cod' | 'electronic' };
 type Saved = { name?: string; phone?: string; altPhone?: string; email?: string; governorate?: string; city?: string; address?: string; landmark?: string };
@@ -31,17 +31,25 @@ function deliveryWindow(zone: Zone, language: string) {
   return zone.minDays === zone.maxDays ? fmt(from) : `${fmt(from)} – ${fmt(to)}`;
 }
 
+/** Card scheme marks shown next to electronic payment. */
+function VisaMark() {
+  return <svg className="cs-card-mark" viewBox="0 0 48 30" role="img" aria-label="Visa"><rect width="48" height="30" rx="5" fill="#fff" stroke="#e3e0da" /><text x="24" y="20" textAnchor="middle" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontStyle="italic" fontSize="13" fill="#1a1f71" letterSpacing="-0.4">VISA</text></svg>;
+}
+function MastercardMark() {
+  return <svg className="cs-card-mark" viewBox="0 0 48 30" role="img" aria-label="Mastercard"><rect width="48" height="30" rx="5" fill="#fff" stroke="#e3e0da" /><circle cx="19.5" cy="15" r="8" fill="#eb001b" /><circle cx="28.5" cy="15" r="8" fill="#f79e1b" /><path d="M24 8.4a8 8 0 0 1 0 13.2a8 8 0 0 1 0-13.2z" fill="#ff5f00" /></svg>;
+}
+
 function readSaved(): Saved {
   try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '{}') as Saved; } catch { return {}; }
 }
 
-export function Checkout() {
+export function Checkout({ initialConfig = null }: { initialConfig?: Config | null } = {}) {
   const { cart, loaded, refreshCart, setCartOpen } = useStore();
   const { language } = useLanguage();
   const ar = language === 'ar';
   const iqd = (value: number) => ar ? `${groupInt(value)} د.ع` : numberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(value);
   const t = (label: string) => storeT(label, language);
-  const [config, setConfig] = useState<Config | null>(null);
+  const [config, setConfig] = useState<Config | null>(initialConfig);
   const [governorate, setGovernorate] = useState('');
   const [couponOpen, setCouponOpen] = useState(false);
   const [couponInput, setCouponInput] = useState('');
@@ -68,7 +76,7 @@ export function Checkout() {
   }, [cart]);
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => { fetch('/api/checkout').then(r => r.json()).then(setConfig).catch(() => setError(ar ? 'تعذر تحميل صفحة إتمام الطلب. حدّث الصفحة.' : 'Checkout could not be loaded. Please refresh.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- load once
+  useEffect(() => { if (initialConfig) return; fetch('/api/checkout').then(r => r.json()).then(setConfig).catch(() => setError(ar ? 'تعذر تحميل صفحة إتمام الطلب. حدّث الصفحة.' : 'Checkout could not be loaded. Please refresh.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- load once
   // Returning customers: fill in the details they used last time (kept only in their browser).
   useEffect(() => {
     if (!config) return;
@@ -180,8 +188,8 @@ export function Checkout() {
     </div>
   </section></main>;
 
-  if (!loaded || !config) return <main className="checkout-page co-page"><div className="co-state"><LoaderCircle className="spin" size={30} /><h3>{ar ? 'جارٍ تجهيز طلبك…' : 'Getting your order ready…'}</h3>{error && <p className="co-error">{error}</p>}</div></main>;
-  if (!cart.length) return <main className="checkout-page co-page"><div className="co-state"><ShoppingBag size={46} strokeWidth={1.1} /><h3>{ar ? 'سلتك فارغة' : 'Your bag is empty'}</h3><p>{ar ? 'ابدأ من الأكثر طلباً عند زبائننا.' : 'Start with what our customers order most.'}</p><Link href="/collection/bestsellers" className="co-primary">{ar ? 'تسوّق الأكثر مبيعاً' : 'Shop bestsellers'} {ar ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</Link></div></main>;
+  if (!config) return <main className="checkout-page co-page"><div className="co-state"><LoaderCircle className="spin" size={30} /><h3>{ar ? 'جارٍ تجهيز طلبك…' : 'Getting your order ready…'}</h3>{error && <p className="co-error">{error}</p>}</div></main>;
+  if (loaded && !cart.length) return <main className="checkout-page co-page"><div className="co-state"><ShoppingBag size={46} strokeWidth={1.1} /><h3>{ar ? 'سلتك فارغة' : 'Your bag is empty'}</h3><p>{ar ? 'ابدأ من الأكثر طلباً عند زبائننا.' : 'Start with what our customers order most.'}</p><Link href="/collection/bestsellers" className="co-primary">{ar ? 'تسوّق الأكثر مبيعاً' : 'Shop bestsellers'} {ar ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</Link></div></main>;
 
   const summary = <>
     <ul className="co-lines">{lines.map(item => <li key={item.id}>
@@ -214,7 +222,7 @@ export function Checkout() {
   return <main className="checkout-page co-page cs-page">
     <header className="cs-top">
       <button type="button" className="cs-back" aria-label={ar ? 'رجوع' : 'Back'} onClick={() => (step > 1 ? goTo((step - 1) as 1 | 2) : setCartOpen(true))}>{ar ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}</button>
-      <Link href="/" className="cs-brand" dir="ltr">UR LEATHER</Link>
+      <Link href="/" className="cs-brand" aria-label={ar ? 'أور للجلود' : 'UR Leather'}><img src={config.settings.logoUrl ? mediaSrc(config.settings.logoUrl, 320) : '/images/UR-logo.svg'} alt={ar ? 'أور للجلود' : 'UR Leather'} /></Link>
       <span className="cs-secure"><LockKeyhole size={13} aria-hidden="true" /> {ar ? 'آمن' : 'Secure'}</span>
     </header>
 
@@ -235,7 +243,7 @@ export function Checkout() {
           <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => checkPhone(event.target.value)} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError}</small></div>
           <div className="co-field"><label htmlFor="altPhone">{ar ? 'رقم ثاني (اختياري)' : 'Second number (optional)'}</label><input id="altPhone" name="altPhone" type="tel" inputMode="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} /></div>
           <h2 className="cs-h">{ar ? 'طلبك' : 'Your order'}</h2>
-          <ul className="cs-lines">{lines.map(item => <li key={item.id}>
+          <ul className="cs-lines">{!loaded && <li className="cs-skeleton" aria-hidden="true"><span /><div><i /><i /></div></li>}{lines.map(item => <li key={item.id}>
             <img src={mediaSrc(item.image, 160)} alt="" />
             <div><strong>{item.label}</strong><span>{item.bundle ? (ar ? 'باكج' : 'Bundle') : item.colorLabel} · {ar ? `العدد ${item.quantity}` : `Qty ${item.quantity}`}</span></div>
             <b>{iqd(item.unit * item.quantity)}</b>
@@ -251,7 +259,7 @@ export function Checkout() {
           <div className="co-field"><label htmlFor="city">{ar ? 'المنطقة' : 'Area'}</label><input id="city" name="city" autoComplete="address-level2" placeholder={ar ? 'مثال: الكرادة، المنصور' : 'e.g. Karrada, Mansour'} maxLength={120} required /></div>
           <div className="co-field"><label htmlFor="landmark">{ar ? 'أقرب نقطة دالة (اختياري)' : 'Nearest landmark (optional)'}</label><input id="landmark" name="landmark" placeholder={ar ? 'مثال: قرب جامع…' : 'e.g. near … mosque'} maxLength={200} /></div>
           {zone && <><h2 className="cs-h">{ar ? 'التوصيل' : 'Delivery'}</h2>
-            <div className="cs-option is-on"><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? `توصيل إلى ${zone.nameAr}` : `Delivery to ${zone.nameEn}`}</strong><span>{ar ? 'يوصلك ' : 'Arrives '}{deliveryWindow(zone, language)}</span></div><b>{freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(zone.rate)}</b></div></>}
+            <div className="cs-option is-on"><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? `توصيل إلى ${zone.nameAr}` : `Delivery to ${zone.nameEn}`}</strong></div><b>{freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(zone.rate)}</b></div></>}
         </fieldset>
 
         <fieldset ref={step3} className="cs-step" hidden={step !== 3}>
@@ -260,7 +268,7 @@ export function Checkout() {
           <h2 className="cs-h">{ar ? 'طريقة الدفع' : 'Payment method'}</h2>
           <div className="cs-pay" role="radiogroup">
             <label className={`cs-option ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong>{config?.settings.codFee ? <span>{ar ? `تُضاف ${iqd(config.settings.codFee)} رسوم.` : `A ${iqd(config.settings.codFee)} fee applies.`}</span> : null}</div><Banknote size={20} aria-hidden="true" /></label>
-            <label className={`cs-option ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{isCard ? (ar ? 'بطاقة' : 'Card') : (ar ? 'الدفع الإلكتروني' : 'Electronic payment')}</strong>{isCard && <span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span>}</div><CreditCard size={20} aria-hidden="true" /></label>
+            <label className={`cs-option ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? 'الدفع الإلكتروني' : 'Electronic payment'}</strong>{isCard && <span className="cs-cards" aria-label="Visa, Mastercard"><VisaMark /><MastercardMark /></span>}</div><CreditCard size={20} aria-hidden="true" /></label>
           </div>
           <div className="co-coupon">{coupon
             ? <div className="co-coupon-applied"><Tag size={14} aria-hidden="true" /><span><strong>{coupon.code}</strong> · {coupon.description}</span><button type="button" onClick={() => { setCoupon(null); setCouponInput(''); }} aria-label={ar ? 'إزالة' : 'Remove'}><X size={14} /></button></div>

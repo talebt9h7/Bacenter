@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveZones, getPublicSettings } from '@/lib/settings';
 import { validateCoupon } from '@/lib/orders';
-import { gatewayReady, getPaymentSettings } from '@/lib/payments/config';
+import { checkoutConfig } from '@/lib/checkout-config';
 
 export const dynamic = 'force-dynamic';
 // Checkout configuration (Iraq delivery zones, COD settings) and coupon validation.
 export async function GET() {
-  const [zones, settings, pay] = await Promise.all([getActiveZones(), getPublicSettings(), getPaymentSettings()]);
-  return NextResponse.json({ gateway: { enabled: gatewayReady(pay), provider: pay.provider }, zones: zones.map(zone => ({ code: zone.code, nameEn: zone.nameEn, nameAr: zone.nameAr, rate: zone.rate, minDays: zone.minDays, maxDays: zone.maxDays })), settings });
+  return NextResponse.json(await checkoutConfig());
 }
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
