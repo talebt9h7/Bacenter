@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, Printer, RotateCcw, Save, Settings2, Trash2, FileSpreadsheet } from 'lucide-react';
-import { defaultPriceList, type PriceListData, type PriceListRow, type PriceListSettings, type PriceTerm, type PriceTier } from '@/lib/wholesale-price-list';
+import { applyOverride, defaultPriceList, type PriceListData, type PriceListRow, type PriceListSettings, type PriceOverride, type PriceTerm, type PriceTier } from '@/lib/wholesale-price-list';
 import { api } from './ui';
 import './wholesale-receipt.css';
 import './price-list.css';
@@ -12,8 +12,8 @@ const n = (v: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits:
 const thumb = (url: string) => (url.startsWith('/api/media/') ? `${url}?w=240` : url);
 
 /** The printable list itself (A4). Quantities are typed on the preview to turn it into a quote; they are not saved. */
-export function PriceListSheet({ data, s, qty, onQty }: { data: PriceListData; s: PriceListSettings; qty: Record<string, number>; onQty?: (key: string, value: number) => void }) {
-  const source = s.rowMode === 'product' ? data.productRows : data.rows;
+export function PriceListSheet({ data, s, qty, onQty, onEdit }: { data: PriceListData; s: PriceListSettings; qty: Record<string, number>; onQty?: (key: string, value: number) => void; onEdit?: (row: PriceListRow, patch: PriceOverride) => void }) {
+  const source = (s.rowMode === 'product' ? data.productRows : data.rows).map(r => applyOverride(r, s.overrides[r.key]));
   const hidden = new Set(s.hidden);
   const visible = source.filter(r => !hidden.has(r.key) && !hidden.has(r.productKey));
   const grand = visible.reduce((sum, r) => sum + (qty[r.key] ?? 0) * r.wholesale, 0);
@@ -38,10 +38,11 @@ export function PriceListSheet({ data, s, qty, onQty }: { data: PriceListData; s
             {s.showRetail && <th>سعر البيع الملزم<br /><small>(دينار)</small></th>}
             {s.showProfit && <th>ربح التاجر<br /><small>للقطعة</small></th>}
             {s.showMargin && <th>نسبة الربح</th>}
+            {s.showStock && <th>المتبقي<br /><small>(قطعة)</small></th>}
             {s.showQuantity && <th>العدد</th>}
             {s.showQuantity && <th>الإجمالي<br /><small>(جملة)</small></th>}
           </tr></thead>
-          <tbody>{rows.map(r => <Row key={r.key} r={r} s={s} qty={qty[r.key] ?? 0} onQty={onQty} />)}</tbody>
+          <tbody>{rows.map(r => <Row key={r.key} r={r} s={s} qty={qty[r.key] ?? 0} onQty={onQty} onEdit={onEdit} edited={!!s.overrides[r.key]} />)}</tbody>
         </table>
       </section>;
     })}
@@ -56,16 +57,23 @@ export function PriceListSheet({ data, s, qty, onQty }: { data: PriceListData; s
   </article>;
 }
 
-function Row({ r, s, qty, onQty }: { r: PriceListRow; s: PriceListSettings; qty: number; onQty?: (key: string, value: number) => void }) {
+function Row({ r, s, qty, onQty, onEdit, edited }: { r: PriceListRow; s: PriceListSettings; qty: number; onQty?: (key: string, value: number) => void; onEdit?: (row: PriceListRow, patch: PriceOverride) => void; edited?: boolean }) {
   const profit = r.retail - r.wholesale;
   const margin = r.retail > 0 ? Math.round((profit / r.retail) * 100) : 0;
-  return <tr>
+  const editText = (field: 'nameAr' | 'nameEn', className: string, dir?: 'ltr') => onEdit
+    ? <input className={`pl-edit ${className}`} dir={dir} value={r[field]} aria-label={field === 'nameAr' ? 'اسم المنتج' : 'الاسم بالإنكليزي'} onChange={e => onEdit(r, { [field]: e.target.value })} />
+    : <span className={className} dir={dir}>{r[field]}</span>;
+  const editPrice = (field: 'wholesale' | 'retail', className = '') => onEdit
+    ? <input className={`pl-edit pl-edit-num ${className}`} inputMode="numeric" value={n(r[field])} aria-label={field === 'wholesale' ? 'سعر الجملة' : 'سعر البيع'} onChange={e => { const v = Number(e.target.value.replace(/[^\d]/g, '')); onEdit(r, { [field]: Number.isFinite(v) ? v : 0 }); }} />
+    : <span className={className}>{n(r[field])}</span>;
+  return <tr className={edited && onEdit ? 'is-edited' : ''}>
     {s.showImages && <td className="pl-img-col">{r.image ? <img src={thumb(r.image)} alt="" /> : <span className="pl-noimg">UR</span>}</td>}
-    <td className="pl-name-col"><b>{r.nameAr}</b>{s.showEnglish && r.nameEn && <small dir="ltr">{r.nameEn}</small>}</td>
-    <td className="pl-num">{n(r.wholesale)}</td>
-    {s.showRetail && <td className="pl-num"><strong className="pl-retail">{n(r.retail)}</strong>{s.showFixedNote && s.fixedNote && <small className="pl-fixed">{s.fixedNote}</small>}</td>}
+    <td className="pl-name-col">{editText('nameAr', 'pl-name-ar')}{s.showEnglish && (r.nameEn || onEdit) && editText('nameEn', 'pl-name-en', 'ltr')}</td>
+    <td className="pl-num">{editPrice('wholesale')}</td>
+    {s.showRetail && <td className="pl-num">{editPrice('retail', 'pl-retail')}{s.showFixedNote && s.fixedNote && <small className="pl-fixed">{s.fixedNote}</small>}</td>}
     {s.showProfit && <td className="pl-num pl-profit">{n(profit)} <small>د.ع</small></td>}
     {s.showMargin && <td className="pl-num"><b>{margin}%</b></td>}
+    {s.showStock && <td className={`pl-num pl-stock${r.stock <= 0 ? ' is-out' : r.stock < 5 ? ' is-low' : ''}`}>{r.stock > 0 ? n(r.stock) : 'نفد'}</td>}
     {s.showQuantity && <td className="pl-num">{onQty ? <input className="pl-qty" type="number" min="0" inputMode="numeric" value={qty || ''} onChange={e => onQty(r.key, Math.max(0, Math.round(Number(e.target.value) || 0)))} aria-label={`عدد ${r.nameAr}`} /> : qty || ''}</td>}
     {s.showQuantity && <td className="pl-num pl-line">{qty ? <>{n(qty * r.wholesale)} <small>د.ع</small></> : '—'}</td>}
   </tr>;
@@ -84,11 +92,22 @@ export function PriceListStudio({ data, initial, canManage }: { data: PriceListD
     catch (e) { setErr(e instanceof Error ? e.message : 'ما انحفظت.'); } finally { setBusy(false); }
   }
   async function print() { await document.fonts.ready; window.print(); }
-  const source = s.rowMode === 'product' ? data.productRows : data.rows;
+  const source = (s.rowMode === 'product' ? data.productRows : data.rows).map(r => applyOverride(r, s.overrides[r.key]));
+  const original = useMemo(() => new Map([...data.rows, ...data.productRows].map(r => [r.key, r])), [data]);
+  /** Keeps only what differs from the catalogue, so clearing an edit brings the product's own value back. */
+  const editRow = (row: PriceListRow, patch: PriceOverride) => {
+    const base = original.get(row.key); if (!base) return;
+    const next: PriceOverride = { ...s.overrides[row.key], ...patch };
+    for (const k of Object.keys(next) as (keyof PriceOverride)[]) { const v = next[k]; if (v === undefined || v === '' || v === base[k]) delete next[k]; }
+    const overrides = { ...s.overrides };
+    if (Object.keys(next).length) overrides[row.key] = next; else delete overrides[row.key];
+    set({ overrides });
+  };
+  const editedCount = Object.keys(s.overrides).length;
   const hidden = useMemo(() => new Set(s.hidden), [s.hidden]);
   const toggleRow = (key: string) => set({ hidden: hidden.has(key) ? s.hidden.filter(h => h !== key) : [...s.hidden, key] });
   const text = (key: 'englishName' | 'brand' | 'tagline' | 'title' | 'fixedNote' | 'tiersTitle' | 'termsTitle' | 'policyTitle' | 'footerLine' | 'validityNote', label: string) => <label className="wr-field" key={key}><span>{label}</span><input value={s[key]} maxLength={200} dir={key === 'englishName' ? 'ltr' : undefined} onChange={e => set({ [key]: e.target.value })} /></label>;
-  const sw = (key: 'showImages' | 'showEnglish' | 'showRetail' | 'showFixedNote' | 'showProfit' | 'showMargin' | 'showQuantity' | 'showTiers' | 'showTerms' | 'showPolicy', label: string) => <label className="wr-switch" key={key}><span>{label}</span><input type="checkbox" checked={s[key]} onChange={e => set({ [key]: e.target.checked })} /><i aria-hidden="true" /></label>;
+  const sw = (key: 'showImages' | 'showEnglish' | 'showRetail' | 'showFixedNote' | 'showProfit' | 'showMargin' | 'showQuantity' | 'showStock' | 'showTiers' | 'showTerms' | 'showPolicy', label: string) => <label className="wr-switch" key={key}><span>{label}</span><input type="checkbox" checked={s[key]} onChange={e => set({ [key]: e.target.checked })} /><i aria-hidden="true" /></label>;
   const setTier = (i: number, patch: Partial<PriceTier>) => set({ tiers: s.tiers.map((t, k) => (k === i ? { ...t, ...patch } : t)) });
   const setTerm = (i: number, patch: Partial<PriceTerm>) => set({ terms: s.terms.map((t, k) => (k === i ? { ...t, ...patch } : t)) });
   const quoteTotal = source.filter(r => !hidden.has(r.key) && !hidden.has(r.productKey)).reduce((sum, r) => sum + (qty[r.key] ?? 0) * r.wholesale, 0);
@@ -108,7 +127,8 @@ export function PriceListStudio({ data, initial, canManage }: { data: PriceListD
         <details open><summary>الهوية والعنوان <ChevronDown size={15} /></summary><div className="wr-control-body">{text('englishName', 'الاسم بالإنكليزي')}{text('brand', 'اسم المتجر')}{text('tagline', 'الوصف تحت الاسم')}{text('title', 'عنوان القائمة')}<label className="wr-field"><span>لون القائمة</span><input type="color" value={s.accent} onChange={e => set({ accent: e.target.value })} /></label></div></details>
         <details open><summary>الجدول <ChevronDown size={15} /></summary><div className="wr-control-body">
           <div className="wr-paper-options"><button type="button" className={s.rowMode === 'variant' ? 'is-active' : ''} onClick={() => set({ rowMode: 'variant' })}><b>كل لون</b><small>سطر لكل لون</small></button><button type="button" className={s.rowMode === 'product' ? 'is-active' : ''} onClick={() => set({ rowMode: 'product' })}><b>كل منتج</b><small>سطر لكل منتج</small></button></div>
-          {sw('showImages', 'صور المنتجات')}{sw('showEnglish', 'الاسم بالإنكليزي تحت المنتج')}{sw('showRetail', 'سعر البيع الملزم')}{sw('showFixedNote', 'ملاحظة تحت سعر البيع')}{s.showFixedNote && text('fixedNote', 'نص الملاحظة')}{sw('showProfit', 'ربح التاجر للقطعة')}{sw('showMargin', 'نسبة الربح')}{sw('showQuantity', 'خانة العدد والإجمالي (عرض سعر)')}
+          {sw('showImages', 'صور المنتجات')}{sw('showEnglish', 'الاسم بالإنكليزي تحت المنتج')}{sw('showRetail', 'سعر البيع الملزم')}{sw('showFixedNote', 'ملاحظة تحت سعر البيع')}{s.showFixedNote && text('fixedNote', 'نص الملاحظة')}{sw('showProfit', 'ربح التاجر للقطعة')}{sw('showMargin', 'نسبة الربح')}{sw('showStock', 'العدد المتبقي بالمخزن')}{sw('showQuantity', 'خانة العدد والإجمالي (عرض سعر)')}
+          <p className="pl-hint">تكدر تعدل اسم أي منتج وسعره بالضغط عليه بالقائمة نفسها. التعديل يخص القائمة بس، وما يغير المنتج بالمتجر.</p>{editedCount > 0 && <button type="button" className="wr-reset" onClick={() => { if (window.confirm(`ترجع ${editedCount} سطر معدّل لأسعار وأسماء المنتجات الأصلية؟`)) set({ overrides: {} }); }}><RotateCcw size={13} /> رجّع التعديلات ({editedCount})</button>}
         </div></details>
         <details><summary>المنتجات بالقائمة <ChevronDown size={15} /></summary><div className="wr-control-body">
           {data.categories.map(c => <div key={c.id} className="pl-pick-group"><label className="wr-field"><span>عنوان قسم «{c.title}»</span><input value={s.categoryTitles[c.id] ?? ''} placeholder={c.title} maxLength={60} onChange={e => set({ categoryTitles: { ...s.categoryTitles, [c.id]: e.target.value } })} /></label>
@@ -125,7 +145,7 @@ export function PriceListStudio({ data, initial, canManage }: { data: PriceListD
       </aside>}
       <main className="wr-preview-area">
         <div className="wr-preview-caption"><span><i /> معاينة · A4</span>{s.showQuantity && <span>{quoteTotal > 0 ? `عرض سعر: ${n(quoteTotal)} د.ع` : 'اكتب العدد بالجدول حتى تطلع عرض سعر'}</span>}</div>
-        <div className="wr-paper-stage pl-stage"><PriceListSheet data={data} s={s} qty={qty} onQty={(key, value) => setQty(q => ({ ...q, [key]: value }))} /></div>
+        <div className="wr-paper-stage pl-stage"><PriceListSheet data={data} s={s} qty={qty} onQty={(key, value) => setQty(q => ({ ...q, [key]: value }))} onEdit={canManage ? editRow : undefined} /></div>
         <p className="wr-print-tip">بالطباعة اختر A4 ومقياس 100%، وأوقف «الرأس والتذييل» حتى ما يطلع التاريخ والرابط على الورقة. «حفظ كـ PDF» يطلعلك ملف ترسله للتجار.</p>
       </main>
     </div>

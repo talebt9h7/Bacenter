@@ -74,3 +74,20 @@ html body .pl-sheet .pl-sign-ar{font-family:'Aref Ruqaa',serif!important;font-si
   .pl-category,.pl-block{break-inside:auto}
   .pl-tiers,.pl-terms,.pl-grand{break-inside:avoid}
 }
+
+/* Names and prices edited right on the list (studio only); they print as plain text. */
+.pl-name-ar{display:block;font-size:13.5px;font-weight:600;color:var(--pl-ink)}
+.pl-name-en{display:block;font-size:10.5px;color:var(--pl-muted);text-align:start}
+.pl-edit{display:block;width:100%;min-width:0;border:1px dashed transparent;border-radius:4px;background:transparent;font:inherit;padding:1px 4px;margin:-1px -4px;color:inherit;text-align:inherit;outline:none;transition:border-color .15s,background .15s}
+.pl-edit.pl-name-ar{font-size:13.5px;font-weight:600}
+.pl-edit.pl-name-en{font-size:10.5px;color:var(--pl-muted)}
+.pl-edit-num{text-align:center;font-variant-numeric:tabular-nums;font-size:13px;width:90px;margin:-1px auto}
+.pl-edit-num.pl-retail{font-size:14px;font-weight:700;color:var(--pl-accent)}
+.pl-sheet tr:hover .pl-edit{border-color:#d8cfbf}
+.pl-edit:focus{border-color:var(--pl-accent)!important;border-style:solid;background:#fffaf2}
+.pl-sheet tr.is-edited td:first-child{box-shadow:inset -3px 0 0 #e0b26a}
+.pl-stock{font-weight:600;color:var(--pl-ink)}
+.pl-stock.is-low{color:#b26a00}
+.pl-stock.is-out{color:#b42318}
+.pl-hint{margin:2px 0 0;font-size:11px;line-height:1.8;color:#7a7f7a}
+@media print{.pl-edit{border:0!important;background:transparent!important;padding:0;margin:0}.pl-edit-num{margin:0 auto!important}.pl-sheet tr.is-edited td:first-child{box-shadow:none}}
