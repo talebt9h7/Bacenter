@@ -14,7 +14,7 @@ type ManualLine = CatalogRow & { quantity: number; unitPrice: number };
 
 /** Admin → Orders → "Add manual order": an order taken by phone, Instagram, WhatsApp or in the shop. */
 type CourierOption = { id: number; name: string; defaultFeeIqd: number; rates: Record<string, number> };
-export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = null, onClose }: { catalog: CatalogRow[]; couriers?: CourierOption[]; defaultCourierId?: number | null; onClose: () => void }) {
+export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = null, zoneRates = {}, onClose }: { catalog: CatalogRow[]; couriers?: CourierOption[]; defaultCourierId?: number | null; zoneRates?: Record<string, number>; onClose: () => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -22,7 +22,7 @@ export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = nu
   const productName = (row: CatalogRow) => (ar ? row.productNameAr || row.productName : row.productName);
   const colorName = (row: CatalogRow) => (ar ? row.colorAr || row.color : row.color);
   const router = useRouter();
-  const [name, setName] = useState(''), [phone, setPhone] = useState(''), [governorate, setGovernorate] = useState('baghdad'), [city, setCity] = useState(''), [address, setAddress] = useState(''), [landmark, setLandmark] = useState('');
+  const [name, setName] = useState(''), [phone, setPhone] = useState(''), [governorate, setGovernorate] = useState('baghdad'), [address, setAddress] = useState('');
   const [source, setSource] = useState('instagram'), [sourceNote, setSourceNote] = useState(''), [paymentMethod, setPaymentMethod] = useState('cod'), [paymentStatus, setPaymentStatus] = useState('unpaid'), [shipping, setShipping] = useState(''), [discount, setDiscount] = useState('0'), [note, setNote] = useState(''), [selected, setSelected] = useState('');
   const [lines, setLines] = useState<ManualLine[]>([]), [busy, setBusy] = useState(false);
   const [fulfillment, setFulfillment] = useState<'courier' | 'pickup'>('courier');
@@ -33,8 +33,8 @@ export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = nu
   const methodName: Record<string, string> = { cod: L('الدفع عند الاستلام', 'Cash on delivery'), cash: L('نقد', 'Cash'), bank_transfer: L('تحويل ماستر', 'Master transfer'), electronic: L('دفع إلكتروني', 'Electronic') };
   const { flash, fail } = useFlash();
   const addLine = (row: CatalogRow) => { if (lines.some(x => x.variantId === row.variantId)) { setLines(v => v.map(x => (x.variantId === row.variantId ? { ...x, quantity: Math.min(x.stock, x.quantity + 1) } : x))); return; } setLines(v => [...v, { ...row, quantity: 1, unitPrice: row.salePriceIqd }]); };
-  const subtotal = lines.reduce((s, x) => s + x.unitPrice * x.quantity, 0), safeDiscount = Math.min(Math.max(0, Number(discount) || 0), subtotal), delivery = shipping === '' ? null : Math.max(0, Number(shipping) || 0), total = Math.max(0, subtotal - safeDiscount) + (delivery ?? 0);
-  async function submit() { setBusy(true); try { const data = await api<{ id: number }>('/api/admin/orders/manual', { method: 'POST', json: { name, phone, governorate, city, address, landmark, source, sourceNote, paymentMethod, paymentStatus: paymentMethod === 'cod' ? 'unpaid' : fulfillment === 'pickup' && paymentMethod === 'cash' ? (handedOver ? 'paid' : 'unpaid') : paymentStatus, status: fulfillment === 'pickup' && handedOver ? 'delivered' : 'pending', fulfillment, courierId: fulfillment === 'courier' && courierId ? Number(courierId) : null, shipping: delivery, discount: safeDiscount, note, items: lines.map(x => ({ variantId: x.variantId, quantity: x.quantity, unitPrice: x.unitPrice })) } }); router.push(`/admin/orders/${data.id}`); } catch (e) { fail(e); setBusy(false); } }
+  const subtotal = lines.reduce((s, x) => s + x.unitPrice * x.quantity, 0), safeDiscount = Math.min(Math.max(0, Number(discount) || 0), subtotal), delivery = fulfillment === 'pickup' ? 0 : shipping === '' ? (zoneRates[governorate] ?? null) : Math.max(0, Number(shipping) || 0), total = Math.max(0, subtotal - safeDiscount) + (delivery ?? 0);
+  async function submit() { setBusy(true); try { const data = await api<{ id: number }>('/api/admin/orders/manual', { method: 'POST', json: { name, phone, governorate, address, source, sourceNote, paymentMethod, paymentStatus: paymentMethod === 'cod' ? 'unpaid' : fulfillment === 'pickup' && paymentMethod === 'cash' ? (handedOver ? 'paid' : 'unpaid') : paymentStatus, status: fulfillment === 'pickup' && handedOver ? 'delivered' : 'pending', fulfillment, courierId: fulfillment === 'courier' && courierId ? Number(courierId) : null, shipping: delivery, discount: safeDiscount, note, items: lines.map(x => ({ variantId: x.variantId, quantity: x.quantity, unitPrice: x.unitPrice })) } }); router.push(`/admin/orders/${data.id}`); } catch (e) { fail(e); setBusy(false); } }
   const q = selected.trim().toLowerCase();
   const choices = catalog.filter(x => x.published && x.stock > 0 && (!q || `${x.productName} ${x.productNameAr ?? ''} ${x.color} ${x.colorAr ?? ''}`.toLowerCase().includes(q)));
 
@@ -48,9 +48,9 @@ export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = nu
       </select></label>
       <label className="admin-field"><span>{L('ملاحظة عن المصدر', 'Source note')}</span><input value={sourceNote} onChange={e => setSourceNote(e.target.value)} placeholder={L('مثلاً: رسالة خاص / اسم الحساب / الحملة', 'DM / username / campaign')} /></label>
       {fulfillment === 'courier' && <label className="admin-field"><span>{L('المحافظة *', 'Governorate *')}</span><select value={governorate} onChange={e => setGovernorate(e.target.value)}>{iraqGovernorates.map(g => <option key={g.code} value={g.code}>{ar ? g.nameAr : g.nameEn}</option>)}</select></label>}
-      {fulfillment === 'courier' && <label className="admin-field"><span>{L('المدينة / المنطقة *', 'City / district *')}</span><input value={city} onChange={e => setCity(e.target.value)} /></label>}
+      
       {fulfillment === 'courier' && <label className="admin-field admin-field-full"><span>{L('العنوان بالتفصيل *', 'Detailed address *')}</span><input value={address} onChange={e => setAddress(e.target.value)} /></label>}
-      {fulfillment === 'courier' && <label className="admin-field"><span>{L('أقرب نقطة دالة', 'Landmark')}</span><input value={landmark} onChange={e => setLandmark(e.target.value)} /></label>}
+      
     </div>
 
     <section className="admin-card" style={{ marginTop: 18 }}>
@@ -85,20 +85,23 @@ export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = nu
       <label className="admin-field"><span>{L('طريقة الدفع', 'Payment')}</span><select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>{methods.map(m => <option key={m} value={m}>{methodName[m]}</option>)}</select></label>
       {fulfillment === 'pickup' && <label className="admin-field"><span>{L('الزبون استلم؟', 'Handed over?')}</span><select value={handedOver ? '1' : '0'} onChange={e => setHandedOver(e.target.value === '1')}><option value="1">{L('نعم، استلم هسه', 'Yes, now')}</option><option value="0">{L('لا، يستلم بعدين', 'Not yet')}</option></select></label>}
       {(paymentMethod === 'bank_transfer' || paymentMethod === 'electronic') && <label className="admin-field"><span>{L('وصل المبلغ؟', 'Money received?')}</span><select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}><option value="unpaid">{L('لا، بعده', 'Not yet')}</option><option value="paid">{L('نعم، وصل', 'Yes')}</option></select></label>}
-      {paymentMethod === 'cod' && <p className="acc-muted admin-field-full" style={{ margin: 0 }}>{L('شركة التوصيل تستلم المبلغ من الزبون، وإنت تستلمه منها بكشف من صفحة الحسابات.', 'The courier collects; you settle with them in Accounts.')}</p>}
+      
       <label className="admin-field admin-field-full"><span>{L('ملاحظة الزبون', 'Customer note')}</span><textarea value={note} onChange={e => setNote(e.target.value)} rows={3} /></label>
     </div>
 
-    <div className="admin-alert info" style={{ marginTop: 16 }}>
-      <strong>{L('المنتجات', 'Products')}: {iqd(subtotal)}</strong>
-      {safeDiscount > 0 && <> · {L('الخصم', 'Discount')}: {iqd(safeDiscount)}</>}
-      {fulfillment === 'courier' && <>{' · '}{L('التوصيل', 'Delivery')}: {delivery === null ? L('حسب سعر المحافظة', 'governorate rate') : iqd(delivery)}</>}
-      {' · '}<strong>{L('الإجمالي', 'Total')}: {iqd(total)}{delivery === null ? L(' + التوصيل', ' + delivery') : ''}</strong>
-      <br /><small>{L('الربح يُحسب تلقائياً من (سعر البيع − سعر الشراء) لكل قطعة.', 'Profit is worked out per item from sale price minus cost.')}</small>
-    </div>
+    <section className="mo-summary" aria-label={L('ملخص الطلب', 'Order summary')}>
+      <h4>{L('ملخص الطلب', 'Order summary')}</h4>
+      <dl>
+        <div><dt>{L('المنتجات', 'Products')} <small>({lines.reduce((n, x) => n + x.quantity, 0)} {L('قطعة', 'pcs')})</small></dt><dd>{iqd(subtotal)}</dd></div>
+        {safeDiscount > 0 && <div className="is-discount"><dt>{L('الخصم', 'Discount')}</dt><dd><bdi dir="ltr">−{groupInt(Math.round(safeDiscount))}</bdi> {L('د.ع', 'IQD')}</dd></div>}
+        <div><dt>{L('التوصيل', 'Delivery')} {fulfillment === 'courier' && <small>({iraqGovernorates.find(g => g.code === governorate)?.[ar ? 'nameAr' : 'nameEn']})</small>}</dt><dd>{fulfillment === 'pickup' ? L('بدون · استلام من المحل', 'None · pick-up') : delivery === null ? L('حسب المحافظة', 'By governorate') : delivery === 0 ? L('مجاني', 'Free') : iqd(delivery)}</dd></div>
+      </dl>
+      <div className="mo-total"><span>{L('الإجمالي', 'Total')}</span><strong>{iqd(total)}</strong></div>
+      <p className="mo-pay">{paymentMethod === 'cod' ? L('الزبون يدفعها لمندوب شركة التوصيل.', 'Collected by the courier.') : paymentMethod === 'cash' ? L('نقد بالمحل.', 'Cash in the shop.') : paymentMethod === 'bank_transfer' ? L('تحويل ماستر.', 'Master transfer.') : L('دفع إلكتروني.', 'Electronic payment.')}</p>
+    </section>
     <div className="admin-modal-actions">
       <button className="admin-btn admin-btn-ghost" onClick={onClose}>{L('إلغاء', 'Cancel')}</button>
-      <button className="admin-btn admin-btn-primary" disabled={busy || !name || !phone || (fulfillment === 'courier' && (!city || !address)) || !lines.length} onClick={() => void submit()}>{busy ? <LoaderCircle size={15} className="spin" /> : <Save size={15} />} {L('إنشاء الطلب', 'Create order')}</button>
+      <button className="admin-btn admin-btn-primary" disabled={busy || !name || !phone || (fulfillment === 'courier' && address.trim().length < 3) || !lines.length} onClick={() => void submit()}>{busy ? <LoaderCircle size={15} className="spin" /> : <Save size={15} />} {L('إنشاء الطلب', 'Create order')}</button>
     </div>
   </Modal>;
 }

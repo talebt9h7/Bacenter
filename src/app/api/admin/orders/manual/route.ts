@@ -7,7 +7,7 @@ import { couriers, customers, orderEvents, orders, productVariants, products, sh
 import { accountForMethod, courierFee, gatewayFee, methodAllowed } from '@/lib/accounts-rules';
 import { defaultCourier, getAccountsSettings } from '@/lib/accounts';
 import { requireAdminSection } from '@/lib/admin-auth';
-import { normalizeIraqPhone, iraqPhonePattern } from '@/lib/iraq';
+import { iraqGovernorates, normalizeIraqPhone, iraqPhonePattern } from '@/lib/iraq';
 import { assertAvailable, consumeInventoryBatches, logActivity, orderProductProfit } from '@/lib/orders';
 import { statusHoldsStock } from '@/lib/reservations';
 import { getSettings } from '@/lib/settings';
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const text = (key: string, max = 300) => typeof body[key] === 'string' ? body[key].trim().slice(0, max) : '';
     const name = text('name', 100), phone = normalizeIraqPhone(text('phone', 30)), altPhone = normalizeIraqPhone(text('altPhone', 30));
     const pickup = text('fulfillment', 20) === 'pickup';
-    const email = text('email', 254).toLowerCase(), governorate = text('governorate', 40), city = text('city', 120) || (pickup ? 'استلام من المحل' : ''), address = text('address', 300) || (pickup ? 'استلام من المحل' : ''), landmark = text('landmark', 200), note = text('note', 500);
+    const email = text('email', 254).toLowerCase(), governorate = text('governorate', 40), city = text('city', 120) || (pickup ? 'استلام من المحل' : iraqGovernorates.find(g => g.code === text('governorate', 40))?.nameAr ?? ''), address = text('address', 300) || (pickup ? 'استلام من المحل' : ''), landmark = text('landmark', 200), note = text('note', 500);
     const source = text('source', 40) || 'instagram', sourceNote = text('sourceNote', 200) || null;
     const paymentMethod = text('paymentMethod', 30) || 'cod', paymentStatus = text('paymentStatus', 30) || 'unpaid', status = text('status', 30) || 'pending';
     // A new order reserves or takes stock, so it cannot start out cancelled or returned.
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     if (name.length < 2) return NextResponse.json({ error: 'Enter the customer name.' }, { status: 400 });
     if (!iraqPhonePattern.test(phone)) return NextResponse.json({ error: 'Enter a valid Iraqi mobile number.' }, { status: 400 });
     if (!governorate) return NextResponse.json({ error: 'Choose a governorate.' }, { status: 400 });
-    if (!city || address.length < 3) return NextResponse.json({ error: 'Enter the city/district and detailed address.' }, { status: 400 });
+    if (!city || address.length < 3) return NextResponse.json({ error: 'اكتب العنوان بالتفصيل.' }, { status: 400 });
     if (!rawItems.length) return NextResponse.json({ error: 'Add at least one product.' }, { status: 400 });
     const fulfillment = text('fulfillment', 20) === 'pickup' ? 'pickup' : 'courier';
     if (!methodAllowed(fulfillment, paymentMethod)) return NextResponse.json({ error: fulfillment === 'pickup' ? 'الاستلام من المحل يكون نقد أو تحويل ماستر أو دفع إلكتروني.' : 'التوصيل يكون دفع عند الاستلام أو تحويل ماستر أو دفع إلكتروني.' }, { status: 400 });

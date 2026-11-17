@@ -416,3 +416,17 @@ button.inv-kpi.is-on{border-color:#1d1d1f;box-shadow:0 0 0 1px #1d1d1f}
 .inv-cost-btn.is-missing{color:#b25000;font-weight:700;font-size:12.5px;background:rgba(255,149,0,.12)}
 .inv-cost-edit{display:inline-flex;align-items:center;gap:6px}
 .inv-cost-edit input{width:96px;height:32px;border-radius:8px;border:1px solid #c9b8a6;padding:0 8px;font:inherit;text-align:center;font-variant-numeric:tabular-nums}
+
+/* Manual order: order summary at the bottom, like a receipt. */
+.mo-summary{margin-top:18px;padding:16px 18px;border-radius:16px;background:#faf8f5;border:1px solid #ece7df}
+.admin-shell .mo-summary h4{margin:0 0 10px;font-size:14px!important;font-weight:700;color:#55524d}
+.mo-summary dl{margin:0;display:flex;flex-direction:column;gap:8px}
+.mo-summary dl > div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px}
+.mo-summary dt{color:#55524d}
+html body .admin-shell .mo-summary dt small{font-size:12px!important;color:#86868b}
+.mo-summary dd{margin:0;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mo-summary .is-discount dd{color:#1f7a4d}
+.mo-total{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px dashed #d9d2c7}
+.mo-total span{font-size:15px;font-weight:700}
+.admin-shell .mo-total strong{font-size:24px!important;font-weight:800;color:#1d1d1f;font-variant-numeric:tabular-nums}
+html body .admin-shell .mo-pay{margin:6px 0 0;font-size:12.5px!important;color:#86868b}

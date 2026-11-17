@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { orders, productVariants, products } from '@/db/schema';
+import { orders, productVariants, products, shippingZones } from '@/db/schema';
 import { OrdersHeader, OrdersTable, type OrderRow } from '@/components/admin/orders-client';
 import { startOfBaghdadToday } from '@/lib/report-period';
 import { getSettings } from '@/lib/settings';
@@ -41,10 +41,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const stats = { byStatus: Object.fromEntries(statusRows.map(r => [r.status, { count: Number(r.count), total: Number(r.total) }])), today: { count: Number(todayRows[0]?.count ?? 0), total: Number(todayRows[0]?.total ?? 0) }, stalePending: Number(staleRows[0]?.count ?? 0) };
   const settings = await getSettings();
   const catalogRows = await db.select({ variantId: productVariants.id, productId: products.id, productName: products.name, productNameAr: products.nameAr, color: variantNameSql, colorAr: variantNameArSql, stock: productVariants.stock, priceCents: products.priceCents, salePriceIqd: variantPriceSql, image: productVariants.images, primaryIndex: productVariants.primaryIndex, published: products.published }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).orderBy(products.name, productVariants.sortOrder);
-  const [reserved, courierRows, accounts] = await Promise.all([reservedByVariant(), listCouriers(), getAccountsSettings()]);
+  const [reserved, courierRows, accounts, zones] = await Promise.all([reservedByVariant(), listCouriers(), getAccountsSettings(), db.select({ code: shippingZones.code, rate: shippingZones.rate }).from(shippingZones)]);
+  const zoneRates = Object.fromEntries(zones.map(z => [z.code, z.rate]));
   const couriers = courierRows.map(c => ({ id: c.id, name: c.name, active: c.active, defaultFeeIqd: c.defaultFeeIqd, returnFeeIqd: c.returnFeeIqd, rates: (c.rates ?? {}) as Record<string, number> }));
   // Products offered for manual orders show what can still be sold (on hand − pending reservations).
   const catalog = catalogRows.map(row => ({ ...row, stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)), salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));
   const serialised = rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(), paidAt: row.paidAt?.toISOString() ?? null, deliveredAt: row.deliveredAt?.toISOString() ?? null })) as unknown as OrderRow[];
-  return <main className="admin-page dash"><OrdersHeader stats={stats} /><OrdersTable rows={serialised} catalog={catalog} status={initialStatus ?? 'all'} query={query} page={page} pages={pages} total={totalMatches} counts={matchCounts} pageSize={PAGE_SIZE} couriers={couriers} defaultCourierId={accounts.defaultCourierId} /></main>;
+  return <main className="admin-page dash"><OrdersHeader stats={stats} /><OrdersTable rows={serialised} catalog={catalog} status={initialStatus ?? 'all'} query={query} page={page} pages={pages} total={totalMatches} counts={matchCounts} pageSize={PAGE_SIZE} couriers={couriers} defaultCourierId={accounts.defaultCourierId} zoneRates={zoneRates} /></main>;
 }
