@@ -1,5 +1,5 @@
 /* Admin → Orders: one card per order (customer, when, products, money, delivery, next step), laid out in a grid. */
-.ob-selectall{display:flex;align-items:center;margin:4px 0 10px}
+.ob-selectall{display:inline-flex;align-items:center;gap:8px}
 .ob-selectall label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#6e6e73;cursor:pointer}
 .ob-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
 .ob-card{display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px;border-radius:18px;background:#fff;border:1px solid #e7e4df;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:border-color .15s ease,box-shadow .15s ease}
@@ -53,4 +53,24 @@ html body .admin-shell .ob-tag{font-size:11.5px!important}
 html body .admin-shell .ob-items li{font-size:13.5px!important}
 html body .admin-shell .ob-item-name small{font-size:12px!important}
 html body .admin-shell .ob-phone{font-size:12.5px!important}
-html body .admin-shell .ob-selectall label{font-size:13px!important}
+html body .admin-shell .ob-selectall{font-size:13px!important;color:#6e6e73;cursor:pointer}
+
+/* Bulk actions bar (shown when orders are ticked). Own classes: the shared admin buttons restyle links. */
+.ob-bulk{position:sticky;top:8px;z-index:20;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:#fff;border:1px solid #e2d6c6;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.ob-bulk-count,.ob-bulk-status,.ob-bulk-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+html body .admin-shell .ob-bulk-count b{font-size:14px!important;color:#1d1d1f}
+html body .admin-shell .ob-bulk-status span{font-size:13px!important;color:#6e6e73}
+.ob-bulk-status select{height:34px;min-width:130px;border-radius:9px;border:1px solid #dcd8d2;background:#fff;padding:0 10px;font:inherit;font-size:13px;color:#1d1d1f}
+.ob-bulk-clear{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:#86868b;font:inherit;font-size:12.5px;cursor:pointer;padding:4px 6px;border-radius:8px}
+.ob-bulk-clear:hover{background:#f3f2ef;color:#1d1d1f}
+html body .admin-shell .ob-bulk-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:9px;border:1px solid #dcd8d2;background:#fff;color:#1d1d1f!important;font:inherit;font-size:13px!important;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer}
+html body .admin-shell .ob-bulk-btn:hover{background:#f7f5f2}
+html body .admin-shell .ob-bulk-btn.is-primary{background:#8b5a2b;border-color:#8b5a2b;color:#fff!important}
+html body .admin-shell .ob-bulk-btn.is-primary:hover{background:#7a4e25}
+.ob-bulk-btn:disabled{opacity:.6;cursor:default}
+@media (max-width:640px){.ob-bulk{flex-direction:column;align-items:stretch}.ob-bulk-count{justify-content:space-between}.ob-bulk-status select{flex:1}.ob-bulk-tools .ob-bulk-btn{flex:1;justify-content:center}}
+
+/* Count line, select-all and export on one row above the cards. */
+.ob-meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:2px 0 12px}
+.ob-meta .admin-orders-scope{margin:0}
+.ob-meta-tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
