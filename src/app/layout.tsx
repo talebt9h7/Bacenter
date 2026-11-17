@@ -20,6 +20,7 @@ import './hero-spotlight.css';
 import './hero-ring.css';
 import './ur-unify.css';
 import './bag-sheet.css';
+import './checkout-steps.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);

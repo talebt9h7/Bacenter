@@ -3,7 +3,7 @@ import { groupInt, numberFormat } from '@/lib/number-format';
 import { track } from '@/lib/track';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
+import { UserRound, ArrowLeft, ArrowRight, Banknote, Check, CreditCard, CheckCircle2, ChevronDown, LoaderCircle, LockKeyhole, MapPin, MessageCircle, Package, PhoneCall, RotateCcw, ShoppingBag, Tag, Truck, X } from 'lucide-react';
 import { useStore } from './store-provider';
 import { mediaSrc } from '@/lib/types';
 import { useLanguage } from './language-provider';
@@ -53,6 +53,12 @@ export function Checkout() {
   const [phoneError, setPhoneError] = useState('');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [order, setOrder] = useState<PlacedOrder | null>(null);
+  // Three steps on one form: 1 contact, 2 delivery, 3 payment. Earlier steps can always be reopened;
+  // later ones only once the steps before them are filled in.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [contact, setContact] = useState({ name: '', phone: '' });
+  const [place, setPlace] = useState({ city: '', landmark: '' });
+  const step1 = useRef<HTMLFieldSetElement>(null), step2 = useRef<HTMLFieldSetElement>(null), step3 = useRef<HTMLFieldSetElement>(null);
   // InitiateCheckout / begin_checkout once, when the bag has loaded with items.
   const checkoutTracked = useRef(false);
   useEffect(() => {
@@ -108,8 +114,36 @@ export function Checkout() {
     const phone = normalizeIraqPhone(value);
     setPhoneError(!phone || iraqPhonePattern.test(phone) ? '' : (ar ? 'رقم الموبايل لازم يبدأ بـ 07 ويتكون من 11 رقم، مثل 07701234567' : 'Use an Iraqi mobile number: 11 digits starting with 07, e.g. 07701234567'));
   }
+  /** First invalid field of a step (or null). Phone numbers must be Iraqi mobiles. */
+  function invalidIn(n: 1 | 2 | 3): HTMLInputElement | HTMLSelectElement | null {
+    const fields = Array.from((n === 1 ? step1 : n === 2 ? step2 : step3).current?.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select') ?? []);
+    for (const field of fields) {
+      if (field.name === 'phone') { const phone = normalizeIraqPhone(field.value); if (!iraqPhonePattern.test(phone)) { checkPhone(field.value || 'x'); return field; } }
+      if (!field.checkValidity()) return field;
+    }
+    return null;
+  }
+  function remember() {
+    const form = formRef.current; if (!form) return;
+    const value = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | null)?.value.trim() ?? '';
+    setContact({ name: value('name'), phone: normalizeIraqPhone(value('phone')) });
+    setPlace({ city: value('city'), landmark: value('landmark') });
+  }
+  function goTo(target: 1 | 2 | 3) {
+    setError('');
+    for (let n = 1 as 1 | 2 | 3; n < target; n = (n + 1) as 1 | 2 | 3) {
+      const bad = invalidIn(n);
+      if (bad) { setStep(n); requestAnimationFrame(() => { bad.reportValidity(); bad.focus(); }); return false; }
+    }
+    remember();
+    setStep(target);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (submitting) return; setError('');
+    if (step < 3) { goTo((step + 1) as 2 | 3); return; }
+    if (!goTo(3)) return;
     const data = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
     data.phone = normalizeIraqPhone(data.phone || ''); data.altPhone = normalizeIraqPhone(data.altPhone || '');
     if (!iraqPhonePattern.test(data.phone)) { checkPhone(data.phone); (event.currentTarget.elements.namedItem('phone') as HTMLInputElement)?.focus(); return; }
@@ -177,62 +211,81 @@ export function Checkout() {
     {!freeShipping && threshold > subtotal && <p className="co-upsell">{ar ? <>باقي <strong>{iqd(threshold - subtotal)}</strong> على التوصيل المجاني. <button type="button" onClick={() => setCartOpen(true)}>أضف منتج</button></> : <><strong>{iqd(threshold - subtotal)}</strong> away from free delivery. <button type="button" onClick={() => setCartOpen(true)}>Add an item</button></>}</p>}
   </>;
 
-  return <main className="checkout-page co-page">
-    <nav className="co-steps" aria-label={ar ? 'مراحل الطلب' : 'Checkout steps'}>
-      <button type="button" className="is-done" onClick={() => setCartOpen(true)}><Check size={13} aria-hidden="true" /> {ar ? 'السلة' : 'Bag'}</button>
-      <span className="is-current" aria-current="step">2 · {ar ? 'معلومات التوصيل' : 'Delivery details'}</span>
-      <span>3 · {ar ? 'تأكيد' : 'Confirmation'}</span>
-    </nav>
-
-    <button type="button" className="co-summary-toggle" aria-expanded={summaryOpen} onClick={() => setSummaryOpen(open => !open)}>
-      <span><ShoppingBag size={16} aria-hidden="true" /> {summaryOpen ? (ar ? 'إخفاء ملخص الطلب' : 'Hide order summary') : (ar ? `عرض ملخص الطلب (${units})` : `Show order summary (${units})`)} <ChevronDown size={15} aria-hidden="true" /></span>
-      <strong>{iqd(total)}</strong>
-    </button>
-    {summaryOpen && <div className="co-summary-mobile">{summary}</div>}
+  return <main className="checkout-page co-page cs-page">
+    <header className="cs-top">
+      <button type="button" className="cs-back" aria-label={ar ? 'رجوع' : 'Back'} onClick={() => (step > 1 ? goTo((step - 1) as 1 | 2) : setCartOpen(true))}>{ar ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}</button>
+      <Link href="/" className="cs-brand" dir="ltr">UR LEATHER</Link>
+      <span className="cs-secure"><LockKeyhole size={13} aria-hidden="true" /> {ar ? 'آمن' : 'Secure'}</span>
+    </header>
 
     <div className="co-layout">
-      <form ref={formRef} className="co-form" onSubmit={submit} noValidate={false}>
-        <header className="co-heading">
-          <h1>{ar ? 'خطوة وحدة ويوصلك طلبك' : 'One step to your order'}</h1>
-        </header>
+      <form ref={formRef} className="co-form cs-form" onSubmit={submit} noValidate>
+        <h1 className="cs-title">{ar ? 'إتمام الطلب' : 'Checkout'}</h1>
+        <nav className="cs-stepper" aria-label={ar ? 'مراحل الطلب' : 'Checkout steps'}>
+          <ol>{([[1, ar ? 'معلوماتك' : 'Contact', UserRound], [2, ar ? 'التوصيل' : 'Delivery', Truck], [3, ar ? 'الدفع' : 'Payment', CreditCard]] as const).map(([n, label, Icon]) =>
+            <li key={n} className={n < step ? 'is-done' : n === step ? 'is-current' : ''}>
+              <button type="button" onClick={() => goTo(n)} aria-current={n === step ? 'step' : undefined}><span className="cs-dot">{n < step ? <Check size={16} strokeWidth={2.6} /> : <Icon size={16} />}</span><span className="cs-label">{label}</span></button>
+            </li>)}</ol>
+          <p>{ar ? <>الخطوة <b>{step} من 3</b> · {step === 1 ? 'معلوماتك' : step === 2 ? 'التوصيل' : 'الدفع'}</> : <>Step <b>{step} of 3</b> · {step === 1 ? 'Contact' : step === 2 ? 'Delivery' : 'Payment'}</>}</p>
+        </nav>
 
-        <fieldset className="co-section">
-          <legend><span>1</span> {ar ? 'معلومات المستلم' : 'Who’s receiving it?'}</legend>
-          <div className="co-grid">
-            <div className="co-field full"><label htmlFor="name">{ar ? 'الاسم الكامل' : 'Full name'}</label><input id="name" name="name" autoComplete="name" maxLength={100} minLength={2} required /></div>
-            <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => checkPhone(event.target.value)} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError}</small></div>
-            <div className="co-field"><label htmlFor="altPhone">{ar ? 'رقم ثاني (اختياري)' : 'Second number (optional)'}</label><input id="altPhone" name="altPhone" type="tel" inputMode="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} /></div>
-          </div>
+        <fieldset ref={step1} className="cs-step" hidden={step !== 1}>
+          <h2 className="cs-h">{ar ? 'معلومات التواصل' : 'Contact details'}</h2>
+          <div className="co-field"><label htmlFor="name">{ar ? 'الاسم الكامل' : 'Full name'}</label><input id="name" name="name" autoComplete="name" maxLength={100} minLength={2} required /></div>
+          <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => checkPhone(event.target.value)} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError}</small></div>
+          <div className="co-field"><label htmlFor="altPhone">{ar ? 'رقم ثاني (اختياري)' : 'Second number (optional)'}</label><input id="altPhone" name="altPhone" type="tel" inputMode="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} /></div>
+          <h2 className="cs-h">{ar ? 'طلبك' : 'Your order'}</h2>
+          <ul className="cs-lines">{lines.map(item => <li key={item.id}>
+            <img src={mediaSrc(item.image, 160)} alt="" />
+            <div><strong>{item.label}</strong><span>{item.bundle ? (ar ? 'باكج' : 'Bundle') : item.colorLabel} · {ar ? `العدد ${item.quantity}` : `Qty ${item.quantity}`}</span></div>
+            <b>{iqd(item.unit * item.quantity)}</b>
+          </li>)}</ul>
+          <button type="button" className="cs-link" onClick={() => setCartOpen(true)}>{ar ? 'تعديل السلة' : 'Edit bag'}</button>
         </fieldset>
 
-        <fieldset className="co-section">
-          <legend><span>2</span> {ar ? 'عنوان التوصيل' : 'Delivery address'}</legend>
-          <div className="co-grid">
-            <div className="co-field full"><label htmlFor="governorate">{ar ? 'المحافظة' : 'Governorate'}</label><select id="governorate" name="governorate" required value={governorate} onChange={event => setGovernorate(event.target.value)}><option value="">{ar ? 'اختر المحافظة' : 'Choose your governorate'}</option>{config.zones.map(item => <option key={item.code} value={item.code}>{ar ? item.nameAr : item.nameEn}</option>)}</select>
-            </div>
-            <div className="co-field"><label htmlFor="city">{ar ? 'المنطقة' : 'Area'}</label><input id="city" name="city" autoComplete="address-level2" placeholder={ar ? 'مثال: الكرادة، المنصور' : 'e.g. Karrada, Mansour'} maxLength={120} required /></div>
-            <div className="co-field"><label htmlFor="landmark">{ar ? 'أقرب نقطة دالة (اختياري)' : 'Nearest landmark (optional)'}</label><input id="landmark" name="landmark" placeholder={ar ? 'مثال: قرب جامع…' : 'e.g. near … mosque'} maxLength={200} /></div>
-          </div>
+        <fieldset ref={step2} className="cs-step" hidden={step !== 2}>
+          <div className="cs-h-row"><h2 className="cs-h">{ar ? 'المستلم' : 'Recipient'}</h2><button type="button" className="cs-link" onClick={() => goTo(1)}>{ar ? 'تعديل' : 'Edit'}</button></div>
+          <div className="cs-card"><span className="cs-card-icon"><UserRound size={17} /></span><div><strong>{contact.name || '—'}</strong><span dir="ltr">{contact.phone}</span></div></div>
+          <h2 className="cs-h">{ar ? 'عنوان التوصيل' : 'Delivery address'}</h2>
+          <div className="co-field"><label htmlFor="governorate">{ar ? 'المحافظة' : 'Governorate'}</label><select id="governorate" name="governorate" required value={governorate} onChange={event => setGovernorate(event.target.value)}><option value="">{ar ? 'اختر المحافظة' : 'Choose your governorate'}</option>{config.zones.map(item => <option key={item.code} value={item.code}>{ar ? item.nameAr : item.nameEn}</option>)}</select></div>
+          <div className="co-field"><label htmlFor="city">{ar ? 'المنطقة' : 'Area'}</label><input id="city" name="city" autoComplete="address-level2" placeholder={ar ? 'مثال: الكرادة، المنصور' : 'e.g. Karrada, Mansour'} maxLength={120} required /></div>
+          <div className="co-field"><label htmlFor="landmark">{ar ? 'أقرب نقطة دالة (اختياري)' : 'Nearest landmark (optional)'}</label><input id="landmark" name="landmark" placeholder={ar ? 'مثال: قرب جامع…' : 'e.g. near … mosque'} maxLength={200} /></div>
+          {zone && <><h2 className="cs-h">{ar ? 'التوصيل' : 'Delivery'}</h2>
+            <div className="cs-option is-on"><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? `توصيل إلى ${zone.nameAr}` : `Delivery to ${zone.nameEn}`}</strong><span>{ar ? 'يوصلك ' : 'Arrives '}{deliveryWindow(zone, language)}</span></div><b>{freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(zone.rate)}</b></div></>}
         </fieldset>
 
-        <fieldset className="co-section">
-          <legend><span>3</span> {ar ? 'طريقة الدفع' : 'Payment'}</legend>
-          <div className="co-pay-options" role="radiogroup">
-            <label className={`co-pay ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><Banknote size={22} aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong>{config?.settings.codFee ? <small>{ar ? `تُضاف ${iqd(config.settings.codFee)} رسوم.` : `A ${iqd(config.settings.codFee)} fee applies.`}</small> : null}</div></label>
-            <label className={`co-pay ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><CreditCard size={22} aria-hidden="true" /><div><strong className="co-pay-title">{isCard ? (ar ? 'بطاقة' : 'Card') : (ar ? 'الدفع الإلكتروني' : 'Electronic payment')}{isCard && <span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span>}</strong></div></label>
+        <fieldset ref={step3} className="cs-step" hidden={step !== 3}>
+          <div className="cs-h-row"><h2 className="cs-h">{ar ? 'يوصل إلى' : 'Deliver to'}</h2><button type="button" className="cs-link" onClick={() => goTo(2)}>{ar ? 'تعديل' : 'Edit'}</button></div>
+          <div className="cs-card"><span className="cs-card-icon"><MapPin size={17} /></span><div><strong>{contact.name || '—'}</strong><span>{[zone ? (ar ? zone.nameAr : zone.nameEn) : '', place.city, place.landmark].filter(Boolean).join('، ')}</span><span dir="ltr">{contact.phone}</span></div></div>
+          <h2 className="cs-h">{ar ? 'طريقة الدفع' : 'Payment method'}</h2>
+          <div className="cs-pay" role="radiogroup">
+            <label className={`cs-option ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong>{config?.settings.codFee ? <span>{ar ? `تُضاف ${iqd(config.settings.codFee)} رسوم.` : `A ${iqd(config.settings.codFee)} fee applies.`}</span> : null}</div><Banknote size={20} aria-hidden="true" /></label>
+            <label className={`cs-option ${payment === 'electronic' ? 'is-on' : ''}`}><input type="radio" name="payment" value="electronic" checked={payment === 'electronic'} onChange={() => setPayment('electronic')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{isCard ? (ar ? 'بطاقة' : 'Card') : (ar ? 'الدفع الإلكتروني' : 'Electronic payment')}</strong>{isCard && <span className="co-card-brands" aria-label="Visa, Mastercard"><i>Visa</i><i>Mastercard</i></span>}</div><CreditCard size={20} aria-hidden="true" /></label>
           </div>
-          <dl className="co-final">
-            <div><dt>{ar ? 'مجموع الطلب' : 'Subtotal'}</dt><dd>{iqd(Math.max(0, subtotal - discount))}</dd></div>
-            <div><dt>{ar ? 'سعر التوصيل' : 'Delivery'}{zone ? <small>{ar ? zone.nameAr : zone.nameEn}</small> : null}</dt><dd>{!zone ? <span className="co-muted">{ar ? 'اختر المحافظة' : 'Choose governorate'}</span> : freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(shipping)}</dd></div>
+          <div className="co-coupon">{coupon
+            ? <div className="co-coupon-applied"><Tag size={14} aria-hidden="true" /><span><strong>{coupon.code}</strong> · {coupon.description}</span><button type="button" onClick={() => { setCoupon(null); setCouponInput(''); }} aria-label={ar ? 'إزالة' : 'Remove'}><X size={14} /></button></div>
+            : couponOpen
+              ? <div className="co-coupon-form"><input aria-label={ar ? 'رمز الخصم' : 'Coupon code'} placeholder={ar ? 'رمز الخصم' : 'Coupon code'} value={couponInput} onChange={e => setCouponInput(e.target.value)} /><button type="button" disabled={!couponInput || checkingCoupon} onClick={() => void applyCoupon()}>{checkingCoupon ? <LoaderCircle size={14} className="spin" /> : (ar ? 'تطبيق' : 'Apply')}</button></div>
+              : <button type="button" className="co-coupon-toggle" onClick={() => setCouponOpen(true)}><Tag size={14} aria-hidden="true" /> {ar ? 'عندك رمز خصم؟' : 'Have a coupon code?'}</button>}
+            {couponError && <p className="co-error">{couponError}</p>}
+          </div>
+          <dl className="cs-totals">
+            <div><dt>{ar ? `المنتجات (${units})` : `Items (${units})`}</dt><dd>{iqd(subtotal)}</dd></div>
+            {discount > 0 && <div className="is-saving"><dt>{ar ? 'الخصم' : 'Discount'}</dt><dd>− {iqd(discount)}</dd></div>}
+            <div><dt>{ar ? 'التوصيل' : 'Delivery'}{zone ? ` · ${ar ? zone.nameAr : zone.nameEn}` : ''}</dt><dd>{freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(shipping)}</dd></div>
             {codFee > 0 && <div><dt>{t('Cash handling')}</dt><dd>{iqd(codFee)}</dd></div>}
-            <div className="co-final-total"><dt>{ar ? 'المجموع الكلي' : 'Order total'}</dt><dd>{iqd(total)}</dd></div>
+            <div className="cs-grand"><dt>{ar ? 'المجموع الكلي' : 'Total'}</dt><dd>{iqd(total)}</dd></div>
           </dl>
+          <p className="co-legal">{t('By continuing, you agree to our')} <Link href="/info/terms">{ar ? 'الشروط والأحكام' : 'terms & conditions'}</Link>.</p>
         </fieldset>
 
         {error && <p className="co-error co-error-box" role="alert">{error}</p>}
-        <div className="co-submit">
-          <button type="submit" className="co-primary co-place" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</> : payOnline ? <><LockKeyhole size={17} aria-hidden="true" /> {ar ? 'الانتقال إلى صفحة الدفع' : 'Continue to payment'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
-          <p className="co-legal">{t('By continuing, you agree to our')} <Link href="/info/terms">{ar ? 'الشروط والأحكام' : 'terms & conditions'}</Link>. {whatsapp ? <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">{ar ? 'عندك سؤال؟ راسلنا واتساب' : 'Questions? WhatsApp us'}</a> : <><MapPin size={11} aria-hidden="true" /> {config.settings.supportPhone}</>}</p>
+        <div className="cs-bar">
+          <div className="cs-bar-info"><span>{step < 3 ? <>{ar ? 'التالي: ' : 'Next: '}<b>{step === 1 ? (ar ? 'التوصيل' : 'Delivery') : (ar ? 'الدفع' : 'Payment')}</b></> : <>{ar ? 'الخطوة الأخيرة' : 'Last step'}</>}</span><span>{ar ? 'المجموع ' : 'Total '}<b>{iqd(total)}</b></span></div>
+          <button type="submit" className="cs-next" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</>
+            : step === 1 ? <>{ar ? 'متابعة للتوصيل' : 'Continue to delivery'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</>
+            : step === 2 ? <>{ar ? 'متابعة للدفع' : 'Continue to payment'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</>
+            : payOnline ? <><LockKeyhole size={17} aria-hidden="true" /> {ar ? 'الانتقال إلى صفحة الدفع' : 'Continue to payment'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>
         </div>
       </form>
 
