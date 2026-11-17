@@ -9,9 +9,13 @@ import { ManualOrderModal } from './manual-order-modal';
 import { Kpi, PageHero } from './dash-ui';
 import { CalendarClock, CircleDollarSign as CircleDollar, Clock3, PackageCheck, Truck as TruckIcon, XCircle } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
+import type { AppLanguage } from '@/lib/i18n';
 import { orderStatusT, orderT } from '@/lib/i18n';
 import { accountNames, courierFee as rateFor, methodsFor, moneyState, moneyStateNames, moneyStateTone, paymentMethodNames, type MoneyAccount } from '@/lib/accounts-rules';
 import './accounts.css';
+import './orders-board.css';
+import { mediaSrc } from '@/lib/types';
+const mediaThumb = (src: string) => mediaSrc(src, 160);
 
 /** Ready-made WhatsApp messages to the customer (in Arabic: the shop's customers write Arabic). */
 function whatsappLink(order: OrderRow, kind: 'confirm' | 'shipped') {
@@ -29,7 +33,7 @@ function whatsappLink(order: OrderRow, kind: 'confirm' | 'shipped') {
 /** Payment method in the admin's language. */
 function paymentMethodLabel(method: string, language: string) {
   const ar = language === 'ar';
-  const map: Record<string, [string, string]> = { cod: ['Cash on delivery', 'الدفع عند الاستلام'], electronic: ['Electronic payment', 'دفع إلكتروني'], cash: ['Cash', 'نقداً'], bank_transfer: ['Bank transfer', 'تحويل مصرفي'] };
+  const map: Record<string, [string, string]> = { cod: ['Cash on delivery', 'الدفع عند الاستلام'], electronic: ['Electronic payment', 'دفع إلكتروني'], cash: ['Cash', 'نقداً'], bank_transfer: ['Master transfer', 'تحويل ماستر'], credit: ['Credit (wholesale)', 'آجل (جملة)'] };
   const hit = map[method];
   return hit ? (ar ? hit[1] : hit[0]) : method;
 }
@@ -148,6 +152,61 @@ function EditOrderModal({ order, catalog, couriers, onClose }: { order: OrderRow
   <div className="admin-card" style={{marginTop:16,padding:16}}><div className="admin-card-heading"><h2>{tr('Edit products')}</h2><button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" onClick={addItem}><Plus size={13}/> {tr('Add product')}</button></div>{items.map((item,index)=>{const selected=catalog.find(c=>c.variantId===item.variantId);return <div key={`${item.variantId}-${index}`} className="admin-form-grid" style={{marginTop:12,alignItems:'end'}}><label className="admin-field"><span>{tr('Product / color')}</span><div style={{display:'flex',gap:10,alignItems:'center'}}>{selected?.image && <img src={selected.image} alt="" style={{width:44,height:44,objectFit:'cover',borderRadius:8}}/>}<select value={item.variantId} onChange={e=>{const v=catalog.find(c=>c.variantId===Number(e.target.value));setItems(items.map((x,i)=>i===index?{...x,variantId:Number(e.target.value),unitPrice:v?.salePriceIqd ?? x.unitPrice}:x));}}>{catalog.map(c=><option key={c.variantId} value={c.variantId}>{c.productNameAr || c.productName} — {c.colorAr || c.color} · {c.stock} بالمخزون</option>)}</select></div></label><label className="admin-field"><span>{tr('Quantity')}</span><input type="number" min="1" value={item.quantity} onChange={e=>updateItem(index,'quantity',Math.max(1,Number(e.target.value)||1))}/></label><label className="admin-field"><span>{tr('Sale / unit (IQD)')}</span><input type="number" min="0" step="500" value={item.unitPrice} onChange={e=>updateItem(index,'unitPrice',Math.max(0,Number(e.target.value)||0))}/></label><button type="button" className="admin-btn admin-btn-danger-ghost admin-btn-sm" onClick={()=>removeItem(index)} disabled={items.length===1}><Trash2 size={13}/>{tr('Remove')}</button></div>})}</div><div className="admin-alert info" style={{marginTop:16}}>Changing products will update stock using the current inventory batches and will keep the sale price used on this order.</div><div className="admin-modal-actions"><button className="admin-btn admin-btn-ghost" onClick={onClose}>{tr('Cancel')}</button><button className="admin-btn admin-btn-primary" disabled={busy||!name||!phone||!city||!address} onClick={()=>void submit()}>{busy?<LoaderCircle size={15} className="spin"/>:<Save size={15}/>} Save changes</button></div></Modal>;
 }
 
+const SOURCE_AR: Record<string, string> = { website: 'الموقع', instagram: 'إنستغرام', whatsapp: 'واتساب', facebook: 'فيسبوك', tiktok: 'تيك توك', phone: 'اتصال', store: 'المحل', other: 'أخرى', wholesale: 'جملة' };
+const MONTHS_AR = ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
+/** "17 تشرين الثاني · 12:04" in Baghdad time. */
+function orderWhen(iso: string, language: string) {
+  const d = new Date(new Date(iso).getTime() + 3 * 3600_000);
+  const time = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  return language === 'ar' ? `${d.getUTCDate()} ${MONTHS_AR[d.getUTCMonth()]} · ${time}` : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })} · ${time}`;
+}
+
+/** One order on the orders page: who, when, what, where it goes, money, and the next step — each in its own place. */
+function OrderCard({ row, couriers, names, language, selected, busy, next, onToggle, onAdvance, onStatus, onEdit, onDelete }: { row: OrderRow; couriers: CourierOption[]; names: Map<number, { product?: string; color?: string }>; language: AppLanguage; selected: boolean; busy: boolean; next?: OrderStatus; onToggle: () => void; onAdvance: () => void; onStatus: (s: OrderStatus) => void; onEdit: () => void; onDelete: () => void }) {
+  const ar = language === 'ar';
+  const o = moneyOf(row);
+  const units = row.items.reduce((sum, item) => sum + item.quantity, 0);
+  const gov = (ar ? row.address?.governorateAr : undefined) || row.address?.governorate || row.governorate || '';
+  const where = o.fulfillment === 'pickup' ? (ar ? 'استلام من المحل' : 'Shop pick-up') : [gov, row.address?.city].filter(Boolean).join(' · ');
+  const courierName = couriers.find(c => c.id === o.courierId)?.name;
+  return <article className={`ob-card${selected ? ' is-selected' : ''}`}>
+    <header className="ob-head">
+      <input type="checkbox" className="ob-check" checked={selected} onChange={onToggle} aria-label={`${ar ? 'تحديد' : 'Select'} ${row.reference}`} />
+      <div className="ob-who">
+        <Link href={`/admin/orders/${row.id}`} className="ob-name">{row.name || '—'}</Link>
+        <a className="ob-phone" href={row.phone ? `tel:${row.phone}` : undefined} dir="ltr"><Phone size={11} /> {row.phone || row.email || '—'}</a>
+      </div>
+      <select className={`admin-status-select status-${row.status} ob-status`} value={row.status} disabled={busy} aria-label={`${ar ? 'الحالة' : 'Status'} ${row.reference}`} onChange={e => onStatus(e.target.value as OrderStatus)}>{orderStatuses.map(item => <option key={item} value={item}>{orderStatusT(item, language)}</option>)}</select>
+    </header>
+    <div className="ob-tags">
+      <Link href={`/admin/orders/${row.id}`} className="ob-tag ob-ref" dir="ltr">{row.reference}</Link>
+      <span className="ob-tag"><Clock size={11} /> {orderWhen(row.createdAt, language)}</span>
+      <span className="ob-tag">{ar ? SOURCE_AR[row.source ?? ''] ?? row.source : row.source}</span>
+    </div>
+    <ul className="ob-items">
+      {row.items.slice(0, 3).map((item, i) => <li key={i}>
+        <span className="ob-thumb">{item.image ? <img src={mediaThumb(item.image)} alt="" loading="lazy" /> : null}</span>
+        <span className="ob-item-name">{(ar && names.get(item.variantId)?.product) || item.name}{(ar && names.get(item.variantId)?.color) || item.color ? <small> · {(ar && names.get(item.variantId)?.color) || item.color}</small> : null}</span>
+        <b>×{item.quantity}</b>
+      </li>)}
+      {row.items.length > 3 && <li className="ob-more">+{row.items.length - 3} {ar ? 'منتج آخر' : 'more'}</li>}
+    </ul>
+    <div className="ob-facts">
+      <div><span>{ar ? 'الإجمالي' : 'Total'}</span><strong>{money(row.totalCents, row.currency)}</strong><small>{units} {ar ? 'قطعة' : units === 1 ? 'item' : 'items'}{row.discountCents > 0 ? ` · ${ar ? 'خصم' : 'off'} ${money(row.discountCents, row.currency)}` : ''}</small></div>
+      <div><span>{ar ? 'الفلوس' : 'Money'}</span><MoneyPill order={row} /><small>{paymentMethodLabel(row.paymentMethod, language)}</small></div>
+      <div><span>{ar ? 'التسليم' : 'Delivery'}</span><b className="ob-deliv">{o.source === 'wholesale' ? (ar ? 'جملة' : 'Wholesale') : o.fulfillment === 'pickup' ? (ar ? 'من المحل' : 'Pick-up') : courierName ?? (ar ? 'توصيل' : 'Delivery')}</b><small>{o.fulfillment === 'pickup' ? '' : where || '—'}</small></div>
+    </div>
+    <footer className="ob-actions">
+      {next ? <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={onAdvance} disabled={busy}>{busy ? <LoaderCircle size={13} className="spin" /> : <ArrowRight size={13} />} {orderStatusT(next, language)}</button> : <span />}
+      <div className="ob-actions-end">
+        <button className="admin-btn admin-btn-ghost admin-btn-sm admin-icon-only" title={ar ? 'تعديل' : 'Edit'} aria-label={`${ar ? 'تعديل' : 'Edit'} ${row.reference}`} onClick={onEdit} disabled={busy}><Pencil size={14} /></button>
+        <button className="admin-btn admin-btn-danger-ghost admin-btn-sm admin-icon-only" title={ar ? 'حذف' : 'Delete'} aria-label={`${ar ? 'حذف' : 'Delete'} ${row.reference}`} onClick={onDelete} disabled={busy}><Trash2 size={14} /></button>
+        <Link href={`/admin/orders/${row.id}`} className="admin-btn admin-btn-ghost admin-btn-sm">{ar ? 'فتح' : 'Open'} <ArrowRight size={13} /></Link>
+      </div>
+    </footer>
+  </article>;
+}
+
 export function OrdersTable({ rows, catalog, status, query, page, pages, total, counts, pageSize, couriers = [], defaultCourierId = null }: { rows: OrderRow[]; catalog: CatalogRow[]; status: string; query: string; page: number; pages: number; total: number; counts: Record<string, number>; pageSize: number; couriers?: CourierOption[]; defaultCourierId?: number | null }) {
   const { language } = useLanguage(); const tr = (label: keyof typeof import('@/lib/i18n').orderTranslations) => orderT(label, language);
   const router = useRouter();
@@ -189,6 +248,7 @@ export function OrdersTable({ rows, catalog, status, query, page, pages, total, 
   };
   useEffect(() => { if (draft.trim() === query) return; const timer = setTimeout(() => go({ q: draft.trim() }), 350); return () => clearTimeout(timer); });
   const visible = localRows;
+  const arabicNames = useMemo(() => new Map(catalog.map(c => [c.variantId, { product: c.productNameAr || undefined, color: c.colorAr || undefined }])), [catalog]);
   const pageRows = localRows;
   const pageIndex = page - 1;
   const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -208,7 +268,8 @@ export function OrdersTable({ rows, catalog, status, query, page, pages, total, 
       <a className="admin-btn admin-btn-ghost admin-btn-sm" href={`/api/admin/orders/export?ids=${selected.join(',')}`}><Download size={13} /> Excel</a>
       <button className="admin-btn admin-btn-ghost admin-btn-sm" onClick={() => setSelected([])}><X size={13} /> {language === 'ar' ? 'إلغاء التحديد' : 'Clear'}</button>
     </div>}
-    <div className="admin-table-wrap"><table className="admin-table admin-orders-table"><thead><tr><th className="admin-check-col"><input type="checkbox" aria-label={language === 'ar' ? 'تحديد الكل' : 'Select all'} checked={pageRows.length > 0 && pageRows.every(r => selected.includes(r.id))} onChange={e => setSelected(e.target.checked ? pageRows.map(r => r.id) : [])} /></th><th>{tr('Order')}</th><th>{tr('Customer')}</th><th>{tr('Delivery')}</th><th>{tr('Items')}</th><th className="num">{tr('Total')}</th><th>{tr('Payment')}</th><th>{tr('Status')}</th><th>{tr('Actions')}</th></tr></thead><tbody>{pageRows.map(row => { const current=(orderStatuses.includes(row.status as OrderStatus)?row.status:'pending') as OrderStatus; const next=statusTransitions[current].find(x=>x!=='cancelled'&&x!=='returned'); const busy=busyId===row.id; return <tr key={row.id} className={selected.includes(row.id) ? 'is-selected' : ''}><td className="admin-check-col"><input type="checkbox" aria-label={`${language === 'ar' ? 'تحديد' : 'Select'} ${row.reference}`} checked={selected.includes(row.id)} onChange={() => toggle(row.id)} /></td><td><Link href={`/admin/orders/${row.id}`} className="admin-strong-link">{row.reference}</Link><br /><small>{when(row.createdAt)} · {row.source === 'website' ? (language === 'ar' ? 'الموقع' : 'Website') : row.source}</small></td><td>{row.name}<br /><small><Phone size={10} /> {row.phone || row.email}</small></td><td><DeliveryPill order={row} couriers={couriers} />{moneyOf(row).fulfillment !== 'pickup' && <><br /><small>{(language === 'ar' ? (row.address as { governorateAr?: string } | undefined)?.governorateAr : undefined) || row.address?.governorate || row.governorate || '—'}{row.address?.city ? ` · ${row.address.city}` : ''}</small></>}</td><td>{(() => { const units = row.items.reduce((sum, item) => sum + item.quantity, 0); return language === 'ar' ? `${units} قطعة` : `${units} item${units === 1 ? '' : 's'}`; })()}<br /><small>{row.items.slice(0, 2).map(item => item.name).join(', ')}{row.items.length > 2 ? '…' : ''}</small></td><td className="num"><strong>{money(row.totalCents, row.currency)}</strong>{row.discountCents > 0 && <><br /><small>−{money(row.discountCents, row.currency)} {row.couponCode}</small></>}</td><td><MoneyPill order={row} /><br /><small>{paymentMethodLabel(row.paymentMethod, language)}</small></td><td><select className={`admin-status-select status-${row.status}`} value={row.status} disabled={busy} aria-label={`${tr('Status')} ${row.reference}`} onChange={event => void changeStatus(row, event.target.value as OrderStatus)}>{orderStatuses.map(item => <option key={item} value={item}>{orderStatusT(item, language)}</option>)}</select></td><td><div className="admin-order-actions"><button className="admin-btn admin-btn-ghost admin-btn-sm admin-icon-only" title={`${tr('Edit')} ${row.reference}`} aria-label={`${tr('Edit')} ${row.reference}`} onClick={()=>setEditOrder(row)} disabled={busy}><Pencil size={14}/></button>{next && <button className="admin-btn admin-btn-primary admin-btn-sm" title={`Move to ${orderStatusT(next, language)}`} onClick={()=>void advance(row)} disabled={busy}>{busy ? <LoaderCircle size={13} className="spin"/> : <ArrowRight size={13}/>} {busy ? tr('Saving…') : orderStatusT(next, language)}</button>}<button className="admin-btn admin-btn-danger-ghost admin-btn-sm admin-icon-only" title={tr('Delete order')} aria-label={`${tr('Delete order')} ${row.reference}`} onClick={()=>void remove(row)} disabled={busy}><Trash2 size={14}/></button><Link href={`/admin/orders/${row.id}`} className="admin-btn admin-btn-ghost admin-btn-sm">{tr('Manage')} <ArrowRight size={13} /></Link></div></td></tr>; })}{!visible.length && <tr><td colSpan={9}><p className="admin-empty">{tr('No orders match that filter.')}</p></td></tr>}</tbody></table></div>{pages > 1 && <nav className="admin-pager" aria-label="Pages"><button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={pageIndex === 0 || navigating} onClick={() => { go({ page: page - 1 }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{language === 'ar' ? 'السابق' : 'Previous'}</button><span>{language === 'ar' ? `صفحة ${page} من ${pages} · ${total} طلب` : `Page ${page} of ${pages} · ${total} orders`}</span><button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={page >= pages || navigating} onClick={() => { go({ page: page + 1 }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{language === 'ar' ? 'التالي' : 'Next'}</button></nav>}</section></>;
+    <div className="ob-selectall"><label><input type="checkbox" checked={pageRows.length > 0 && pageRows.every(r => selected.includes(r.id))} onChange={e => setSelected(e.target.checked ? pageRows.map(r => r.id) : [])} /> {language === 'ar' ? 'تحديد كل طلبات الصفحة' : 'Select all on this page'}</label></div>
+    {!visible.length ? <p className="admin-empty">{tr('No orders match that filter.')}</p> : <div className="ob-grid">{pageRows.map(row => { const current = (orderStatuses.includes(row.status as OrderStatus) ? row.status : 'pending') as OrderStatus; const next = statusTransitions[current].find(x => x !== 'cancelled' && x !== 'returned'); return <OrderCard key={row.id} row={row} couriers={couriers} names={arabicNames} language={language} selected={selected.includes(row.id)} busy={busyId === row.id} next={next} onToggle={() => toggle(row.id)} onAdvance={() => void advance(row)} onStatus={value => void changeStatus(row, value)} onEdit={() => setEditOrder(row)} onDelete={() => void remove(row)} />; })}</div>}{pages > 1 && <nav className="admin-pager" aria-label="Pages"><button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={pageIndex === 0 || navigating} onClick={() => { go({ page: page - 1 }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{language === 'ar' ? 'السابق' : 'Previous'}</button><span>{language === 'ar' ? `صفحة ${page} من ${pages} · ${total} طلب` : `Page ${page} of ${pages} · ${total} orders`}</span><button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={page >= pages || navigating} onClick={() => { go({ page: page + 1 }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{language === 'ar' ? 'التالي' : 'Next'}</button></nav>}</section></>;
 }
 
 /** Order page: how it is handed over (delivery company + its fee, or the shop) and where its money is. */
