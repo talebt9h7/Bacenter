@@ -78,7 +78,7 @@ export function AccountsOverview({ data, couriers, settings, canManage }: { data
         <section className="acc-card"><h2>يحتاج انتباهك {reviewCount + data.review.waiting.length > 0 && <small>{reviewCount + data.review.waiting.length}</small>}</h2>
           {reviewCount + data.review.waiting.length === 0 ? <p className="acc-muted">كلشي مضبوط.</p> : <ul className="acc-review">
             {data.review.legacyCod.length > 0 && <li className="is-danger"><b>{data.review.legacyCod.length} طلب «دفع عند الاستلام» مسجل مدفوع بدون كشف</b><p>هاي طلبات قديمة. إذا استلمت فلوسها من الشركة، سوّ لها كشف استلام بتاريخ الاستلام. وإذا بعدها عند الشركة، افتح الطلب وخلي حالة الدفع «غير مستلم».</p><RefChips list={data.review.legacyCod} /></li>}
-            {data.review.noCourier.length > 0 && <li><b>{data.review.noCourier.length} طلب توصيل بدون شركة</b><p>افتح الطلب واختار شركة التوصيل حتى تنحسب الفلوس والأجور.</p><RefChips list={data.review.noCourier} /></li>}
+            {data.review.noCourier.length > 0 && <li><b>{data.review.noCourier.length} طلب توصيل بدون شركة</b><p>اربطهم بشركة التوصيل مرة وحدة، وأجور كل طلب تنحسب حسب محافظته. أو افتح كل طلب واختار شركته.</p><RefChips list={data.review.noCourier} />{canManage && couriers.some(c => c.active) && <AssignCourier couriers={couriers.filter(c => c.active)} orderIds={data.review.noCourier.map(o => o.id)} />}</li>}
             {data.review.noFee.length > 0 && <li><b>{data.review.noFee.length} طلب بدون أجور توصيل</b><p>اكتب أجور الشركة على الطلب، وإلا تنحسب صفر.</p><RefChips list={data.review.noFee} /></li>}
             {data.review.waiting.length > 0 && <li className="is-info"><b>{data.review.waiting.length} طلب بانتظار وصول التحويل</b><p>لما يوصلك المبلغ، افتح الطلب واضغط «وصل المبلغ».</p><RefChips list={data.review.waiting} /></li>}
           </ul>}
@@ -95,6 +95,19 @@ export function AccountsOverview({ data, couriers, settings, canManage }: { data
     {moving && <MovementModal couriers={couriers} onClose={() => setMoving(false)} />}
     {setup && <SettingsModal couriers={couriers} settings={settings} onClose={() => setSetup(false)} />}
   </main>;
+}
+
+function AssignCourier({ couriers, orderIds }: { couriers: CourierDTO[]; orderIds: number[] }) {
+  const router = useRouter();
+  const [courierId, setCourierId] = useState(String(couriers[0].id)), [busy, setBusy] = useState(false);
+  async function run() {
+    const name = couriers.find(c => String(c.id) === courierId)?.name;
+    if (!window.confirm(`ربط ${orderIds.length} طلب بـ${name}؟`)) return;
+    setBusy(true);
+    try { await api('/api/admin/accounts/assign-courier', { method: 'POST', json: { courierId: Number(courierId), orderIds } }); router.refresh(); }
+    catch (e) { window.alert(e instanceof Error ? e.message : 'ما انربطت.'); } finally { setBusy(false); }
+  }
+  return <div className="acc-chips" style={{ marginTop: 8, alignItems: 'center' }}><select value={courierId} onChange={e => setCourierId(e.target.value)} style={{ height: 32, borderRadius: 8, border: '1px solid #dcd8d2', padding: '0 8px', font: 'inherit' }}>{couriers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><button className="admin-btn admin-btn-primary admin-btn-sm" disabled={busy} onClick={() => void run()}>{busy ? <LoaderCircle size={13} className="spin" /> : null} اربطهم كلهم</button></div>;
 }
 
 function RefChips({ list }: { list: Ref[] }) {
