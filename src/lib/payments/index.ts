@@ -3,7 +3,7 @@ import { gatewayFee } from '@/lib/accounts-rules';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { orderEvents, orders, payments } from '@/db/schema';
+import { cartBundles, cartItems, orderEvents, orders, payments } from '@/db/schema';
 import { broadcast } from '../notify';
 import { getSettings } from '../settings';
 import { gatewayReady, getPaymentSettings, type PaymentProvider } from './config';
@@ -87,6 +87,8 @@ export async function applyStatus(payment: PaymentRow, status: PayStatus, raw?: 
     const [order] = await db.update(orders).set({ paymentStatus: 'paid', paymentMethod: 'electronic', paidCents: payment.amountIqd, paidTo: 'qaseh', paidAt: now, gatewayFeeIqd: gatewayFee(payment.amountIqd, qasehFeePercent), updatedAt: now }).where(eq(orders.id, payment.orderId)).returning();
     await db.insert(orderEvents).values({ orderId: payment.orderId, type: 'payment', message: `Paid electronically · ${providerName(payment.provider)} · ${payment.amountIqd.toLocaleString('en-US')} IQD` });
     if (order) {
+      // Paid: now the shopper's bag can be emptied (it was kept in case they left the payment page).
+      if (order.sessionId) { await db.delete(cartItems).where(eq(cartItems.sessionId, order.sessionId)); await db.delete(cartBundles).where(eq(cartBundles.sessionId, order.sessionId)); }
       const settings = await getSettings();
       const base = siteBase(origin ?? '', settings.canonicalBaseUrl);
       await broadcast([

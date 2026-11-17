@@ -3,13 +3,13 @@ import { notifyNewOrder } from '@/lib/notify';
 import { requestUser, sendCapi } from '@/lib/meta-capi';
 import { getBundleById, splitBundlePrice, withSelection } from '@/lib/bundles';
 import { randomBytes } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { cartBundles, cartItems, customers, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { cartBundles, cartItems, customers, orderEvents, orders, payments, productVariants, products, shippingZones } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { getSettings, freeShippingFrom } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
-import { assertAvailable, claimCoupon, validateCoupon } from '@/lib/orders';
+import { assertAvailable, claimCoupon, transitionOrder, validateCoupon } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
 import { bestPromotion, getUpcomingPromotions } from '@/lib/promotions';
 import { startPayment } from '@/lib/payments';
@@ -18,6 +18,12 @@ import { gatewayReady, getPaymentSettings } from '@/lib/payments/config';
 
 /** A checkout problem to show the shopper. Thrown inside the transaction so nothing is saved. */
 class CheckoutError extends Error {}
+
+type Executor = Pick<typeof db, 'delete'>;
+async function emptyBag(executor: Executor, sessionId: string) {
+  await executor.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
+  await executor.delete(cartBundles).where(eq(cartBundles.sessionId, sessionId));
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +43,14 @@ export async function POST(request: NextRequest) {
     const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, governorate));
     if (!zone || !zone.enabled) return NextResponse.json({ error: 'Please choose a governorate we currently deliver to.' }, { status: 400 });
     const sessionId = await getSession();
+    // An earlier card checkout from this bag that was never paid (the shopper left the payment page
+    // and came back) is replaced by this one, so its units are not held twice.
+    const unpaid = await db.select({ id: orders.id, reference: orders.reference }).from(orders)
+      .where(and(eq(orders.sessionId, sessionId), eq(orders.status, 'pending'), eq(orders.paymentMethod, 'electronic'), ne(orders.paymentStatus, 'paid')));
+    for (const stale of unpaid) {
+      const [paid] = await db.select({ id: payments.id }).from(payments).where(and(eq(payments.orderId, stale.id), eq(payments.status, 'paid')));
+      if (!paid) await transitionOrder(stale.id, 'cancelled', { adminNote: 'لم يكتمل الدفع الإلكتروني؛ الزبون رجع وأعاد الطلب' }).catch(() => {});
+    }
     const promos = await getUpcomingPromotions();
     const result = await db.transaction(async tx => {
       const cart = await tx.select({ id: cartItems.id, quantity: cartItems.quantity, variantId: productVariants.id, color: productVariants.name, size: productVariants.size, variantPriceIqd: productVariants.priceIqd, stock: productVariants.stock, image: productVariants.images, primaryIndex: productVariants.primaryIndex, productId: products.id, name: products.name, priceCents: products.priceCents, salePriceIqd: products.salePriceIqd, category: products.category }).from(cartItems).innerJoin(productVariants, eq(cartItems.variantId, productVariants.id)).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(cartItems.sessionId, sessionId)).for('update', { of: productVariants });
@@ -98,8 +112,9 @@ export async function POST(request: NextRequest) {
       // The item-level sale/purchase snapshot is kept for calculating the profit when it is delivered.
       const [created] = await tx.insert(orders).values({ reference, sessionId, customerId: customer.id, email, name, phone, governorate: zone.code, address: { governorate: zone.nameEn, governorateAr: zone.nameAr, city, line1: address, landmark, altPhone, country: 'Iraq' }, items, currency: 'IQD', exchangeRate: rate, subtotalCents: subtotal, shippingCents: shipping, discountCents: discount, codFeeCents: codFee, totalCents: total, profitIqd: 0, couponCode: appliedCoupon, paymentMethod: payment, paymentStatus: 'unpaid', status: 'pending', customerNote: note || null }).returning({ id: orders.id });
       await tx.insert(orderEvents).values({ orderId: created.id, type: 'created', message: `Order placed · ${payment === 'electronic' ? 'electronic payment' : 'cash on delivery'} · ${zone.nameEn}` });
-      await tx.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
-      await tx.delete(cartBundles).where(eq(cartBundles.sessionId, sessionId));
+      // Card payments keep the bag until the payment is confirmed (lib/payments applyStatus empties it),
+      // so a shopper who leaves the payment page finds their bag as it was.
+      if (!online) await emptyBag(tx, sessionId);
       return { orderId: created.id, order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
     });
     invalidateCatalog();
@@ -119,6 +134,8 @@ export async function POST(request: NextRequest) {
         const started = await startPayment(result.orderId, origin, lang);
         if (started) pay = { url: `/pay/${started.token}`, redirectUrl: started.redirectUrl };
       } catch { payError = true; }
+      // No payment page could be opened: the order stands (the shop sends a payment link), so the bag is done.
+      if (!pay) await emptyBag(db, sessionId);
     }
     const { orderId: _orderId, ...response } = result; void _orderId;
     return NextResponse.json({ ...response, payment: pay, paymentError: payError }, { status: 201 });
