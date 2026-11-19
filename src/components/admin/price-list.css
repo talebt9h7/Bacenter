@@ -66,8 +66,8 @@ html body .pl-sheet .pl-sign-ar{font-family:'Aref Ruqaa',serif!important;font-si
 
 @media print{
   html,body{background:#fff!important}
-  body *{visibility:hidden}
-  .pl-sheet,.pl-sheet *{visibility:visible}
+  body:has(.pl-sheet) *{visibility:hidden}
+  body:has(.pl-sheet) .pl-sheet,body:has(.pl-sheet) .pl-sheet *{visibility:visible}
   .pl-sheet{position:absolute;inset:0 0 auto 0;width:auto;max-width:none;margin:0;padding:0;border:0;box-shadow:none}
   .pl-qty{border:0;width:auto;-moz-appearance:textfield}
   .pl-qty::-webkit-outer-spin-button,.pl-qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
