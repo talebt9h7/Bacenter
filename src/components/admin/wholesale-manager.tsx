@@ -11,6 +11,8 @@ import { defaultWholesaleReceipt, receiptPreviewInvoice, type WholesaleReceiptSe
 import { normalizeIraqPhone } from '@/lib/iraq';
 import { api, Modal, useFlash } from './ui';
 import { WholesaleReceipt } from './wholesale-receipt';
+import { ProfitBox } from './profit-box';
+import { estimateProfit, type CostLayer } from '@/lib/profit-estimate';
 import './wholesale-page.css';
 
 type Line = { variantId: number; quantity: number; unitPrice: string; retailPrice: string };
@@ -23,7 +25,7 @@ const isVoid = (r: WholesaleInvoice) => r.status === 'cancelled' || r.status ===
 const PAGE_SIZE = 12;
 type InvoiceFilter = 'all' | 'owed' | 'paid' | 'cash' | 'credit' | 'void';
 
-export function WholesaleManager({ initial, catalog, receiptSettings = defaultWholesaleReceipt, canManage = true }: { initial: WholesaleInvoice[]; catalog: VariantOption[]; receiptSettings?: WholesaleReceiptSettings; canManage?: boolean }) {
+export function WholesaleManager({ initial, catalog, costLayers, receiptSettings = defaultWholesaleReceipt, canManage = true }: { initial: WholesaleInvoice[]; catalog: VariantOption[]; costLayers?: Record<number, CostLayer[]>; receiptSettings?: WholesaleReceiptSettings; canManage?: boolean }) {
   const { language } = useLanguage(), ar = language === 'ar';
   const tt = (en: string, a: string) => ar ? a : en;
   const [rows] = useState(initial), [template, setTemplate] = useState(receiptSettings);
@@ -82,8 +84,8 @@ export function WholesaleManager({ initial, catalog, receiptSettings = defaultWh
     <section className="wd-panel wd-traders-side"><div className="wd-side-heading"><span>{tt('Balances to follow up','أرصدة تحتاج متابعة')}</span><button type="button" onClick={()=>setTab('traders')}>{tt('View all','عرض الكل')}</button></div>{byTrader.filter(t=>t.owed>0).slice(0,5).map(t=><button type="button" className="wd-trader-balance" key={t.phone} onClick={()=>{setQ(t.phone);setTab('invoices');setFilter('owed');setPage(1);}}><span className="wd-avatar">{t.name.slice(0,1)}</span><span><b>{t.name}</b><small>{t.invoices} {tt('invoices','فاتورة')}</small></span><strong>{number(t.owed)}<small>{tt('IQD','د.ع')}</small></strong></button>)}{!owed&&<p className="wd-all-clear"><Check size={18}/>{tt('All balances are settled.','كل الأرصدة مسددة.')}</p>}</section>
     <section className="wd-receipt-promo"><span><LayoutTemplate size={21}/></span><h3>{tt('A receipt that represents your store.','وصل يشبه هوية متجرك.')}</h3><p>{tt('Customize your logo, columns and notes. Preview before you print.','عدّل الشعار والأعمدة والملاحظات، وشوف النتيجة قبل الطباعة.')}</p>{canManage&&<button type="button" onClick={()=>setDesigning(true)}>{tt('Customize receipt','تخصيص الوصل')}<ArrowLeft size={15}/></button>}</section></aside></div>
     <p className="wd-data-note">{tt('Summary and search cover the loaded invoices, up to the latest 300.','الملخص والبحث يشملان الفواتير المحمّلة، بحد أقصى أحدث 300 فاتورة.')}</p>
-    {creating&&<InvoiceEditor catalog={catalog} onClose={()=>setCreating(false)} onCreated={id=>{setCreating(false);window.open(`/admin/print/wholesale/${id}`,'_blank');refresh();}} onError={fail}/>}
-    {editing&&<InvoiceEditor key={editing.updatedAt} invoice={editing} catalog={catalog} onClose={()=>setEditing(null)} onCreated={()=>{setEditing(null);refresh();}} onError={fail}/>}
+    {creating&&<InvoiceEditor catalog={catalog} costLayers={costLayers} onClose={()=>setCreating(false)} onCreated={id=>{setCreating(false);window.open(`/admin/print/wholesale/${id}`,'_blank');refresh();}} onError={fail}/>}
+    {editing&&<InvoiceEditor key={editing.updatedAt} invoice={editing} catalog={catalog} costLayers={costLayers} onClose={()=>setEditing(null)} onCreated={()=>{setEditing(null);refresh();}} onError={fail}/>}
     {selected&&<InvoiceDetails invoice={selected} canManage={canManage} onClose={()=>setSelected(null)} onEdit={()=>void loadInvoice(selected.id,'edit')} onPayment={()=>void loadInvoice(selected.id,'payment')} />}
     {paying&&<PaymentModal invoice={paying} onClose={()=>setPaying(null)} onDone={()=>{setPaying(null);success(tt('Payment recorded.','تم تحديث الدفعات.'));refresh();}} onError={fail}/>}
     {designing&&<ReceiptDialog><WholesaleReceipt invoice={rows.find(r=>!isVoid(r))??receiptPreviewInvoice} initialSettings={template} canManage={canManage} embedded onClose={()=>setDesigning(false)} onSaved={setTemplate}/></ReceiptDialog>}
@@ -106,7 +108,7 @@ function LegacyInvoiceModal(props: React.ComponentProps<typeof Modal>) {
   return createPortal(<div className="admin-shell wholesale-legacy-editor" style={{ display: 'contents' }}><Modal {...props} /></div>, document.body);
 }
 
-function InvoiceEditor({ catalog: sourceCatalog, invoice, onClose, onCreated, onError }: { catalog: VariantOption[]; invoice?: WholesaleInvoice; onClose: () => void; onCreated: (id: number) => void; onError: (e: unknown) => void }) {
+function InvoiceEditor({ catalog: sourceCatalog, costLayers, invoice, onClose, onCreated, onError }: { catalog: VariantOption[]; costLayers?: Record<number, CostLayer[]>; invoice?: WholesaleInvoice; onClose: () => void; onCreated: (id: number) => void; onError: (e: unknown) => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const tt = (en: string, a: string) => ar ? a : en;
@@ -182,6 +184,7 @@ function InvoiceEditor({ catalog: sourceCatalog, invoice, onClose, onCreated, on
           <div><span>{tt('Subtotal', 'المجموع')}</span><b>{iqd(subtotal)}</b></div>
           <label className="admin-field"><span>{tt('Discount (IQD, optional)', 'خصم (دينار، اختياري)')}</span><input type="number" min="0" step="250" value={discount} onChange={e => setDiscount(e.target.value)} /></label>
           <div className="good"><span>{tt('Invoice total', 'إجمالي الفاتورة')}</span><b>{iqd(total)}</b></div>
+          {costLayers && <ProfitBox p={estimateProfit(lines.map(l => ({ variantId: l.variantId, quantity: l.quantity, unitPrice: Number(l.unitPrice) || 0, unitCost: (invoice?.items.find(i => i.variantId === l.variantId) as { purchaseCostCents?: number | null } | undefined)?.purchaseCostCents ?? null })), costLayers, Number(discount) || 0)} onMaxDiscount={v => setDiscount(String(v))} />}
           <div className="ws-pay-type">{(['cash', 'credit'] as const).map(p => <button key={p} type="button" className={effectivePayment === p ? 'on' : ''} disabled={!!invoice && p === 'cash' && total > invoice.paid} onClick={() => setPayment(p)}>{p === 'cash' ? <><Banknote size={15} /> {invoice ? tt('Cash', 'نقد') : tt('Cash — paid now', 'نقد — مدفوع هسه')}</> : <><Clock size={15} /> {tt('Credit (آجل)', 'آجل')}</>}</button>)}</div>
           {!invoice && payment === 'credit' && <label className="admin-field"><span>{tt('Paid now (optional)', 'المدفوع هسه (اختياري)')}</span><input type="number" min="0" step="250" max={total} value={paid} onChange={e => setPaid(e.target.value)} placeholder="0" /><small>{tt('Remaining', 'المتبقي')}: {iqd(Math.max(0, total - (Number(paid) || 0)))}</small></label>}
           {invoice && <><div><span>{tt('Already received', 'المقبوض سابقاً')}</span><b>{iqd(invoice.paid)}</b></div><div><span>{tt('Remaining after saving', 'المتبقي بعد التعديل')}</span><b>{iqd(Math.max(0, total - invoice.paid))}</b></div><p className="admin-hint">{tt('Recorded payments stay unchanged. An unpaid increase becomes credit. Use Receive payment to collect more.', 'الدفعات المسجلة تبقى مثل ما هي. الزيادة غير المقبوضة تصير آجل؛ استخدم قبض دفعة لتسجيل مبلغ جديد.')}</p>{overpaid && <p role="alert" className="admin-error">{tt('The total cannot be lower than money already received. Resolve the refund before reducing this invoice.', 'الإجمالي أقل من المقبوض. عالج ردّ المبلغ قبل تقليل الفاتورة.')}</p>}</>}

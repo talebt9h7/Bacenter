@@ -16,5 +16,5 @@ export default async function AdminOrderPage({ params }: Props) {
   const order = { ...data.order, createdAt: data.order.createdAt.toISOString(), updatedAt: data.order.updatedAt.toISOString(), paidAt: data.order.paidAt?.toISOString() ?? null, deliveredAt: data.order.deliveredAt?.toISOString() ?? null } as unknown as OrderRow;
   const couriers = (await listCouriers()).map(c => ({ id: c.id, name: c.name, active: c.active, defaultFeeIqd: c.defaultFeeIqd, returnFeeIqd: c.returnFeeIqd, rates: (c.rates ?? {}) as Record<string, number> }));
   const events = data.events.map(event => ({ ...event, createdAt: event.createdAt.toISOString() })) as OrderEvent[];
-  return <OrderDetail key={order.id} initial={order} events={events} couriers={couriers} />;
+  return <OrderDetail key={order.id} initial={order} events={events} couriers={couriers} showProfit={actor.type === 'owner' || !!actor.permissions.finance?.view} />;
 }

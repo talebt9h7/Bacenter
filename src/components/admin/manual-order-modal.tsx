@@ -1,5 +1,7 @@
 'use client';
 import { useState } from 'react';
+import { ProfitBox } from './profit-box';
+import { estimateProfit, type CostLayer } from '@/lib/profit-estimate';
 import { useRouter } from 'next/navigation';
 import { LoaderCircle, Save, Trash2 } from 'lucide-react';
 import { api, Modal, useFlash } from './ui';
@@ -14,7 +16,7 @@ type ManualLine = CatalogRow & { quantity: number; unitPrice: number };
 
 /** Admin → Orders → "Add manual order": an order taken by phone, Instagram, WhatsApp or in the shop. */
 type CourierOption = { id: number; name: string; defaultFeeIqd: number; rates: Record<string, number> };
-export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = null, zoneRates = {}, onClose }: { catalog: CatalogRow[]; couriers?: CourierOption[]; defaultCourierId?: number | null; zoneRates?: Record<string, number>; onClose: () => void }) {
+export function ManualOrderModal({ catalog, costLayers, couriers = [], defaultCourierId = null, zoneRates = {}, onClose }: { catalog: CatalogRow[]; costLayers?: Record<number, CostLayer[]>; couriers?: CourierOption[]; defaultCourierId?: number | null; zoneRates?: Record<string, number>; onClose: () => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -99,6 +101,7 @@ export function ManualOrderModal({ catalog, couriers = [], defaultCourierId = nu
       <div className="mo-total"><span>{L('الإجمالي', 'Total')}</span><strong>{iqd(total)}</strong></div>
       <p className="mo-pay">{paymentMethod === 'cod' ? L('الزبون يدفعها لمندوب شركة التوصيل.', 'Collected by the courier.') : paymentMethod === 'cash' ? L('نقد بالمحل.', 'Cash in the shop.') : paymentMethod === 'bank_transfer' ? L('تحويل ماستر.', 'Master transfer.') : L('دفع إلكتروني.', 'Electronic payment.')}</p>
     </section>
+    {costLayers && <ProfitBox p={estimateProfit(lines, costLayers, safeDiscount)} onMaxDiscount={v => setDiscount(String(v))} />}
     <div className="admin-modal-actions">
       <button className="admin-btn admin-btn-ghost" onClick={onClose}>{L('إلغاء', 'Cancel')}</button>
       <button className="admin-btn admin-btn-primary" disabled={busy || !name || !phone || (fulfillment === 'courier' && address.trim().length < 3) || !lines.length} onClick={() => void submit()}>{busy ? <LoaderCircle size={15} className="spin" /> : <Save size={15} />} {L('إنشاء الطلب', 'Create order')}</button>
