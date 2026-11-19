@@ -43,3 +43,9 @@
 }
 .hs-still .hs-media img,.hs-still .hs-copy{animation:none}
 @media (prefers-reduced-motion:reduce){.hs-media img,.hs-copy{animation:none}.hs-dots button.on i{animation:none;transform:none}}
+/* During an offer: black offer tag instead of "Bestseller", and the sale price under the title. */
+html body .hs-offer{display:inline-flex;align-items:center;height:28px;padding:0 14px;border-radius:999px;background:#111;color:#fff;font-size:13px!important;font-weight:700;letter-spacing:.01em}
+html body .hs-price{display:flex;align-items:baseline;justify-content:center;gap:10px;margin:2px 0 0}
+html body .hs-price b{font-size:20px!important;font-weight:800;color:#1d1d1f;font-variant-numeric:tabular-nums}
+html body .hs-price s{font-size:14px!important;color:#9a948c;font-variant-numeric:tabular-nums}
+@media (min-width:900px){html body .hs-price{justify-content:flex-start}}

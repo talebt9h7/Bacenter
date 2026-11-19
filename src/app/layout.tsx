@@ -22,6 +22,7 @@ import './ur-unify.css';
 import './bag-sheet.css';
 import './checkout-steps.css';
 import './product-buy.css';
+import './promo-bar.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings().catch(() => defaultSettings);

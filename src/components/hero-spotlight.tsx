@@ -67,10 +67,11 @@ function Slide({ product, colorId, onColor }: { product: Product; colorId?: numb
       <span className="hs-shadow" aria-hidden="true" />
     </Link>
     <div className="hs-copy">
-      <span className="hs-eyebrow">{ar ? 'الأكثر مبيعاً' : 'Bestseller'}</span>
+      {product.promotion && product.originalPriceIqd ? <span className="hs-offer">{(ar ? product.promotion.badgeAr : product.promotion.badge) || `−${product.promotion.percentOff}%`}</span> : <span className="hs-eyebrow">{ar ? 'الأكثر مبيعاً' : 'Bestseller'}</span>}
       <h1 className="hs-title"><Link href={href}>{name}</Link></h1>
       {subtitle && <p className="hs-sub">{subtitle}</p>}
-      {/* No price here on purpose: the banner invites the shopper into the product page, where price and details sit together. */}
+      {/* Normally no price here (the product page carries it); during an offer the saving is the reason to tap. */}
+      {product.promotion && product.originalPriceIqd ? <p className="hs-price"><b>{product.salePriceIqd.toLocaleString('en-US')} {ar ? 'د.ع' : 'IQD'}</b><s>{product.originalPriceIqd.toLocaleString('en-US')}</s></p> : null}
       {swatches.length > 1 && <div className="hs-swatches" role="group" aria-label={ar ? 'الألوان' : 'Colours'}>
         {swatches.map(c => <button type="button" key={c.id} title={ar ? (c.nameAr || c.name) : c.name} aria-label={ar ? (c.nameAr || c.name) : c.name} aria-pressed={c.id === color?.id} className={c.id === color?.id ? 'on' : ''} style={{ '--sw': c.hex } as React.CSSProperties} onClick={() => onColor(c.id)} />)}
       </div>}
