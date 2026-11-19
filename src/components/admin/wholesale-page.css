@@ -12,3 +12,13 @@
   html body .wd-receipt-overlay{position:static!important;inset:auto!important;background:#fff!important;padding:0!important;overflow:visible!important;display:block!important;backdrop-filter:none!important}
   html body .wd-receipt-overlay>*{position:static!important;max-height:none!important;height:auto!important;overflow:visible!important;box-shadow:none!important;border:0!important;border-radius:0!important;width:auto!important;margin:0!important}
 }
+/* "Received" on a credit invoice row, and the payment window's shortcuts. */
+.wd-pay-btn{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 10px;border-radius:9px;border:1px solid #2f6b4f;background:#eef6f1;color:#2f6b4f;font:inherit;font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
+.wd-pay-btn:hover{background:#2f6b4f;color:#fff}
+.wd-pay-btn:disabled{opacity:.6;cursor:default}
+.wd-full-amount{align-self:flex-start;margin-top:6px;border:0;background:none;padding:0;color:#2f6b4f;font:inherit;font-size:12.5px;font-weight:700;text-decoration:underline;cursor:pointer}
+.wd-account-pick{display:flex;flex-wrap:wrap;gap:6px}
+.wd-account-pick button{height:36px;padding:0 12px;border-radius:10px;border:1px solid #dcd8d2;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#1d1d1f;cursor:pointer}
+.wd-account-pick button.on{border-color:#2f6b4f;background:#eef6f1;color:#2f6b4f}
+html body .admin-shell .wd-pay-btn,html body .admin-shell .wd-full-amount{font-size:12.5px!important}
+html body .admin-shell .wd-account-pick button{font-size:13px!important}
