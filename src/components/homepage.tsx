@@ -40,16 +40,12 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
   const highlightRail = useRef<HTMLDivElement>(null);
   const collectionRail = useRef<HTMLDivElement>(null);
   const categories = useMemo(() => [...catalogCategories].filter(item => item.active).sort((a, b) => a.sortOrder - b.sortOrder), [catalogCategories]);
-  const [chosenCategory, setCategory] = useState('');
-  // Falls back to the first active category when the chosen one is not (or no longer) listed.
-  const category = categories.some(item => item.id === chosenCategory) ? chosenCategory : (categories[0]?.id ?? '');
   useEffect(() => {
     if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => setSlide(value => (value + 1) % slides.length), 11000);
     return () => clearInterval(timer);
   }, [paused, slide, slides.length]);
   function changeSlide(next: number) { setSlide((next + slides.length) % slides.length); }
-  const categoryProducts = products.filter(product => product.category === category);
   const copy = homepage.copy;
   const ar = language === 'ar';
   const homepageArabic: Record<string, string> = {
@@ -92,7 +88,7 @@ export function Homepage({ products, heroBanners, highlightBanners, homepage, ca
 
     {enabled('purpose') && <section className="purpose-section"><div className="intent-grid">{intents.map(item => <Link href={item.href} className="intent-card" key={item.image}><img src={item.image.startsWith('/') || item.image.startsWith('http') ? mediaSrc(item.image, 960) : `/images/${item.image}.jpg`} alt={item.title} loading="lazy" /><div><h3>{text(item.title, item.titleAr)}</h3><p>{text(item.subtitle, item.subtitleAr)}<ArrowRight size={17} /></p></div></Link>)}</div></section>}
 
-    {enabled('categories') && <section className="section category-section"><div className="section-heading"><h2>{text(copy.categoryTitle, copy.categoryTitleAr)}</h2></div><div className="category-tabs" role="tablist" aria-label={t('Shop by category')}>{categories.map(item => <button key={item.id} role="tab" aria-selected={category === item.id} aria-controls="category-products" id={`tab-${item.id}`} className={category === item.id ? 'active' : ''} onClick={() => setCategory(item.id)}>{language === 'ar' ? item.nameAr : item.name}</button>)}</div><div className="category-products" id="category-products" role="tabpanel" aria-labelledby={`tab-${category}`}>{categoryProducts.slice(0, 8).map(product => <ProductCard key={product.id} product={product} />)}</div><div className="section-bottom-link category-more"><Link className="category-more-btn" href={`/products/category/${category}`}>{language === 'ar' ? 'مشاهدة كل' : 'See all'} {language === 'ar' ? (categories.find(item => item.id === category)?.nameAr || '') : (categories.find(item => item.id === category)?.name || '')}{categoryProducts.length > 6 && <span className="category-more-count">{categoryProducts.length}</span>}<ArrowRight size={16} /></Link></div></section>}
+    {enabled('categories') && <section className="section category-section"><div className="section-heading"><h2>{text(copy.categoryTitle, copy.categoryTitleAr)}</h2></div><div className="category-products">{products.slice(0, 8).map(product => <ProductCard key={product.id} product={product} />)}</div><div className="section-bottom-link category-more"><Link className="category-more-btn" href="/products/category/all">{language === 'ar' ? 'مشاهدة كل المنتجات' : 'See all products'}{products.length > 6 && <span className="category-more-count">{products.length}</span>}<ArrowRight size={16} /></Link></div></section>}
 
 
     {enabled('collections') && <section className="section collections-section"><div className="section-heading"><h2>{text(copy.collectionsTitle, copy.collectionsTitleAr)}</h2><div className="section-heading-actions"><Link className="text-link" href={copy.collectionsHref}>{text(copy.collectionsLink, copy.collectionsLinkAr)} <ArrowRight size={17} /></Link><div className="rail-controls"><button aria-label={t('Previous collections')} onClick={() => collectionRail.current?.scrollBy({ left: -450, behavior: 'smooth' })}><ArrowLeft size={19} /></button><button aria-label={t('Next collections')} onClick={() => collectionRail.current?.scrollBy({ left: 450, behavior: 'smooth' })}><ArrowRight size={19} /></button></div></div></div><div className="collections-rail" ref={collectionRail}>{collections.map(item => <Link className="collection-card" key={item.id} href={item.href}><div><img src={mediaSrc(item.image, 640)} alt={language === 'ar' ? `مجموعة ${item.title}` : `The ${item.title} collection`} loading="lazy" /><h3>{language === 'ar' ? (item.titleAr || item.title) : item.title}<ArrowRight size={20} /></h3></div><p>{language === 'ar' ? (item.descriptionAr || item.description) : item.description}</p></Link>)}</div></section>}
