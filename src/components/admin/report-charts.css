@@ -330,3 +330,36 @@ html body .admin-shell .rc-page .dash-table td,html body .admin-shell .rc-page .
 html body .admin-shell .rc-cols-plot{cursor:crosshair;outline:none;border-radius:6px}
 html body .admin-shell .rc-cols-plot:focus-visible{outline:2px solid var(--cognac);outline-offset:4px}
 html body .admin-shell .rc-col{cursor:inherit}
+
+/* ── Reports accessibility follow-up ─────────────────────────────────────────── */
+/* Sortable headers: the click target is a real button so Tab + Enter/Space sorts. */
+html body .admin-shell .rc-page .dash-table th.sortable{padding:0!important}
+html body .admin-shell .rc-page .rc-sort{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:2px;width:100%;min-height:44px;padding:10px 12px;font:inherit;color:inherit;cursor:pointer;justify-content:flex-start}
+html body .admin-shell .rc-page th.num .rc-sort{justify-content:flex-end}
+html body .admin-shell .rc-page .rc-sort:hover{color:var(--ink)}
+html body .admin-shell .rc-page .rc-sort:focus-visible{outline:2px solid var(--cognac);outline-offset:-2px;border-radius:6px}
+
+/* Patterned series (dashed / dotted) fade in; the draw-in only works on solid lines. */
+@keyframes rc-fade{from{opacity:0}to{opacity:1}}
+html body .admin-shell .rc-line-pattern{animation:rc-fade .8s ease .35s both}
+html body .admin-shell .rc-legend i.line.dashed{background:repeating-linear-gradient(90deg,var(--c) 0 5px,transparent 5px 8px)}
+html body .admin-shell .rc-legend i.line.dotted{background:repeating-linear-gradient(90deg,var(--c) 0 2px,transparent 2px 5px)}
+
+/* "Show data as a table" text alternative under charts. */
+html body .admin-shell .rc-data{margin-top:12px}
+html body .admin-shell .rc-data>summary{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;font-size:12.5px!important;font-weight:600;color:var(--muted);cursor:pointer;list-style:none}
+html body .admin-shell .rc-data>summary::-webkit-details-marker{display:none}
+html body .admin-shell .rc-data>summary::before{content:"▸";margin-inline-end:6px;transition:transform .15s}
+html body .admin-shell .rc-data[open]>summary::before{transform:rotate(90deg)}
+html body .admin-shell .rc-data>summary:hover{color:var(--ink)}
+html body .admin-shell .rc-data-summary{margin:4px 0 10px;font-size:13px!important;color:var(--ink-2)}
+html body .admin-shell .rc-data .dash-table-wrap{max-height:320px}
+html body .admin-shell .rc-hero .rc-data>summary,html body .admin-shell .rc-hero .rc-data-summary{color:var(--leather-muted)}
+html body .admin-shell .rc-hero .rc-data .dash-table-wrap{color:var(--ink)}
+@media print{html body .admin-shell .rc-data{display:none}}
+
+/* Section tabs on small screens: fade the trailing edge so it is clear more tabs scroll in. */
+@media(max-width:820px){
+  html body .admin-shell .rc-tabs{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent)}
+  html body .admin-shell .rc-tabs:dir(rtl){-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 32px),transparent)}
+}

@@ -92,11 +92,29 @@ export function Panel({ title, sub, icon, action, children, className = '', dela
   </section>;
 }
 
-export function LegendKeys({ items }: { items: { label: string; color: string; kind?: 'line' | 'box' }[] }) {
-  return <ul className="rc-legend">{items.map(i => <li key={i.label}><i className={i.kind === 'box' ? 'box' : 'line'} style={{ background: i.color }} />{i.label}</li>)}</ul>;
+export type Dash = 'solid' | 'dashed' | 'dotted';
+/** SVG dash pattern in viewBox units (the plot is 1000 wide, so these read as roughly 9/6 and 2/5 px). */
+const DASH: Record<Dash, string | undefined> = { solid: undefined, dashed: '13 8', dotted: '3 7' };
+
+export function LegendKeys({ items }: { items: { label: string; color: string; kind?: 'line' | 'box'; dash?: Dash }[] }) {
+  return <ul className="rc-legend">{items.map(i => <li key={i.label}><i className={i.kind === 'box' ? 'box' : `line ${i.dash ?? 'solid'}`} style={{ ['--c' as string]: i.color, background: i.kind === 'box' || !i.dash || i.dash === 'solid' ? i.color : undefined }} />{i.label}</li>)}</ul>;
 }
 
-export type TrendLine = { key: string; label: string; values: number[]; color: string; area?: boolean; context?: boolean };
+/** `dash` gives each series its own line style so series never differ by colour alone. */
+export type TrendLine = { key: string; label: string; values: number[]; color: string; area?: boolean; context?: boolean; dash?: Dash };
+
+/** One-sentence spoken summary of a trend: total, peak and change against the context series. */
+function trendSummary(labels: string[], lines: TrendLine[], format: (n: number) => string, lang: Lang) {
+  const main = lines.find(l => !l.context) ?? lines[0];
+  const ctx = lines.find(l => l.context);
+  const total = main.values.reduce((s, v) => s + v, 0);
+  const peak = main.values.indexOf(Math.max(...main.values));
+  const prevTotal = ctx ? ctx.values.reduce((s, v) => s + v, 0) : null;
+  const delta = prevTotal ? Math.round(((total - prevTotal) / prevTotal) * 100) : null;
+  return lang === 'ar'
+    ? `${main.label}: المجموع ${format(total)}، أعلى قيمة ${format(main.values[peak] ?? 0)} بتاريخ ${labels[peak]}${delta != null ? `، ${delta >= 0 ? 'زيادة' : 'انخفاض'} ${Math.abs(delta)}% عن ${ctx!.label}` : ''}.`
+    : `${main.label}: total ${format(total)}, peak ${format(main.values[peak] ?? 0)} on ${labels[peak]}${delta != null ? `, ${delta >= 0 ? 'up' : 'down'} ${Math.abs(delta)}% on ${ctx!.label}` : ''}.`;
+}
 
 /**
  * Time-series line chart with a crosshair readout. The main series carries a 10% wash; a context
@@ -126,15 +144,19 @@ export function TrendChart({ labels, lines, format = fmt, height = 240, emptyTex
     if (e.key === 'Escape') setHover(null);
   }
   const last = main.values[n - 1] ?? 0;
-  return <div className="rc-trend" dir="ltr" style={{ ['--h' as string]: `${height}px` }}>
+  const summary = trendSummary(labels, lines, format, lang);
+  return <div className="rc-trend-wrap"><div className="rc-trend" dir="ltr" style={{ ['--h' as string]: `${height}px` }}>
     <div className="rc-trend-y">{ticks.slice().reverse().map(t => <span key={t}>{axisLabel(t)}</span>)}</div>
-    <div className="rc-trend-plot" tabIndex={0} role="img" aria-label={lines.map(l => l.label).join(' · ')} onPointerMove={move} onPointerLeave={() => setHover(null)} onFocus={() => setHover(h => h ?? n - 1)} onBlur={() => setHover(null)} onKeyDown={key}>
+    <div className="rc-trend-plot" tabIndex={0} role="img" aria-label={`${summary} ${lang === 'ar' ? 'استخدم الأسهم لقراءة كل نقطة.' : 'Use the arrow keys to read each point.'}`} onPointerMove={move} onPointerLeave={() => setHover(null)} onFocus={() => setHover(h => h ?? n - 1)} onBlur={() => setHover(null)} onKeyDown={key}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
         <defs>{lines.filter(l => l.area).map(l => <linearGradient key={l.key} id={`rc-g-${l.key}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={l.color} stopOpacity=".16" /><stop offset="100%" stopColor={l.color} stopOpacity=".02" /></linearGradient>)}</defs>
         {ticks.map(t => <line key={t} x1="0" x2={W} y1={y(t)} y2={y(t)} className="rc-gridline" vectorEffect="non-scaling-stroke" />)}
         {lines.map(l => <g key={l.key}>
           {l.area && <path d={`${path(l.values)} L${x(n - 1)},${H} L${x(0)},${H} Z`} fill={`url(#rc-g-${l.key})`} className="rc-area" />}
-          <path d={path(l.values)} fill="none" stroke={l.color} strokeWidth={l.context ? 1.5 : 2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" pathLength={1} className={l.context ? 'rc-line ctx' : 'rc-line'} style={{ animationDelay: `${lines.indexOf(l) * 0.18}s` }} />
+          {/* Solid lines keep the draw-in (it animates a 1-unit dash); patterned lines fade in instead. */}
+          <path d={path(l.values)} fill="none" stroke={l.color} strokeWidth={l.context ? 1.5 : 2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            {...(DASH[l.dash ?? 'solid'] ? { strokeDasharray: DASH[l.dash ?? 'solid'] } : { pathLength: 1 })}
+            className={`${DASH[l.dash ?? 'solid'] ? 'rc-line-pattern' : 'rc-line'}${l.context ? ' ctx' : ''}`} style={{ animationDelay: `${lines.indexOf(l) * 0.18}s` }} />
         </g>)}
         {at != null && <line x1={x(at)} x2={x(at)} y1="0" y2={H} className="rc-cross" vectorEffect="non-scaling-stroke" />}
       </svg>
@@ -150,6 +172,16 @@ export function TrendChart({ labels, lines, format = fmt, height = 240, emptyTex
       </>}
     </div>
     <div className="rc-trend-x">{labels.map((l, i) => (i % every === 0 || i === n - 1) && (i === n - 1 || n - 1 - i >= every * 0.6) ? <span key={i} className={(i / every) % 2 === 1 && i !== n - 1 ? 'alt' : ''} style={{ left: `${(x(i) / W) * 100}%` }}>{shortDay(l)}</span> : null)}</div>
+  </div>
+    {/* Text alternative: the same numbers as a table, for screen readers and for exact values. */}
+    <details className="rc-data">
+      <summary>{lang === 'ar' ? 'عرض البيانات كجدول' : 'Show data as a table'}</summary>
+      <p className="rc-data-summary">{summary}</p>
+      <div className="dash-table-wrap" tabIndex={0}><table className="dash-table">
+        <thead><tr><th>{lang === 'ar' ? 'التاريخ' : 'Date'}</th>{lines.map(l => <th key={l.key} className="num">{l.label}</th>)}</tr></thead>
+        <tbody>{labels.map((lab, i) => <tr key={lab + i}><td>{lab}</td>{lines.map(l => <td key={l.key} className="num">{format(l.values[i] ?? 0)}</td>)}</tr>)}</tbody>
+      </table></div>
+    </details>
   </div>;
 }
 
@@ -249,14 +281,22 @@ export function HeatGrid({ grid, lang }: { grid: number[][]; lang: Lang }) {
   grid.forEach((row, d) => row.forEach((v, h) => { if (v > best.v) best = { d, h, v }; }));
   const step = (v: number) => (v ? RAMP[Math.min(RAMP.length - 1, Math.ceil((v / max) * (RAMP.length - 1)))] : '#f1f5f9');
   return <div className="rc-heat">
-    <div className="rc-heat-grid" dir="ltr">
+    <div className="rc-heat-grid" dir="ltr" aria-hidden="true">
       {grid.map((row, d) => <div key={d} className="rc-heat-row"><span>{days[d]}</span>{row.map((v, h) => <i key={h} title={`${days[d]} ${String(h).padStart(2, '0')}:00 — ${v}`} style={{ background: step(v) }} />)}</div>)}
       <div className="rc-heat-hours"><span />{Array.from({ length: 24 }, (_, h) => <b key={h}>{h % 3 === 0 ? String(h).padStart(2, '0') : ''}</b>)}</div>
     </div>
     <div className="rc-heat-foot">
       <p>{total ? (lang === 'ar' ? <>أكثر وقت تجي بيه الطلبات: <b>{days[best.d]} الساعة {String(best.h).padStart(2, '0')}:00</b></> : <>Busiest: <b>{days[best.d]} at {String(best.h).padStart(2, '0')}:00</b></>) : (lang === 'ar' ? 'لا توجد طلبات بالفترة.' : 'No orders in this period.')}</p>
-      <span className="rc-scale">{lang === 'ar' ? 'أقل' : 'Less'}{RAMP.map(c => <i key={c} style={{ background: c }} />)}{lang === 'ar' ? 'أكثر' : 'More'}</span>
+      <span className="rc-scale" aria-hidden="true">{lang === 'ar' ? 'أقل' : 'Less'}{RAMP.map(c => <i key={c} style={{ background: c }} />)}{lang === 'ar' ? 'أكثر' : 'More'}</span>
     </div>
+    {/* The colour grid is hover-only; this table carries the same story for keyboard and screen-reader users. */}
+    {total > 0 && <details className="rc-data">
+      <summary>{lang === 'ar' ? 'عرض البيانات كجدول' : 'Show data as a table'}</summary>
+      <div className="dash-table-wrap" tabIndex={0}><table className="dash-table">
+        <thead><tr><th>{lang === 'ar' ? 'اليوم' : 'Day'}</th><th className="num">{lang === 'ar' ? 'الطلبات' : 'Orders'}</th><th className="num">{lang === 'ar' ? 'أكثر ساعة' : 'Busiest hour'}</th></tr></thead>
+        <tbody>{grid.map((row, d) => { const sum = row.reduce((s, v) => s + v, 0), h = row.indexOf(Math.max(...row)); return <tr key={d}><td>{days[d]}</td><td className="num">{sum}</td><td className="num">{sum ? `${String(h).padStart(2, '0')}:00 (${row[h]})` : '—'}</td></tr>; })}</tbody>
+      </table></div>
+    </details>}
   </div>;
 }
 
