@@ -1,7 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { Plus, LoaderCircle } from 'lucide-react';
+import { Plus, LoaderCircle, ShoppingBag } from 'lucide-react';
+
+/** Bag with a small plus: reads as "add to bag" at a glance. */
+const BagPlus = () => <span className="qa-icon" aria-hidden="true"><ShoppingBag size={18} strokeWidth={1.7} /><i><Plus size={9} strokeWidth={3} /></i></span>;
 import { mediaSrc, mediaSrcSet, primaryImage, type Product } from '@/lib/types';
 import { useStore } from './store-provider';
 import { useLanguage } from './language-provider';
@@ -46,8 +49,8 @@ export function ProductCard({ product, compact = false }: { product: Product; co
         <img src={mediaSrc(primaryImage(color), 640)} srcSet={mediaSrcSet(primaryImage(color), [320, 480, 640, 960])} sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw" alt={`${displayName} in ${language === 'ar' ? (color.nameAr || color.name) : color.name}`} loading="lazy" className="product-image" ref={photo} />
       </Link>
       {soldOut ? <span className="product-badge sold-out-badge">{t('Sold out')}</span> : promoBadge ? null : product.badge && <span className={`product-badge ${product.badge.startsWith('NEW') ? 'new-badge' : ''}`}>{language === 'ar' ? (product.badge === 'NEW' ? 'جديد' : product.badge === 'SAVE' ? 'وفر' : product.badge) : product.badge}</span>}
-      {!compact && !soldOut && sized && <Link href={href} prefetch onClick={open} className="quick-add" aria-label={`${language === 'ar' ? 'اختر القياس وأضف' : 'Choose size for'} ${displayName}`} title={language === 'ar' ? 'اختر القياس' : 'Choose size'}><Plus size={21} strokeWidth={1.6} /></Link>}
-      {!compact && !soldOut && !sized && <button className="quick-add" aria-label={`${language === 'ar' ? 'إضافة' : 'Add'} ${displayName} ${language === 'ar' ? 'إلى السلة' : 'to bag'}`} title={language === 'ar' ? 'إضافة سريعة إلى السلة' : 'Quick add to bag'} disabled={busy} onClick={add}>{adding ? <LoaderCircle className="spin" size={18} /> : <Plus size={21} strokeWidth={1.4} />}</button>}
+      {!compact && !soldOut && sized && <Link href={href} prefetch onClick={open} className="quick-add" aria-label={`${language === 'ar' ? 'اختر القياس وأضف' : 'Choose size for'} ${displayName}`} title={language === 'ar' ? 'اختر القياس' : 'Choose size'}><BagPlus /></Link>}
+      {!compact && !soldOut && !sized && <button className="quick-add" aria-label={`${language === 'ar' ? 'إضافة' : 'Add'} ${displayName} ${language === 'ar' ? 'إلى السلة' : 'to bag'}`} title={language === 'ar' ? 'إضافة سريعة إلى السلة' : 'Quick add to bag'} disabled={busy} onClick={add}>{adding ? <LoaderCircle className="spin" size={18} /> : <BagPlus />}</button>}
     </div>
     <div className="product-card-info">
       {promoBadge && !soldOut && <span className="card-promo-tag">{promoBadge}</span>}

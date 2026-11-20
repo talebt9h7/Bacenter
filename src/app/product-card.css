@@ -54,12 +54,7 @@ html body .product-card .product-card-details {
 /* Quick add: only on devices with a real hover, shown on hover like Bellroy. */
 html body .product-card .quick-add { opacity: 0; transition: opacity .2s; }
 @media (hover: hover) { html body .product-card:hover .quick-add, html body .product-card .quick-add:focus-visible { opacity: 1; } }
-/* Touch screens: the add button is always shown (bag style: white circle, dark ring), bigger for the thumb. */
-@media (hover: none) {
-  html body .product-card .quick-add { opacity: 1; display: grid; width: 38px; height: 38px; bottom: 10px; right: auto; left: auto; inset-inline-end: 10px; border-radius: 50%; background: #fff !important; border: 1.5px solid #2a2520; color: #2a2520; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-  html body .product-card .quick-add:active { transform: scale(.94); }
-  html body .product-card .quick-add svg { width: 19px; height: 19px; }
-}
+
 
 /* Trending rail: room for the shadow, Bellroy column widths. */
 html body .trending-section .product-rail {
@@ -425,3 +420,15 @@ html body .product-card.is-sold-out .product-card-price *{color:#a39890!importan
 html body .product-card .card-promo-tag{align-self:flex-start;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:#111!important;color:#fff!important;font-size:11.5px!important;font-weight:700;line-height:1;letter-spacing:.01em;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;margin-top:6px}
 @media(max-width:767px){html body .product-card .card-promo-tag{height:22px;padding:0 8px;font-size:11px!important}}
 @media(max-width:767px){html body .product-card .promo-countdown.compact{white-space:nowrap;font-size:11px!important;gap:4px}html body .product-card .promo-countdown.compact svg{width:11px;height:11px;flex:none}}
+
+/* Quick add: a small white bag-with-plus button tucked in the photo's corner (always shown on touch screens, on hover elsewhere). */
+html body .product-card .quick-add{width:38px!important;height:38px!important;bottom:10px!important;top:auto!important;right:auto!important;left:auto!important;inset-inline-end:10px!important;border-radius:50%!important;border:0!important;background:rgba(255,255,255,.94)!important;color:#1d1a17!important;box-shadow:0 2px 8px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.04)!important;display:grid!important;place-items:center;padding:0!important;transition:transform .15s,background .15s,opacity .2s}
+html body .product-card .quick-add:hover{background:#1d1a17!important;color:#fff!important}
+html body .product-card .quick-add:active{transform:scale(.92)}
+html body .product-card .quick-add .qa-icon{position:relative;display:grid;place-items:center;width:18px;height:18px}
+html body .product-card .quick-add .qa-icon i{position:absolute;bottom:-3px;inset-inline-end:-5px;width:13px;height:13px;border-radius:50%;background:#1d1a17;color:#fff;display:grid;place-items:center;box-shadow:0 0 0 1.5px #fff}
+html body .product-card .quick-add:hover .qa-icon i{background:#fff;color:#1d1a17;box-shadow:0 0 0 1.5px #1d1a17}
+@media (hover:none){html body .product-card .quick-add{opacity:1!important}}
+@media(max-width:767px){html body .product-card .quick-add{width:36px!important;height:36px!important;bottom:8px!important;inset-inline-end:8px!important}}
+html body .product-card .quick-add .qa-icon svg{transform:none!important}
+html body .product-card .quick-add .qa-icon i{inset-inline-end:auto!important;right:-5px!important;left:auto!important}
