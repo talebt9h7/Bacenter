@@ -13,11 +13,13 @@ import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { CountUp, change, compact, fmt, type Lang } from './dash-ui';
 
 export const RC = {
-  brown: '#9c5a1f', brownSoft: '#f3e7da', green: '#0f9f6e', prev: '#cbd5e1', blue: '#3b82f6',
-  good: '#16a34a', warning: '#f59e0b', serious: '#ec835a', critical: '#d03b3b', info: '#3b82f6', violet: '#8b5cf6', other: '#cbd5e1',
+  brown: '#a8571c', brownSoft: '#f1e4d3', green: '#3f8f63', prev: '#d6c9b8', blue: '#3b82f6',
+  good: '#3f8f63', warning: '#d89a2b', serious: '#d9774a', critical: '#c2412d', info: '#4a7fb5', violet: '#7d62b8', other: '#d6c9b8',
+  /** On the dark leather hero (validated against #1f1712). */
+  darkBrown: '#c47a35', darkGreen: '#42a87a', darkPrev: '#6f5e50',
 };
 /** Sequential brown ramp (light → dark) for magnitude grids. */
-const RAMP = ['#f6ede3', '#e9d2b9', '#d4ab80', '#b9814a', '#9c5a1f', '#6f3d10'];
+const RAMP = ['#f3e8da', '#e6cfb2', '#d2a97c', '#b97f48', '#a8571c', '#6e3610'];
 
 /** Long daily series read better by week: sums each run of `size` points (labels keep the first day). */
 export function bucket(labels: string[], series: number[][], size = 7) {
@@ -62,7 +64,7 @@ function Spark({ values }: { values: number[] }) {
   const x = (i: number) => (i / (pts.length - 1)) * 100, y = (v: number) => 26 - ((v - min) / (max - min || 1)) * 22;
   const d = pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   return <svg className="rc-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-    <path d={d} fill="none" stroke="#cbd5e1" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+    <path d={d} fill="none" stroke="#cdbfae" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
     <circle cx={x(pts.length - 1)} cy={y(pts[pts.length - 1])} r="2.6" fill={RC.brown} stroke="#fff" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
   </svg>;
 }
@@ -76,7 +78,7 @@ export function StatTile({ icon, tone = 'brown', label, value, format, current, 
 }) {
   const body = <>
     <div className="rc-tile-top"><span className="rc-tile-label">{label}</span><span className={`rc-icon ${tone}`}>{icon}</span></div>
-    <div className="rc-tile-value"><strong><CountUp value={value} format={format} /></strong>{previous !== undefined && <DeltaPill current={current ?? value} previous={previous} inverse={inverse} lang={lang} />}</div>
+    <div className="rc-tile-value"><strong className="rc-num"><CountUp value={value} format={format} /></strong>{previous !== undefined && <DeltaPill current={current ?? value} previous={previous} inverse={inverse} lang={lang} />}</div>
     <div className="rc-tile-foot">{hint && <small>{hint}</small>}{spark && <Spark values={spark} />}</div>
   </>;
   const style = { animationDelay: `${delay}ms` };
@@ -132,7 +134,7 @@ export function TrendChart({ labels, lines, format = fmt, height = 240, emptyTex
         {ticks.map(t => <line key={t} x1="0" x2={W} y1={y(t)} y2={y(t)} className="rc-gridline" vectorEffect="non-scaling-stroke" />)}
         {lines.map(l => <g key={l.key}>
           {l.area && <path d={`${path(l.values)} L${x(n - 1)},${H} L${x(0)},${H} Z`} fill={`url(#rc-g-${l.key})`} className="rc-area" />}
-          <path d={path(l.values)} fill="none" stroke={l.color} strokeWidth={l.context ? 1.5 : 2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className={l.context ? 'rc-line ctx' : 'rc-line'} />
+          <path d={path(l.values)} fill="none" stroke={l.color} strokeWidth={l.context ? 1.5 : 2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" pathLength={1} className={l.context ? 'rc-line ctx' : 'rc-line'} style={{ animationDelay: `${lines.indexOf(l) * 0.18}s` }} />
         </g>)}
         {at != null && <line x1={x(at)} x2={x(at)} y1="0" y2={H} className="rc-cross" vectorEffect="non-scaling-stroke" />}
       </svg>
@@ -195,7 +197,7 @@ export function SegmentedBar({ parts, format = fmt, emptyText }: { parts: Part[]
   const shown = parts.filter(p => p.value > 0);
   const total = shown.reduce((s, p) => s + p.value, 0);
   if (!total) return <div className="rc-empty">{emptyText}</div>;
-  const darkText = (hex: string) => ['#f59e0b', '#cbd5e1', '#ec835a'].includes(hex);
+  const darkText = (hex: string) => ['#d89a2b', '#d6c9b8', '#d9774a', '#f59e0b', '#cbd5e1'].includes(hex);
   return <div className="rc-seg">
     <div className="rc-seg-bar" role="img" aria-label={shown.map(p => `${p.label} ${format(p.value)} (${Math.round((p.value / total) * 100)}%)`).join('، ')}>
       {shown.map((p, i) => { const s = p.value / total; return <span key={p.key} title={`${p.label}: ${format(p.value)} · ${Math.round(s * 100)}%`} style={{ flexGrow: p.value, background: p.color, color: darkText(p.color) ? '#0b0b0b' : '#fff', animationDelay: `${i * 70}ms` }}>{s >= 0.1 ? `${Math.round(s * 100)}%` : ''}</span>; })}
@@ -259,5 +261,5 @@ export function Meter({ value, label, sub, tone = 'brown' }: { value: number; la
 
 /** Small figure cells in a grey box (secondary numbers under a chart). */
 export function Figures({ items }: { items: { label: ReactNode; value: ReactNode }[] }) {
-  return <dl className="rc-figs" style={{ ['--n' as string]: items.length === 4 ? 2 : Math.min(items.length, 3) }}>{items.map((it, i) => <div key={i}><dt>{it.label}</dt><dd>{it.value}</dd></div>)}</dl>;
+  return <dl className="rc-figs" style={{ ['--n' as string]: items.length === 4 ? 2 : Math.min(items.length, 3) }}>{items.map((it, i) => <div key={i}><dt>{it.label}</dt><dd className="rc-num">{it.value}</dd></div>)}</dl>;
 }

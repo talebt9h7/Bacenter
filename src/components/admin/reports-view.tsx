@@ -6,11 +6,13 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, BarChart3, Boxes, CalendarDays, CircleDollarSign, Clock, Download, MapPin, Package, Percent, Printer, Receipt, ShoppingBag, ShoppingCart, Tag, TrendingUp, Truck, Users, Wallet, PackageX, Layers, Coins } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { ReportsData, ReportSection } from '@/lib/reports-data';
-import '@fontsource/cairo/400.css';
-import '@fontsource/cairo/600.css';
-import '@fontsource/cairo/700.css';
-import '@fontsource/cairo/800.css';
-import '@fontsource/cairo/900.css';
+import '@fontsource/alexandria/400.css';
+import '@fontsource/alexandria/500.css';
+import '@fontsource/alexandria/600.css';
+import '@fontsource/alexandria/700.css';
+import '@fontsource/bodoni-moda/500.css';
+import '@fontsource/bodoni-moda/700.css';
+import '@fontsource/aref-ruqaa/700.css';
 import './reports-nq.css';
 import './report-charts.css';
 import { CountUp, Empty, compact, fmt, iqd, pct, type Lang } from './dash-ui';
@@ -80,11 +82,18 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
     { label: tt('Expenses', 'المصاريف'), value: data.expenses.current, kind: 'minus' },
     { label: tt('Net profit', 'صافي الربح'), value: net, kind: 'total' },
   ];
-  const hero = (title: string) => <Panel className="rc-hero span-8" title={title} sub={weekly ? tt('Delivered orders by week, counted on their delivery date', 'الطلبات المُسلّمة أسبوعياً، محسوبة بتاريخ التسليم') : tt('Delivered orders, counted on their delivery date', 'الطلبات المُسلّمة، محسوبة بتاريخ التسليم')} icon={<TrendingUp size={16} />} action={lineKeys}>
-    <div className="rc-hero-figure"><strong><CountUp value={m.revenue} format={fmt} /></strong><span className="rc-unit">{tt('IQD', 'د.ع')}</span><DeltaPill current={m.revenue} previous={p.revenue} lang={lang} /><small>{tt(`vs ${fmt(p.revenue)} the period before`, `مقابل ${fmt(p.revenue)} بالفترة السابقة`)}</small></div>
-    <TrendChart labels={labels} lines={lines} format={fmt} height={250} emptyText={noSales} lang={lang} />
+  const heroLines: TrendLine[] = lines.map(l => ({ ...l, color: l.key === 'rev' ? RC.darkBrown : l.key === 'profit' ? RC.darkGreen : RC.darkPrev }));
+  const hero = (title: string) => <Panel className="rc-hero span-8" title={title} sub={weekly ? tt('Delivered orders by week, counted on their delivery date', 'الطلبات المُسلّمة أسبوعياً، محسوبة بتاريخ التسليم') : tt('Delivered orders, counted on their delivery date', 'الطلبات المُسلّمة، محسوبة بتاريخ التسليم')} icon={<TrendingUp size={16} />} action={<LegendKeys items={heroLines.map(l => ({ label: l.label, color: l.color }))} />}>
+    <div className="rc-hero-figure"><strong className="rc-num"><CountUp value={m.revenue} format={fmt} /></strong><span className="rc-unit">{tt('IQD', 'د.ع')}</span><DeltaPill current={m.revenue} previous={p.revenue} lang={lang} /></div>
+    <ul className="rc-hero-facts">
+      <li><span>{tt('Delivered', 'مُسلّمة')}</span><b className="rc-num">{fmt(m.orders)}</b></li>
+      <li><span>{tt('Average order', 'متوسط الطلب')}</span><b className="rc-num">{fmt(m.averageOrder)}</b></li>
+      {finance && <li><span>{tt('Margin', 'الهامش')}</span><b className="rc-num">{pct(m.margin, 1)}</b></li>}
+      <li><span>{tt('Previous period', 'الفترة السابقة')}</span><b className="rc-num">{fmt(p.revenue)}</b></li>
+    </ul>
+    <TrendChart labels={labels} lines={heroLines} format={fmt} height={240} emptyText={noSales} lang={lang} />
   </Panel>;
-  const fallPanel = <Panel className="span-4" title={tt('From revenue to net', 'من الإيراد للصافي')} sub={tt('Where each dinar went', 'وين راح كل دينار')} icon={<Wallet size={16} />} delay={60}>
+  const fallPanel = <Panel className="span-4 rc-receipt" title={tt('From revenue to net', 'من الإيراد للصافي')} sub={tt('Where each dinar went', 'وين راح كل دينار')} icon={<Wallet size={16} />} delay={60}>
     <Waterfall steps={steps} format={fmt} />
     <div className="rc-fall-meters">
       <Meter label={tt('Gross margin', 'الهامش الإجمالي')} value={m.margin} tone="green" sub={tt('on sales with a known cost', 'على المبيعات المعروفة التكلفة')} />

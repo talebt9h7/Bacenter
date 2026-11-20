@@ -1,8 +1,8 @@
 /* Admin → Reports in the Nasaq style (white cards, soft tinted icon tiles, Cairo, calm motion) with UR brown as the accent.
    Scoped to .dash.nq so the rest of the admin is untouched until it moves over section by section. */
-html body .admin-shell:has(.dash.nq) .admin-main{background:#f6f8fb}
+html body .admin-shell:has(.dash.nq) .admin-main{background:#f3ece2}
 html body .admin-shell .dash.nq{--nq-brown:#8b5a2b;--nq-brown-d:#6f4620;--nq-brown-soft:#f6efe7;--nq-brown-ink:#6b4220;--nq-ink:#0f172a;--nq-muted:#64748b;--nq-faint:#94a3b8;--nq-line:#e6ebf2;--nq-line-2:#f1f5f9;--nq-fill:#f8fafc;color:var(--nq-ink)}
-html[lang] body .admin-shell .dash.nq,html[lang] body .admin-shell .dash.nq *{font-family:Cairo,'Noto Sans Arabic',system-ui,sans-serif!important}
+html[lang] body .admin-shell .dash.nq,html[lang] body .admin-shell .dash.nq *{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif!important}
 html body .admin-shell .dash.nq .num,html body .admin-shell .dash.nq strong,html body .admin-shell .dash.nq b{font-variant-numeric:tabular-nums}
 
 /* Motion: cards rise 8px and fade in, one after another. */
