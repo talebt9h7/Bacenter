@@ -8,7 +8,7 @@
    ========================================================================== */
 html body .admin-shell .rc-page{
   --paper:#fffaf3; --paper-2:#faf3e8; --page:#f3ece2;
-  --ink:#24180f; --ink-2:#4a3a2c; --muted:#86745f; --faint:#ad9c86;
+  --ink:#24180f; --ink-2:#4a3a2c; --muted:#6f5d49; --faint:#7a6650;
   --line:#e6d9c6; --line-2:#efe5d6; --rule:#d8c6ae;
   --cognac:#a8571c; --cognac-ui:#8b4a17; --cognac-soft:#f1e4d3; --brass:#b8893a;
   --leather:#1f1712; --leather-2:#2a1f18; --leather-ink:#f4e9da; --leather-muted:#b5a18a; --stitch:rgba(214,170,118,.42);
@@ -54,7 +54,7 @@ html body .admin-shell .rc-head p{margin:10px 0 0;display:flex;flex-wrap:wrap;al
 html body .admin-shell .rc-head p svg{color:var(--cognac)}
 html body .admin-shell .rc-head p span{color:var(--muted)}
 html body .admin-shell .rc-head-actions{display:flex;gap:8px}
-html body .admin-shell .rc-btn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)!important;font-size:13px!important;font-weight:600;text-decoration:none;cursor:pointer;transition:background .2s,transform .12s,box-shadow .2s}
+html body .admin-shell .rc-btn{display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)!important;font-size:13px!important;font-weight:600;text-decoration:none;cursor:pointer;transition:background .2s,transform .12s,box-shadow .2s}
 html body .admin-shell .rc-btn:hover{background:#fff;box-shadow:0 4px 14px rgba(60,35,15,.1)}
 html body .admin-shell .rc-btn:active{transform:scale(.97)}
 html body .admin-shell .rc-btn.primary{background:var(--leather);border-color:var(--leather);color:var(--leather-ink)!important}
@@ -63,18 +63,18 @@ html body .admin-shell .rc-btn.primary:hover{background:#352820}
 /* Filter row + index tabs (sticky) */
 html body .admin-shell .rc-toolbar{position:sticky;top:0;z-index:30;display:flex;flex-direction:column;gap:14px;margin:0 -6px 22px;padding:10px 6px 0;background:linear-gradient(var(--page) 86%,rgba(243,236,226,0))}
 html body .admin-shell .rc-periods{display:flex;flex-wrap:wrap;align-items:center;gap:2px;align-self:flex-start;padding:4px;border-radius:999px;background:var(--paper);border:1px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 1px 2px rgba(60,35,15,.06)}
-html body .admin-shell .rc-periods>a,html body .admin-shell .rc-custom>summary{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:999px;font-size:13px!important;font-weight:600;color:var(--muted);text-decoration:none;cursor:pointer;white-space:nowrap;list-style:none;transition:color .15s,background .2s}
+html body .admin-shell .rc-periods>a,html body .admin-shell .rc-custom>summary{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px;border-radius:999px;font-size:13px!important;font-weight:600;color:var(--muted);text-decoration:none;cursor:pointer;white-space:nowrap;list-style:none;transition:color .15s,background .2s}
 html body .admin-shell .rc-custom>summary::-webkit-details-marker{display:none}
 html body .admin-shell .rc-periods>a:hover,html body .admin-shell .rc-custom>summary:hover{color:var(--ink)}
 html body .admin-shell .rc-periods>a.on,html body .admin-shell .rc-custom.on>summary{background:var(--leather);color:var(--leather-ink)}
 html body .admin-shell .rc-custom{position:relative;border-inline-start:1px solid var(--line);padding-inline-start:4px;margin-inline-start:2px}
 html body .admin-shell .rc-custom form{position:absolute;top:calc(100% + 10px);inset-inline-start:0;z-index:40;display:flex;align-items:flex-end;gap:8px;padding:14px;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px rgba(60,35,15,.18);animation:rc-rise .2s ease both}
-html body .admin-shell .rc-custom label{display:flex;flex-direction:column;gap:4px;font-size:11.5px!important;font-weight:600;color:var(--muted)}
-html body .admin-shell .rc-custom input{height:38px;border:1px solid var(--line);border-radius:12px;padding:0 10px;font-size:13px!important;color:var(--ink);background:#fff}
+html body .admin-shell .rc-custom label{display:flex;flex-direction:column;gap:4px;font-size:12px!important;font-weight:600;color:var(--muted)}
+html body .admin-shell .rc-custom input{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 10px;font-size:13px!important;color:var(--ink);background:#fff}
 html body .admin-shell .rc-custom input:focus{outline:none;border-color:var(--cognac);box-shadow:0 0 0 4px rgba(168,87,28,.14)}
 html body .admin-shell .rc-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--rule);padding-top:2px}
 html body .admin-shell .rc-tabs::-webkit-scrollbar{display:none}
-html body .admin-shell .rc-tabs a{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 14px 10px;border:1px solid transparent;border-bottom:0;border-radius:12px 12px 0 0;font-size:13.5px!important;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap;transition:color .15s,background .2s}
+html body .admin-shell .rc-tabs a{position:relative;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:10px 15px 11px;border:1px solid transparent;border-bottom:0;border-radius:12px 12px 0 0;font-size:13.5px!important;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap;transition:color .15s,background .2s}
 html body .admin-shell .rc-tabs a svg{color:var(--faint);transition:color .15s}
 html body .admin-shell .rc-tabs a:hover{color:var(--ink);background:rgba(255,250,243,.6)}
 html body .admin-shell .rc-tabs a.on{color:var(--ink);background:var(--paper);border-color:var(--rule);margin-bottom:-1px;padding-bottom:11px}
@@ -105,7 +105,7 @@ html body .admin-shell .rc-panel-icon{display:none}
 html[lang] body .admin-shell .dash.nq .rc-panel-head>div>div::before{content:counter(folio,decimal-leading-zero);display:block;margin-bottom:2px;font-family:var(--fig)!important;font-size:12px!important;font-weight:700;letter-spacing:.18em;color:var(--cognac)}
 html body .admin-shell .rc-panel-head h2{margin:0;font-size:16px!important;font-weight:700;color:var(--ink);line-height:1.45}
 html body .admin-shell .rc-panel-head p{margin:2px 0 0;font-size:12px!important;color:var(--muted);line-height:1.5}
-html body .admin-shell .rc-link{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);font-size:12px!important;font-weight:600;color:var(--ink-2)!important;text-decoration:none;white-space:nowrap;transition:background .2s,border-color .2s}
+html body .admin-shell .rc-link{position:relative;display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 13px;border-radius:999px;border:1px solid var(--line);font-size:12px!important;font-weight:600;color:var(--ink-2)!important;text-decoration:none;white-space:nowrap;transition:background .2s,border-color .2s}
 html body .admin-shell .rc-link:hover{background:#fff;border-color:var(--rule)}
 html[lang=ar] body .admin-shell .rc-link svg{transform:scaleX(-1)}
 html body .admin-shell .rc-h3{margin:18px 0 10px;font-size:12px!important;font-weight:600;color:var(--muted)}
@@ -143,9 +143,9 @@ html body .admin-shell .rc-hero .rc-delta.flat{background:rgba(255,255,255,.08);
 html body .admin-shell .rc-hero-facts{display:flex;flex-wrap:wrap;gap:0;margin:0 0 18px;padding:0;list-style:none;border-top:1px solid rgba(214,170,118,.18);border-bottom:1px solid rgba(214,170,118,.18)}
 html body .admin-shell .rc-hero-facts li{flex:1 1 120px;display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-inline-start:1px solid rgba(214,170,118,.14)}
 html body .admin-shell .rc-hero-facts li:first-child{border-inline-start:0;padding-inline-start:0}
-html body .admin-shell .rc-hero-facts span{font-size:11.5px!important;color:var(--leather-muted)}
+html body .admin-shell .rc-hero-facts span{font-size:12px!important;color:var(--leather-muted)}
 html body .admin-shell .rc-hero-facts b{font-size:21px!important;font-weight:700;color:var(--leather-ink)}
-html body .admin-shell .rc-hero .rc-trend-y span,html body .admin-shell .rc-hero .rc-trend-x span{color:#8a7663!important}
+html body .admin-shell .rc-hero .rc-trend-y span,html body .admin-shell .rc-hero .rc-trend-x span{color:#a08b75!important}
 html body .admin-shell .rc-hero .rc-gridline{stroke:rgba(214,170,118,.12)!important}
 html body .admin-shell .rc-hero .rc-cross{stroke:rgba(244,233,218,.4)}
 html body .admin-shell .rc-hero .rc-dot{border-color:var(--leather)}
@@ -154,7 +154,7 @@ html body .admin-shell .rc-hero .rc-tip{background:#fbf3e7;border-color:transpar
 @media(max-width:820px){html body .admin-shell .rc-hero{padding:22px 18px 16px}html body .admin-shell .rc-hero-figure strong{font-size:48px!important}}
 
 /* Change pill */
-html body .admin-shell .rc-delta{display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px!important;font-weight:700;direction:ltr;white-space:nowrap}
+html body .admin-shell .rc-delta{display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 8px;border-radius:999px;font-size:12px!important;font-weight:700;direction:ltr;white-space:nowrap}
 html body .admin-shell .rc-delta.up{background:var(--good-bg);color:var(--good)}
 html body .admin-shell .rc-delta.down{background:var(--bad-bg);color:var(--bad)}
 html body .admin-shell .rc-delta.flat{background:var(--line-2);color:var(--muted)}
@@ -181,7 +181,7 @@ html body .admin-shell .rc-spark{width:88px;height:26px;flex:none;margin-inline-
 /* ---- Trend chart ---- */
 html body .admin-shell .rc-trend{display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-rows:var(--h,240px) 26px}
 html body .admin-shell .rc-trend-y{display:flex;flex-direction:column;justify-content:space-between;padding-inline-end:8px;text-align:right}
-html body .admin-shell .rc-trend-y span{font-size:11px!important;color:var(--faint);font-variant-numeric:tabular-nums;line-height:0}
+html body .admin-shell .rc-trend-y span{font-size:12px!important;color:var(--faint);font-variant-numeric:tabular-nums;line-height:0}
 html body .admin-shell .rc-trend-plot{position:relative;outline:none;border-radius:6px;cursor:crosshair;touch-action:pan-y}
 html body .admin-shell .rc-trend-plot:focus-visible{box-shadow:0 0 0 3px rgba(214,165,108,.35)}
 html body .admin-shell .rc-trend-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -191,16 +191,16 @@ html body .admin-shell .rc-area{animation:rc-fade 1s .9s ease both}
 html body .admin-shell .rc-cross{stroke:var(--rule);stroke-width:1}
 html body .admin-shell .rc-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid var(--paper);transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(31,23,18,.3);pointer-events:none}
 html body .admin-shell .rc-dot.ctx{width:8px;height:8px}
-html body .admin-shell .rc-endlabel{position:absolute;right:12px;transform:translate(0,-50%);padding:3px 9px;border-radius:999px;background:var(--leather);color:var(--leather-ink);font-size:11.5px!important;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;animation:rc-fade .4s 1.5s ease both}
+html body .admin-shell .rc-endlabel{position:absolute;right:12px;transform:translate(0,-50%);padding:3px 9px;border-radius:999px;background:var(--leather);color:var(--leather-ink);font-size:12px!important;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;animation:rc-fade .4s 1.5s ease both}
 html body .admin-shell .rc-tip{position:absolute;top:6px;transform:translateX(12px);min-width:160px;padding:11px 13px;border-radius:14px;background:var(--paper);border:1px solid var(--line);box-shadow:0 18px 40px rgba(31,23,18,.28);pointer-events:none;z-index:5;display:flex;flex-direction:column;gap:6px}
 html body .admin-shell .rc-tip.flip{transform:translateX(calc(-100% - 12px))}
-html body .admin-shell .rc-tip-head{font-size:11.5px!important;font-weight:600;color:var(--muted)}
+html body .admin-shell .rc-tip-head{font-size:12px!important;font-weight:600;color:var(--muted)}
 html body .admin-shell .rc-tip span{display:flex;align-items:center;gap:8px;white-space:nowrap}
 html body .admin-shell .rc-tip span i{width:14px;height:2px;border-radius:2px;flex:none}
 html body .admin-shell .rc-tip strong{font-size:14px!important;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 html body .admin-shell .rc-tip em{font-style:normal;font-size:12px!important;color:var(--muted)}
 html body .admin-shell .rc-trend-x{position:relative;grid-column:2}
-html body .admin-shell .rc-trend-x span{position:absolute;top:9px;transform:translateX(-50%);font-size:11px!important;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
+html body .admin-shell .rc-trend-x span{position:absolute;top:9px;transform:translateX(-50%);font-size:12px!important;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
 html body .admin-shell .rc-trend-x span:first-child{transform:none}
 html body .admin-shell .rc-trend-x span:last-child{transform:translateX(-100%)}
 @media(max-width:600px){html body .admin-shell .rc-trend-x span.alt{display:none}html body .admin-shell .rc-trend{grid-template-columns:38px minmax(0,1fr)}}
@@ -208,7 +208,7 @@ html body .admin-shell .rc-trend-x span:last-child{transform:translateX(-100%)}
 /* ---- Columns ---- */
 html body .admin-shell .rc-cols{display:grid;grid-template-columns:36px minmax(0,1fr);grid-template-rows:var(--h,180px) 22px}
 html body .admin-shell .rc-cols-y{display:flex;flex-direction:column;justify-content:space-between;padding-inline-end:8px;text-align:right}
-html body .admin-shell .rc-cols-y span{font-size:11px!important;color:var(--faint);line-height:0;font-variant-numeric:tabular-nums}
+html body .admin-shell .rc-cols-y span{font-size:12px!important;color:var(--faint);line-height:0;font-variant-numeric:tabular-nums}
 html body .admin-shell .rc-cols-plot{position:relative}
 html body .admin-shell .rc-cols-grid{position:absolute;left:0;right:0;height:1px;background:var(--line-2)}
 html body .admin-shell .rc-cols-bars{position:absolute;inset:0;display:flex;align-items:flex-end;gap:2px}
@@ -216,12 +216,12 @@ html body .admin-shell .rc-col{position:relative;flex:1;height:100%;display:flex
 html body .admin-shell .rc-col:focus-visible{outline:2px solid rgba(168,87,28,.35);outline-offset:1px;border-radius:4px}
 html body .admin-shell .rc-col-bar{position:relative;display:block;width:min(22px,70%);border-radius:5px 5px 0 0;background:linear-gradient(180deg,#b9672a,var(--cognac));transform-origin:bottom;animation:rc-grow-y .7s cubic-bezier(.2,.7,.2,1) both;transition:filter .15s}
 html body .admin-shell .rc-col.on .rc-col-bar{filter:brightness(1.15) saturate(1.1)}
-html body .admin-shell .rc-col-bar em{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);font-style:normal;font-size:11px!important;font-weight:700;color:var(--ink);white-space:nowrap}
+html body .admin-shell .rc-col-bar em{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);font-style:normal;font-size:12px!important;font-weight:700;color:var(--ink);white-space:nowrap}
 html body .admin-shell .rc-col-tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;padding:7px 11px;border-radius:12px;background:var(--leather);color:var(--leather-ink);box-shadow:0 12px 28px rgba(31,23,18,.3);white-space:nowrap;z-index:5;pointer-events:none}
 html body .admin-shell .rc-col-tip strong{font-size:13px!important;font-weight:700;color:#fbf3e7}
-html body .admin-shell .rc-col-tip small{font-size:11px!important;color:var(--leather-muted)}
+html body .admin-shell .rc-col-tip small{font-size:12px!important;color:var(--leather-muted)}
 html body .admin-shell .rc-cols-x{grid-column:2;display:flex;gap:2px}
-html body .admin-shell .rc-cols-x span{flex:1;min-width:0;padding-top:7px;text-align:center;font-size:10.5px!important;color:var(--faint);white-space:nowrap}
+html body .admin-shell .rc-cols-x span{flex:1;min-width:0;padding-top:7px;text-align:center;font-size:12px!important;color:var(--faint);white-space:nowrap}
 
 /* ---- Ranked bars ---- */
 html body .admin-shell .rc-rank{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
@@ -229,7 +229,7 @@ html body .admin-shell .rc-rank li>a,html body .admin-shell .rc-rank li>div{disp
 html body .admin-shell .rc-rank li>a:hover,html body .admin-shell .rc-rank li>div:hover{background:var(--paper-2)}
 html body .admin-shell .rc-rank-name{display:flex;flex-direction:column;min-width:0;line-height:1.4}
 html body .admin-shell .rc-rank-name>span{font-size:13px!important;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-html body .admin-shell .rc-rank-name small{font-size:11.5px!important;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .admin-shell .rc-rank-name small{font-size:12px!important;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html body .admin-shell .rc-rank-name i{display:none}
 html body .admin-shell .rc-rank-name:has(i){display:grid;grid-template-columns:10px minmax(0,1fr);column-gap:8px}
 html body .admin-shell .rc-rank-name:has(i) i{display:block;grid-row:span 2;align-self:center;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px rgba(31,23,18,.15)}
@@ -239,17 +239,17 @@ html body .admin-shell .rc-rank-track b::after{content:"";position:absolute;inse
 html[dir=ltr] body .admin-shell .rc-rank-track b{transform-origin:left}
 html body .admin-shell .rc-rank-val{display:flex;align-items:baseline;gap:8px;justify-content:flex-end;min-width:70px}
 html body .admin-shell .rc-rank-val strong{font-size:13.5px!important;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
-html body .admin-shell .rc-rank-val small{font-size:11.5px!important;font-weight:600;color:var(--faint);min-width:32px;text-align:end;font-variant-numeric:tabular-nums}
+html body .admin-shell .rc-rank-val small{font-size:12px!important;font-weight:600;color:var(--faint);min-width:32px;text-align:end;font-variant-numeric:tabular-nums}
 
 /* ---- Segmented bar ---- */
 html body .admin-shell .rc-seg-bar{display:flex;gap:2px;height:30px}
-html body .admin-shell .rc-seg-bar span{display:flex;align-items:center;justify-content:center;min-width:4px;border-radius:5px;font-size:11.5px!important;font-weight:700;overflow:hidden;white-space:nowrap;animation:rc-rise .5s ease both;cursor:default;transition:filter .15s,transform .15s}
+html body .admin-shell .rc-seg-bar span{display:flex;align-items:center;justify-content:center;min-width:4px;border-radius:5px;font-size:12px!important;font-weight:700;overflow:hidden;white-space:nowrap;animation:rc-rise .5s ease both;cursor:default;transition:filter .15s,transform .15s}
 html body .admin-shell .rc-seg-bar span:hover{filter:brightness(1.08);transform:translateY(-1px)}
 html body .admin-shell .rc-seg-legend{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px 18px}
 html body .admin-shell .rc-seg-legend li{display:inline-flex;align-items:center;gap:6px;font-size:12.5px!important;color:var(--ink-2);font-weight:500}
 html body .admin-shell .rc-seg-legend i{width:10px;height:10px;border-radius:3px;flex:none}
 html body .admin-shell .rc-seg-legend b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-html body .admin-shell .rc-seg-legend small{font-size:11.5px!important;color:var(--faint)}
+html body .admin-shell .rc-seg-legend small{font-size:12px!important;color:var(--faint)}
 
 /* ---- The receipt: revenue → net ---- */
 html body .admin-shell .rc-receipt{background:#fffdf8;border-radius:20px 20px 0 0;padding-bottom:34px;
@@ -282,30 +282,30 @@ html body .admin-shell .rc-meter.brown .rc-meter-track{background:var(--cognac-s
 html body .admin-shell .rc-meter.green .rc-meter-track{background:var(--good-bg)}html body .admin-shell .rc-meter.green b{background:var(--good)}
 html body .admin-shell .rc-meter.red .rc-meter-track{background:var(--bad-bg)}html body .admin-shell .rc-meter.red b{background:var(--bad)}
 html body .admin-shell .rc-meter.amber .rc-meter-track{background:#f7ebd2}html body .admin-shell .rc-meter.amber b{background:#d89a2b}
-html body .admin-shell .rc-meter small{display:block;margin-top:5px;font-size:11.5px!important;color:var(--faint)}
+html body .admin-shell .rc-meter small{display:block;margin-top:5px;font-size:12px!important;color:var(--faint)}
 
 /* Figures */
 html body .admin-shell .rc-figs{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:1px;margin:16px 0 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--line)}
 html body .admin-shell .rc-figs>div{padding:11px 14px;background:var(--paper-2)}
-html body .admin-shell .rc-figs dt{font-size:11.5px!important;font-weight:500;color:var(--muted)}
+html body .admin-shell .rc-figs dt{font-size:12px!important;font-weight:500;color:var(--muted)}
 html body .admin-shell .rc-figs dd{margin:3px 0 0;font-size:22px!important;font-weight:700;color:var(--ink)}
 
 /* Heat grid */
 html body .admin-shell .rc-heat-grid{display:flex;flex-direction:column;gap:3px;overflow-x:auto}
 html body .admin-shell .rc-heat-row,html body .admin-shell .rc-heat-hours{display:grid;grid-template-columns:64px repeat(24,minmax(14px,1fr));gap:3px;align-items:center;min-width:520px}
-html body .admin-shell .rc-heat-row span{font-size:11.5px!important;font-weight:600;color:var(--muted);text-align:right;padding-inline-end:8px}
+html body .admin-shell .rc-heat-row span{font-size:12px!important;font-weight:600;color:var(--muted);text-align:right;padding-inline-end:8px}
 html body .admin-shell .rc-heat-row i{height:24px;border-radius:5px;transition:transform .15s,box-shadow .15s}
 html body .admin-shell .rc-heat-row i:hover{transform:scale(1.18);box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--ink)}
-html body .admin-shell .rc-heat-hours b{font-size:10.5px!important;font-weight:500;color:var(--faint);text-align:center}
+html body .admin-shell .rc-heat-hours b{font-size:12px!important;font-weight:500;color:var(--faint);text-align:center}
 html body .admin-shell .rc-heat-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-top:14px}
 html body .admin-shell .rc-heat-foot p{margin:0;font-size:12.5px!important;color:var(--muted)}
 html body .admin-shell .rc-heat-foot p b{color:var(--ink)}
-html body .admin-shell .rc-scale{display:inline-flex;align-items:center;gap:3px;font-size:11.5px!important;color:var(--faint)}
+html body .admin-shell .rc-scale{display:inline-flex;align-items:center;gap:3px;font-size:12px!important;color:var(--faint)}
 html body .admin-shell .rc-scale i{width:16px;height:10px;border-radius:3px}
 
 /* Tables in the ledger's voice */
 html body .admin-shell .rc-page .dash-table-wrap{border:1px solid var(--line);border-radius:14px;max-height:560px;overflow:auto;background:#fffdf8}
-html body .admin-shell .rc-page .dash-table th{position:sticky;top:0;z-index:1;background:var(--paper-2)!important;color:var(--muted)!important;font-size:11.5px!important;font-weight:600!important;border-bottom:1px solid var(--rule)!important}
+html body .admin-shell .rc-page .dash-table th{position:sticky;top:0;z-index:1;background:var(--paper-2)!important;color:var(--muted)!important;font-size:12px!important;font-weight:600!important;border-bottom:1px solid var(--rule)!important}
 html body .admin-shell .rc-page .dash-table td{border-bottom:1px solid var(--line-2)!important;color:var(--ink-2)!important}
 html body .admin-shell .rc-page .dash-table tbody tr:hover td{background:#fbf5ec!important}
 html body .admin-shell .rc-page .dash-table td strong,html body .admin-shell .rc-page .dash-table td b{color:var(--ink)!important}
@@ -318,3 +318,15 @@ html body .admin-shell .rc-page .dash-margin i{background:var(--good)!important}
   html body .admin-shell .rc-head-actions,html body .admin-shell .rc-custom{display:none}
   html body .admin-shell .rc-panel,html body .admin-shell .rc-tiles{break-inside:avoid;box-shadow:none}
 }
+
+/* Accessibility pass (UI/UX audit): 44px hit areas, brand focus ring, readable small text. */
+html body .admin-shell .rc-link::after{content:"";position:absolute;inset:-4px}
+html body .admin-shell .dash.nq.rc-page .acc-tabs a{min-height:44px;height:44px;display:inline-flex;align-items:center;color:var(--muted)}
+html body .admin-shell .rc-page :is(a,button,summary,input,[tabindex="0"]):focus-visible{outline:2px solid var(--cognac);outline-offset:2px}
+html body .admin-shell .rc-hero :is(a,button,[tabindex="0"]):focus-visible{outline-color:#e0a96d}
+html body .admin-shell .rc-trend-plot:focus-visible{outline:2px solid var(--cognac);outline-offset:4px;box-shadow:none}
+html body .admin-shell .rc-rank li>a:focus-visible{outline-offset:0}
+html body .admin-shell .rc-page .dash-table td,html body .admin-shell .rc-page .dash-table th{line-height:1.5}
+html body .admin-shell .rc-cols-plot{cursor:crosshair;outline:none;border-radius:6px}
+html body .admin-shell .rc-cols-plot:focus-visible{outline:2px solid var(--cognac);outline-offset:4px}
+html body .admin-shell .rc-col{cursor:inherit}

@@ -1,7 +1,7 @@
 /* Admin → Reports in the Nasaq style (white cards, soft tinted icon tiles, Cairo, calm motion) with UR brown as the accent.
    Scoped to .dash.nq so the rest of the admin is untouched until it moves over section by section. */
 html body .admin-shell:has(.dash.nq) .admin-main{background:#f3ece2}
-html body .admin-shell .dash.nq{--nq-brown:#8b5a2b;--nq-brown-d:#6f4620;--nq-brown-soft:#f6efe7;--nq-brown-ink:#6b4220;--nq-ink:#0f172a;--nq-muted:#64748b;--nq-faint:#94a3b8;--nq-line:#e6ebf2;--nq-line-2:#f1f5f9;--nq-fill:#f8fafc;color:var(--nq-ink)}
+html body .admin-shell .dash.nq{--nq-brown:#8b5a2b;--nq-brown-d:#6f4620;--nq-brown-soft:#f6efe7;--nq-brown-ink:#6b4220;--nq-ink:#0f172a;--nq-muted:#6f5d49;--nq-faint:#7a6650;--nq-line:#e6ebf2;--nq-line-2:#f1f5f9;--nq-fill:#f8fafc;color:var(--nq-ink)}
 html[lang] body .admin-shell .dash.nq,html[lang] body .admin-shell .dash.nq *{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif!important}
 html body .admin-shell .dash.nq .num,html body .admin-shell .dash.nq strong,html body .admin-shell .dash.nq b{font-variant-numeric:tabular-nums}
 
@@ -26,7 +26,7 @@ html body .admin-shell .dash.nq .dash-periods{background:#fff;border:1px solid v
 html body .admin-shell .dash.nq .dash-periods a{border-radius:9px;padding:6px 13px;font-size:13px!important;font-weight:700;color:var(--nq-muted);background:transparent}
 html body .admin-shell .dash.nq .dash-periods a:hover{color:var(--nq-ink);background:var(--nq-fill)}
 html body .admin-shell .dash.nq .dash-periods a.active{background:#1d1a17;color:#fff}
-html body .admin-shell .dash.nq .rp-custom label{font-size:11.5px!important;font-weight:700;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .rp-custom label{font-size:12px!important;font-weight:700;color:var(--nq-muted)}
 html body .admin-shell .dash.nq .rp-custom input{height:38px;border:1px solid var(--nq-line);border-radius:12px;background:#fff;padding:0 10px;font-size:13px!important;color:var(--nq-ink)}
 html body .admin-shell .dash.nq .rp-custom input:focus{outline:none;border-color:var(--nq-brown);box-shadow:0 0 0 4px rgba(139,90,43,.12)}
 html body .admin-shell .dash.nq .dash-btn{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:12px;border:1px solid var(--nq-line);background:#fff;color:#334155!important;font-size:13px!important;font-weight:700;box-shadow:none;transition:background .15s,transform .1s}
@@ -60,10 +60,10 @@ html body .admin-shell .dash.nq .dash-kpi-icon.violet{background:#f5f3ff;color:#
 html body .admin-shell .dash.nq .dash-kpi-icon.danger{background:#fef2f2;color:#dc2626}
 html body .admin-shell .dash.nq .dash-kpi-row{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
 html body .admin-shell .dash.nq .dash-kpi-value{font-size:24px!important;font-weight:900;letter-spacing:-.3px;color:var(--nq-ink);line-height:1.25}
-html body .admin-shell .dash.nq .dash-kpi-note{display:block;margin-top:4px;font-size:11.5px!important;line-height:1.5;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .dash-kpi-note{display:block;margin-top:4px;font-size:12px!important;line-height:1.5;color:var(--nq-muted)}
 html body .admin-shell .dash.nq .dash-kpi-note b{color:var(--nq-ink)}
 html body .admin-shell .dash.nq .dash-spark{display:none}
-html body .admin-shell .dash.nq .dash-delta{display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:7px;font-size:11px!important;font-weight:800;line-height:1.7}
+html body .admin-shell .dash.nq .dash-delta{display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:7px;font-size:12px!important;font-weight:800;line-height:1.7}
 html body .admin-shell .dash.nq .dash-delta.up{background:#ecfdf5;color:#047857}
 html body .admin-shell .dash.nq .dash-delta.down{background:#fef2f2;color:#b91c1c}
 html body .admin-shell .dash.nq .dash-delta.flat{background:var(--nq-line-2);color:var(--nq-muted)}
@@ -71,7 +71,7 @@ html body .admin-shell .dash.nq .dash-delta.flat{background:var(--nq-line-2);col
 /* Revenue → profit bridge: a light card of grey steps, the net in brown. */
 html body .admin-shell .dash.nq .dash-pnl{padding:12px;gap:8px;margin-bottom:16px;color:var(--nq-ink)}
 html body .admin-shell .dash.nq .dash-pnl>div,html body .admin-shell .dash.nq .dash-pnl>span>div{background:var(--nq-fill);border-radius:12px;padding:10px 12px;gap:2px;min-width:120px}
-html body .admin-shell .dash.nq .dash-pnl span{font-size:11.5px!important;font-weight:700;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .dash-pnl span{font-size:12px!important;font-weight:700;color:var(--nq-muted)}
 html body .admin-shell .dash.nq .dash-pnl strong{font-size:16px!important;font-weight:900;color:var(--nq-ink)}
 html body .admin-shell .dash.nq .dash-pnl em{color:#cbd5e1;font-size:18px;font-weight:700}
 html body .admin-shell .dash.nq .dash-pnl .total{background:var(--nq-brown-soft);margin:0;padding:10px 12px}
@@ -98,29 +98,29 @@ html body .admin-shell .dash.nq .dash-card>p{font-size:13px!important;line-heigh
 html body .admin-shell .dash.nq .dash-mini{gap:8px}
 html body .admin-shell .dash.nq .dash-mini>div{background:var(--nq-fill);border:0;border-radius:12px;padding:10px 12px}
 html body .admin-shell .dash.nq .dash-mini strong{font-size:18px!important;font-weight:900;color:var(--nq-ink)}
-html body .admin-shell .dash.nq .dash-mini span{font-size:11.5px!important;font-weight:600;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .dash-mini span{font-size:12px!important;font-weight:600;color:var(--nq-muted)}
 
 /* Charts */
 html body .admin-shell .dash.nq .dash-gridline{stroke:#eef2f7}
-html body .admin-shell .dash.nq .dash-chart-axis span,html body .admin-shell .dash.nq .dash-chart-x span{font-size:11px!important;color:var(--nq-faint)}
+html body .admin-shell .dash.nq .dash-chart-axis span,html body .admin-shell .dash.nq .dash-chart-x span{font-size:12px!important;color:var(--nq-faint)}
 html body .admin-shell .dash.nq .dash-tip{background:#fff;border:1px solid var(--nq-line);border-radius:12px;box-shadow:0 8px 32px rgba(15,23,42,.14);color:var(--nq-ink)}
 html body .admin-shell .dash.nq .dash-tip span,html body .admin-shell .dash.nq .dash-tip b{font-size:12px!important}
 html body .admin-shell .dash.nq .dash-donut-track{stroke:var(--nq-line-2)}
 html body .admin-shell .dash.nq .dash-donut-center strong{font-size:22px!important;font-weight:900;color:var(--nq-ink)}
-html body .admin-shell .dash.nq .dash-donut-center span{font-size:11px!important;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .dash-donut-center span{font-size:12px!important;color:var(--nq-muted)}
 html body .admin-shell .dash.nq .dash-legend li span{font-size:13px!important;font-weight:700;color:#334155}
 html body .admin-shell .dash.nq .dash-legend li b{font-size:13px!important;font-weight:900;color:var(--nq-ink)}
-html body .admin-shell .dash.nq .dash-legend li small{font-size:11.5px!important;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .dash-legend li small{font-size:12px!important;color:var(--nq-muted)}
 html body .admin-shell .dash.nq .dash-legend li i{width:8px;height:8px;border-radius:50%}
 html body .admin-shell .dash.nq .dash-bar-label{font-size:13px!important;font-weight:700;color:#334155}
 html body .admin-shell .dash.nq .dash-bar-track{height:6px;border-radius:99px;background:var(--nq-line-2)}
 html body .admin-shell .dash.nq .dash-bar-track i{border-radius:99px;background:var(--nq-brown)}
 html body .admin-shell .dash.nq .dash-bar-value{font-size:13px!important;font-weight:900;color:var(--nq-ink)}
-html body .admin-shell .dash.nq .dash-bar-value small{font-size:11px!important;font-weight:600;color:var(--nq-muted)}
-html body .admin-shell .dash.nq .dash-cols span{font-size:10.5px!important;color:var(--nq-faint)}
+html body .admin-shell .dash.nq .dash-bar-value small{font-size:12px!important;font-weight:600;color:var(--nq-muted)}
+html body .admin-shell .dash.nq .dash-cols span{font-size:12px!important;color:var(--nq-faint)}
 html body .admin-shell .dash.nq .dash-col i{border-radius:5px 5px 2px 2px}
 html body .admin-shell .dash.nq .dash-heat-row i.on{background:var(--nq-brown)}
-html body .admin-shell .dash.nq .dash-heat-day,html body .admin-shell .dash.nq .dash-heat-hours b{font-size:11px!important;color:var(--nq-faint)}
+html body .admin-shell .dash.nq .dash-heat-day,html body .admin-shell .dash.nq .dash-heat-hours b{font-size:12px!important;color:var(--nq-faint)}
 html body .admin-shell .dash.nq .dash-empty{color:var(--nq-faint);font-size:13px!important}
 
 /* Tables */
@@ -136,7 +136,7 @@ html body .admin-shell .dash.nq .dash-table small,html body .admin-shell .dash.n
 html body .admin-shell .dash.nq .dash-thumb{border-radius:10px;background:var(--nq-line-2)}
 html body .admin-shell .dash.nq .dash-rank{font-size:12px!important;font-weight:800;color:var(--nq-faint)}
 html body .admin-shell .dash.nq .dash-margin i{background:#10b981}
-html body .admin-shell .dash.nq .dash-chip{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:11.5px!important;font-weight:800;background:var(--nq-line-2);color:#475569;border:0}
+html body .admin-shell .dash.nq .dash-chip{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:12px!important;font-weight:800;background:var(--nq-line-2);color:#475569;border:0}
 html body .admin-shell .dash.nq .dash-chip.success{background:#ecfdf5;color:#047857}
 html body .admin-shell .dash.nq .dash-chip.danger{background:#fef2f2;color:#b91c1c}
 html body .admin-shell .dash.nq .dash-chip.warning{background:#fffbeb;color:#b45309}

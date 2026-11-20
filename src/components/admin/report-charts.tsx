@@ -14,7 +14,7 @@ import { CountUp, change, compact, fmt, type Lang } from './dash-ui';
 
 export const RC = {
   brown: '#a8571c', brownSoft: '#f1e4d3', green: '#3f8f63', prev: '#d6c9b8', blue: '#3b82f6',
-  good: '#3f8f63', warning: '#d89a2b', serious: '#d9774a', critical: '#c2412d', info: '#4a7fb5', violet: '#7d62b8', other: '#d6c9b8',
+  good: '#2f7a52', warning: '#d89a2b', serious: '#d9774a', critical: '#c2412d', info: '#4a7fb5', violet: '#7d62b8', other: '#d6c9b8',
   /** On the dark leather hero (validated against #1f1712). */
   darkBrown: '#c47a35', darkGreen: '#42a87a', darkPrev: '#6f5e50',
 };
@@ -153,21 +153,32 @@ export function TrendChart({ labels, lines, format = fmt, height = 240, emptyTex
   </div>;
 }
 
-/** Vertical columns per day, one hue, value on the tallest cap, per-column tooltip. */
+/** Vertical columns per day, one hue, value on the tallest cap. The plot is one hover/focus target
+ * (the pointer snaps to the nearest column; arrow keys step through them) so narrow columns stay easy to read. */
 export function ColumnChart({ labels, values, format = fmt, height = 180, emptyText, unit = '' }: { labels: string[]; values: number[]; format?: (n: number) => string; height?: number; emptyText: string; unit?: string }) {
   const [hover, setHover] = useState<number | null>(null);
   if (!values.some(v => v)) return <div className="rc-empty">{emptyText}</div>;
+  const n = values.length;
   const ticks = niceTicks(Math.max(...values, 1), 3), top = ticks[ticks.length - 1];
   const peak = values.indexOf(Math.max(...values));
   const every = Math.max(1, Math.ceil(labels.length / 7));
+  function move(e: PointerEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setHover(Math.min(n - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * n))));
+  }
+  function key(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); setHover(h => Math.min(n - 1, (h ?? -1) + 1)); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); setHover(h => Math.max(0, (h ?? n) - 1)); }
+    if (e.key === 'Escape') setHover(null);
+  }
   return <div className="rc-cols" dir="ltr" style={{ ['--h' as string]: `${height}px` }}>
     <div className="rc-cols-y">{ticks.slice().reverse().map(t => <span key={t}>{axisLabel(t)}</span>)}</div>
-    <div className="rc-cols-plot">
+    <div className="rc-cols-plot" tabIndex={0} role="img" aria-label={labels.map((l, i) => `${l}: ${format(values[i])}${unit}`).join('، ')} onPointerMove={move} onPointerLeave={() => setHover(null)} onFocus={() => setHover(h => h ?? n - 1)} onBlur={() => setHover(null)} onKeyDown={key}>
       {ticks.map(t => <i key={t} className="rc-cols-grid" style={{ bottom: `${(t / top) * 100}%` }} />)}
-      <div className="rc-cols-bars">{values.map((v, i) => <button type="button" key={i} className={`rc-col ${hover === i ? 'on' : ''}`} onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)} aria-label={`${labels[i]}: ${format(v)}${unit}`}>
+      <div className="rc-cols-bars" aria-hidden="true">{values.map((v, i) => <span key={i} className={`rc-col ${hover === i ? 'on' : ''}`}>
         <span className="rc-col-bar" style={{ height: `${(v / top) * 100}%`, animationDelay: `${i * 14}ms` }}>{i === peak && hover == null && v > 0 && <em>{format(v)}</em>}</span>
         {hover === i && <span className="rc-col-tip"><strong>{format(v)}{unit}</strong><small>{labels[i]}</small></span>}
-      </button>)}</div>
+      </span>)}</div>
     </div>
     <div className="rc-cols-x">{labels.map((l, i) => <span key={i}>{i % every === 0 ? shortDay(l) : ''}</span>)}</div>
   </div>;
