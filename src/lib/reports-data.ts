@@ -78,7 +78,7 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
   for (const e of expenseNow) { const p = seriesMap.get(key(e.expenseDate)); if (p) p.expenses += e.amountIqd; }
   const prevMap = new Map(prevKeys.map(k => [k, 0]));
   for (const o of deliveredPrev) { const k = key(recognizedAt(o)); if (prevMap.has(k)) prevMap.set(k, (prevMap.get(k) ?? 0) + orderMoney(o).revenue); }
-  const series = keys.map((k, i) => { const p = seriesMap.get(k)!; return { key: k, revenue: round(p.revenue), profit: round(p.profit), cogs: round(p.cogs), net: round(p.profit - p.expenses), delivered: p.delivered, placed: p.placed, cancelled: p.cancelled, units: p.units, previousRevenue: round(prevMap.get(prevKeys[i]) ?? 0) }; });
+  const series = keys.map((k, i) => { const p = seriesMap.get(k)!; return { key: k, revenue: round(p.revenue), profit: round(p.profit), cogs: round(p.cogs), net: round(p.profit - p.expenses), expenses: round(p.expenses), delivered: p.delivered, placed: p.placed, cancelled: p.cancelled, units: p.units, previousRevenue: round(prevMap.get(prevKeys[i]) ?? 0) }; });
 
   // ---- breakdowns of delivered sales ----
   const group = (list: OrderRow[], keyOf: (o: OrderRow) => string) => {

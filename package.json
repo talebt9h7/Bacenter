@@ -11,9 +11,7 @@
     "test:wholesale": "node scripts/wholesale-edit-test.cjs"
   },
   "dependencies": {
-    "@fontsource/alexandria": "^5.3.0",
-    "@fontsource/aref-ruqaa": "^5.3.0",
-    "@fontsource/bodoni-moda": "^5.3.0",
+    "@fontsource/cairo": "^5.3.0",
     "@vercel/blob": "2.8.2",
     "@vercel/speed-insights": "2.0.0",
     "drizzle-orm": "0.45.2",
@@ -22,6 +20,7 @@
     "pg": "8.20.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "recharts": "^2.15.4",
     "sharp": "0.34.5"
   },
   "devDependencies": {
