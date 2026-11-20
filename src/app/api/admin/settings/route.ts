@@ -538,6 +538,11 @@ export async function PUT(request: NextRequest) {
 
     patch.homepage = {
       copy: {
+        // Hero headline (two lines, the second in the accent colour), shown in the display font.
+        heroLine1: clean(copy.heroLine1, 60),
+        heroLine1Ar: clean(copy.heroLine1Ar, 60),
+        heroLine2: clean(copy.heroLine2, 60),
+        heroLine2Ar: clean(copy.heroLine2Ar, 60),
         trendingEyebrow: clean(
           copy.trendingEyebrow,
           120

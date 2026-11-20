@@ -9,6 +9,9 @@ import { api, Field, ImageField, Modal, Switch, useFlash } from './ui';
 import { useLanguage } from '@/components/language-provider';
 import { storefrontT } from '@/lib/i18n';
 import type { HomepageConfig } from '@/lib/settings';
+import '@fontsource/reem-kufi/arabic-700.css';
+import '@fontsource/reem-kufi/latin-700.css';
+import '@/app/hero-headline.css';
 
 type Props = { initial: HomepageConfig };
 
@@ -209,6 +212,37 @@ export function HomepageManager({ initial }: Props) {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="admin-card">
+        <div className="admin-card-heading">
+          <div>
+            <h2>{language === 'ar' ? 'عنوان بنر الواجهة' : 'Hero headline'}</h2>
+            <p className="admin-hint" style={{ margin: '4px 0 0' }}>
+              {language === 'ar'
+                ? 'يظهر بخط ريم كوفي فوق اسم المنتج بالبنر. السطر الثاني باللون البني. اتركهم فارغين حتى يختفي العنوان.'
+                : 'Shown in Reem Kufi above the product name in the hero. The second line is brown. Leave empty to hide.'}
+            </p>
+          </div>
+        </div>
+        <div className="admin-form-grid">
+          <Field label="السطر الأول — العربية">
+            <input dir="rtl" maxLength={60} value={data.copy.heroLine1Ar || ''} placeholder="يعتّق وياك" onChange={(e) => update('copy', { ...data.copy, heroLine1Ar: e.target.value })} />
+          </Field>
+          <Field label="السطر الثاني — العربية">
+            <input dir="rtl" maxLength={60} value={data.copy.heroLine2Ar || ''} placeholder="ويبقى" onChange={(e) => update('copy', { ...data.copy, heroLine2Ar: e.target.value })} />
+          </Field>
+          <Field label="Line 1 — English">
+            <input maxLength={60} value={data.copy.heroLine1 || ''} placeholder="Ages with you" onChange={(e) => update('copy', { ...data.copy, heroLine1: e.target.value })} />
+          </Field>
+          <Field label="Line 2 — English">
+            <input maxLength={60} value={data.copy.heroLine2 || ''} placeholder="and stays" onChange={(e) => update('copy', { ...data.copy, heroLine2: e.target.value })} />
+          </Field>
+        </div>
+        {(data.copy.heroLine1Ar || data.copy.heroLine2Ar) && <div className="hs-head-preview" dir="rtl" aria-label={language === 'ar' ? 'معاينة' : 'Preview'}>
+          {data.copy.heroLine1Ar && <span>{data.copy.heroLine1Ar}</span>}
+          {data.copy.heroLine2Ar && <span className="l2">{data.copy.heroLine2Ar}</span>}
+        </div>}
       </section>
 
       <section className="admin-card">
