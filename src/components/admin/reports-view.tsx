@@ -6,6 +6,12 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, BarChart3, Boxes, CalendarDays, CircleDollarSign, Clock, Download, MapPin, Package, Percent, Printer, Receipt, ShoppingBag, ShoppingCart, Tag, TrendingUp, Truck, Users, Wallet, PackageX, Layers, Coins } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { ReportsData, ReportSection } from '@/lib/reports-data';
+import '@fontsource/cairo/400.css';
+import '@fontsource/cairo/600.css';
+import '@fontsource/cairo/700.css';
+import '@fontsource/cairo/800.css';
+import '@fontsource/cairo/900.css';
+import './reports-nq.css';
 import { Bars, Bridge, Card, Columns, Donut, Empty, Heatmap, Kpi, Legend, PageHero, TrendChart, compact, fmt, iqd, pct, type Lang } from './dash-ui';
 
 const STATUS: Record<string, [string, string]> = { pending: ['Pending', 'قيد الانتظار'], confirmed: ['Confirmed', 'مؤكد'], processing: ['Processing', 'قيد التجهيز'], shipped: ['Shipped', 'تم الشحن'], delivered: ['Delivered', 'تم التوصيل'], cancelled: ['Cancelled', 'ملغي'], returned: ['Returned', 'مرتجع'], placed: ['Placed', 'طلبات جديدة'] };
@@ -14,6 +20,8 @@ const CATEGORY_AR: Record<string, string> = { wallets: 'محافظ', backpacks: 
 const EXPENSE_AR: Record<string, string> = { marketing: 'تسويق', advertising: 'إعلانات', packaging: 'تغليف', salary: 'رواتب', rent: 'إيجار', software: 'برامج', delivery: 'توصيل', photography: 'تصوير', operations: 'تشغيل', other: 'أخرى' };
 const WEEKDAYS: [string, string][] = [['Sun', 'الأحد'], ['Mon', 'الاثنين'], ['Tue', 'الثلاثاء'], ['Wed', 'الأربعاء'], ['Thu', 'الخميس'], ['Fri', 'الجمعة'], ['Sat', 'السبت']];
 const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+/** Brown-led palette for the Nasaq-style reports: UR brown, emerald, blue, amber, violet, slate. */
+const NQ_PALETTE = ['#8b5a2b', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#94a3b8', '#c8a27a', '#ef4444'];
 const tone = (s: string) => s === 'delivered' ? 'success' : s === 'cancelled' || s === 'returned' ? 'danger' : s === 'pending' ? 'warning' : 'info';
 
 type SortKey = string;
@@ -55,16 +63,16 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
 
   const trend = (withProfit = finance) => <TrendChart labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة في هذه الفترة.')} series={[
     { key: 'prev', label: tt('Previous period', 'الفترة السابقة'), values: data.series.map(s => s.previousRevenue), color: '#a7aaa2', dashed: true },
-    { key: 'rev', label: tt('Revenue', 'الإيراد'), values: data.series.map(s => s.revenue), color: '#cd4c20', area: true },
-    ...(withProfit ? [{ key: 'profit', label: tt('Profit', 'الربح'), values: data.series.map(s => s.profit), color: '#2f6b4f' }] : []),
+    { key: 'rev', label: tt('Revenue', 'الإيراد'), values: data.series.map(s => s.revenue), color: '#8b5a2b', area: true },
+    ...(withProfit ? [{ key: 'profit', label: tt('Profit', 'الربح'), values: data.series.map(s => s.profit), color: '#10b981' }] : []),
   ]} extra={[{ label: tt('Delivered', 'مُسلّمة'), values: data.series.map(s => s.delivered) }, { label: tt('Placed', 'جديدة'), values: data.series.map(s => s.placed) }]} />;
-  const trendLegend = <Legend items={[{ label: tt('Revenue', 'الإيراد'), color: '#cd4c20' }, ...(finance ? [{ label: tt('Profit', 'الربح'), color: '#2f6b4f' }] : []), { label: tt('Previous period', 'الفترة السابقة'), color: '#a7aaa2', dashed: true }]} />;
+  const trendLegend = <Legend items={[{ label: tt('Revenue', 'الإيراد'), color: '#8b5a2b' }, ...(finance ? [{ label: tt('Profit', 'الربح'), color: '#10b981' }] : []), { label: tt('Previous period', 'الفترة السابقة'), color: '#a7aaa2', dashed: true }]} />;
 
   const products = useSort(data.productTable.filter(r => r.units || r.onHand) as unknown as Record<string, unknown>[], 'revenue');
   const inventory = useSort(data.inventory.table as unknown as Record<string, unknown>[], 'daysLeft');
   const govs = useSort(data.governorates as unknown as Record<string, unknown>[], 'orders');
 
-  return <main className="admin-page dash">
+  return <main className="admin-page dash nq">
     <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {dateFmt(data.from)} – {dateFmt(data.to)}</>} title={tt('Reports', 'التقارير')}
       description={tt('Sales, profit, products, stock, customers, orders and delivery for the selected period, compared with the period before. Money counts delivered orders on their delivery date; delivery fees are kept apart.', 'المبيعات والأرباح والمنتجات والمخزون والزبائن والطلبات والتوصيل للفترة المختارة، مقارنة بالفترة اللي قبلها. المبالغ تُحتسب للطلبات المُسلّمة بتاريخ التسليم، وأجور التوصيل منفصلة.')}
@@ -89,17 +97,17 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
       <div className="dash-grid main">
         <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Revenue trend', 'اتجاه الإيراد')} action={trendLegend}>{trend()}</Card>
         <Card icon={<Layers size={17} />} title={tt('Order outcomes', 'نتائج الطلبات')}>
-          <Donut centerLabel={tt('orders', 'طلب')} emptyText={tt('No orders.', 'لا توجد طلبات.')} format={s => pct(s)} rows={Object.entries(data.statusCounts).filter(([, v]) => v).map(([k, v]) => ({ key: k, label: status(k), value: v, sub: `${v}` }))} />
+          <Donut palette={NQ_PALETTE} centerLabel={tt('orders', 'طلب')} emptyText={tt('No orders.', 'لا توجد طلبات.')} format={s => pct(s)} rows={Object.entries(data.statusCounts).filter(([, v]) => v).map(([k, v]) => ({ key: k, label: status(k), value: v, sub: `${v}` }))} />
           <div className="dash-mini" style={{ marginTop: 14 }}><div><strong>{data.avgDeliveryDays ? data.avgDeliveryDays.toFixed(1) : '—'}</strong><span>{tt('avg days to deliver', 'متوسط أيام التسليم')}</span></div><div><strong>{pct(data.placed.cancelRate, 1)}</strong><span>{tt('cancellation rate', 'نسبة الإلغاء')}</span></div></div>
         </Card>
       </div>
       <div className="dash-grid three">
-        <Card icon={<ShoppingBag size={17} />} title={tt('Revenue by channel', 'الإيراد حسب القناة')}><Donut centerLabel={tt('channels', 'قنوات')} emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={data.bySource.map(r => ({ key: r.key, label: source(r.key), value: r.revenue, sub: `${r.orders} ${tt('orders', 'طلب')} · AOV ${compact(r.aov)}` }))} /></Card>
+        <Card icon={<ShoppingBag size={17} />} title={tt('Revenue by channel', 'الإيراد حسب القناة')}><Donut palette={NQ_PALETTE} centerLabel={tt('channels', 'قنوات')} emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={data.bySource.map(r => ({ key: r.key, label: source(r.key), value: r.revenue, sub: `${r.orders} ${tt('orders', 'طلب')} · AOV ${compact(r.aov)}` }))} /></Card>
         <Card icon={<Package size={17} />} title={tt('Revenue by category', 'الإيراد حسب الصنف')}><Bars emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={data.categoryTable.map(c => ({ key: c.key, label: category(c.key), value: c.revenue, sub: `${c.units} ${tt('units', 'قطعة')}` }))} /></Card>
         <Card icon={<Users size={17} />} title={tt('Customers', 'الزبائن')}>
           <div className="dash-mini"><div><strong>{fmt(data.customers.buyers)}</strong><span>{tt('buyers', 'مشتري')}</span></div><div><strong>{fmt(data.customers.newInPeriod)}</strong><span>{tt('new customers', 'زبون جديد')}</span></div><div><strong>{data.customers.buyers ? pct(data.customers.returning / data.customers.buyers) : '0%'}</strong><span>{tt('returning', 'عائدون')}</span></div><div><strong>{compact(data.customers.revenuePerBuyer)}</strong><span>{tt('revenue / buyer', 'إيراد لكل مشتري')}</span></div></div>
           <h3 className="dash-sub">{tt('Revenue split', 'توزيع الإيراد')}</h3>
-          <Bars emptyText="—" rows={[{ key: 'new', label: tt('New buyers', 'مشترون جدد'), value: data.customers.revenueNew }, { key: 'ret', label: tt('Returning', 'عائدون'), value: data.customers.revenueReturning }]} color="linear-gradient(90deg,#6d4c9a,#9a7cc4)" />
+          <Bars emptyText="—" rows={[{ key: 'new', label: tt('New buyers', 'مشترون جدد'), value: data.customers.revenueNew }, { key: 'ret', label: tt('Returning', 'عائدون'), value: data.customers.revenueReturning }]} color="#8b5a2b" />
         </Card>
       </div>
       <Card icon={<Package size={17} />} title={tt('Top products', 'أفضل المنتجات')} action={<Link className="dash-link" href={`/admin/reports?${qs}&section=products`}>{tt('All products', 'كل المنتجات')} <ArrowRight size={13} /></Link>}>
@@ -111,14 +119,14 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
       <section className="dash-kpis">{revenueKpis}</section>
       <div className="dash-grid main">
         <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Revenue by day', 'الإيراد اليومي')} action={trendLegend}>{trend()}</Card>
-        <Card icon={<ShoppingCart size={17} />} title={tt('Orders placed', 'الطلبات الجديدة')}><Columns labels={labels} values={data.series.map(s => s.placed)} emptyText={tt('No orders.', 'لا توجد طلبات.')} /><p className="dash-foot">{tt(`${data.placed.count} orders placed · ${data.series.reduce((s, x) => s + x.cancelled, 0)} cancelled`, `${data.placed.count} طلب جديد · ${data.series.reduce((s, x) => s + x.cancelled, 0)} ملغي`)}</p></Card>
+        <Card icon={<ShoppingCart size={17} />} title={tt('Orders placed', 'الطلبات الجديدة')}><Columns color="#8b5a2b" labels={labels} values={data.series.map(s => s.placed)} emptyText={tt('No orders.', 'لا توجد طلبات.')} /><p className="dash-foot">{tt(`${data.placed.count} orders placed · ${data.series.reduce((s, x) => s + x.cancelled, 0)} cancelled`, `${data.placed.count} طلب جديد · ${data.series.reduce((s, x) => s + x.cancelled, 0)} ملغي`)}</p></Card>
       </div>
       <div className="dash-grid two">
         <Card icon={<ShoppingBag size={17} />} title={tt('Channels', 'القنوات')}>
           <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>{tt('Channel', 'القناة')}</th><th className="num">{tt('Orders', 'الطلبات')}</th><th className="num">{tt('Revenue', 'الإيراد')}</th><th className="num">{tt('Share', 'الحصة')}</th><th className="num">{tt('Avg order', 'متوسط الطلب')}</th>{finance && <th className="num">{tt('Profit', 'الربح')}</th>}</tr></thead>
             <tbody>{data.bySource.map(r => <tr key={r.key}><td><b>{source(r.key)}</b></td><td className="num">{r.orders}</td><td className="num"><strong>{iqd(r.revenue)}</strong></td><td className="num">{pct(r.revenue / (m.revenue || 1))}</td><td className="num">{iqd(r.aov)}</td>{finance && <td className="num">{iqd(r.profit)}</td>}</tr>)}{!data.bySource.length && <tr><td colSpan={6} className="dash-muted">{tt('No sales in this period.', 'لا توجد مبيعات بالفترة.')}</td></tr>}</tbody></table></div>
         </Card>
-        <Card icon={<CalendarDays size={17} />} title={tt('Revenue by weekday', 'الإيراد حسب أيام الأسبوع')}><Bars emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={data.byWeekday.map(d => ({ key: String(d.day), label: WEEKDAYS[d.day][lang === 'ar' ? 1 : 0], value: d.revenue, sub: `${d.orders}` }))} color="linear-gradient(90deg,#c08a2b,#e0b45e)" /></Card>
+        <Card icon={<CalendarDays size={17} />} title={tt('Revenue by weekday', 'الإيراد حسب أيام الأسبوع')}><Bars emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={data.byWeekday.map(d => ({ key: String(d.day), label: WEEKDAYS[d.day][lang === 'ar' ? 1 : 0], value: d.revenue, sub: `${d.orders}` }))} color="#c8a27a" /></Card>
       </div>
       <Card icon={<Clock size={17} />} title={tt('When orders are placed', 'أوقات وصول الطلبات')}><Heatmap grid={data.heatmap} lang={lang} /></Card>
     </>}
@@ -134,10 +142,10 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
       </section>
       <Bridge steps={[{ label: tt('Revenue', 'الإيراد'), value: m.revenue }, { label: tt('COGS', 'تكلفة البضاعة'), value: m.cogs, op: '−' }, ...(m.unknownCostRevenue ? [{ label: tt('Unknown-cost revenue', 'إيراد بدون تكلفة'), value: m.unknownCostRevenue, op: '−' as const }] : []), { label: tt('Gross profit', 'إجمالي الربح'), value: m.profit, op: '=' }, { label: tt('Expenses', 'المصاريف'), value: data.expenses.current, op: '−' }, { label: tt('Net profit', 'صافي الربح'), value: net, op: '=', total: true }]} />
       <div className="dash-grid main">
-        <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Profit over time', 'الربح عبر الوقت')} action={<Legend items={[{ label: tt('Gross profit', 'إجمالي الربح'), color: '#2f6b4f' }, { label: tt('Net after expenses', 'الصافي بعد المصاريف'), color: '#3d5a80' }, { label: tt('COGS', 'تكلفة البضاعة'), color: '#c08a2b' }]} />}>
-          <TrendChart labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة بالفترة.')} series={[{ key: 'cogs', label: tt('COGS', 'تكلفة البضاعة'), values: data.series.map(s => s.cogs), color: '#c08a2b' }, { key: 'gp', label: tt('Gross profit', 'إجمالي الربح'), values: data.series.map(s => s.profit), color: '#2f6b4f', area: true }, { key: 'net', label: tt('Net', 'الصافي'), values: data.series.map(s => s.net), color: '#3d5a80' }]} />
+        <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Profit over time', 'الربح عبر الوقت')} action={<Legend items={[{ label: tt('Gross profit', 'إجمالي الربح'), color: '#10b981' }, { label: tt('Net after expenses', 'الصافي بعد المصاريف'), color: '#3d5a80' }, { label: tt('COGS', 'تكلفة البضاعة'), color: '#c08a2b' }]} />}>
+          <TrendChart labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة بالفترة.')} series={[{ key: 'cogs', label: tt('COGS', 'تكلفة البضاعة'), values: data.series.map(s => s.cogs), color: '#c08a2b' }, { key: 'gp', label: tt('Gross profit', 'إجمالي الربح'), values: data.series.map(s => s.profit), color: '#10b981', area: true }, { key: 'net', label: tt('Net', 'الصافي'), values: data.series.map(s => s.net), color: '#3d5a80' }]} />
         </Card>
-        <Card icon={<Receipt size={17} />} title={tt('Expenses by category', 'المصاريف حسب النوع')} action={<Link className="dash-link" href="/admin/finance">{tt('Finance', 'المالية')} <ArrowRight size={13} /></Link>}><Bars emptyText={tt('No expenses in this period.', 'لا توجد مصاريف بالفترة.')} rows={data.expenses.byCategory.map(e => ({ key: e.key, label: lang === 'ar' ? EXPENSE_AR[e.key] ?? e.key : cap(e.key), value: e.value }))} color="linear-gradient(90deg,#7a5195,#a685c4)" /></Card>
+        <Card icon={<Receipt size={17} />} title={tt('Expenses by category', 'المصاريف حسب النوع')} action={<Link className="dash-link" href="/admin/finance">{tt('Finance', 'المالية')} <ArrowRight size={13} /></Link>}><Bars emptyText={tt('No expenses in this period.', 'لا توجد مصاريف بالفترة.')} rows={data.expenses.byCategory.map(e => ({ key: e.key, label: lang === 'ar' ? EXPENSE_AR[e.key] ?? e.key : cap(e.key), value: e.value }))} color="#8b5a2b" /></Card>
       </div>
       <div className="dash-grid two">
         <Card icon={<Package size={17} />} title={tt('Profit by category', 'الربح حسب الصنف')}><Bars emptyText="—" rows={data.categoryTable.map(c => ({ key: c.key, label: category(c.key), value: c.profit, sub: c.margin == null ? '—' : pct(c.margin) }))} color="linear-gradient(90deg,#2f6b4f,#5e9c7d)" /></Card>
@@ -215,7 +223,7 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
             <tbody>{data.topBuyers.map(c => <tr key={c.phone}><td><Link href={`/admin/customers?q=${encodeURIComponent(c.phone)}`} className="dash-product"><span><b>{c.name}</b><small dir="ltr">{c.phone}</small></span></Link></td><td>{lang === 'ar' ? c.governorateName.ar : c.governorateName.en}</td><td className="num">{c.orders}</td><td className="num">{c.delivered}</td><td className="num">{c.cancelled ? <span className="dash-chip danger">{c.cancelled}</span> : '—'}</td><td className="num"><strong>{iqd(c.revenue)}</strong></td><td>{new Date(c.last).toLocaleDateString('en-GB')}</td></tr>)}{!data.topBuyers.length && <tr><td colSpan={7} className="dash-muted">{tt('No orders in this period.', 'لا توجد طلبات بالفترة.')}</td></tr>}</tbody></table></div>
         </Card>
         <Card icon={<TrendingUp size={17} />} title={tt('New vs returning', 'جدد مقابل عائدين')}>
-          <Donut centerLabel={tt('groups', 'فئات')} emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={[{ key: 'new', label: tt('New buyers', 'مشترون جدد'), value: data.customers.revenueNew, sub: iqd(data.customers.revenueNew) }, { key: 'ret', label: tt('Returning buyers', 'مشترون عائدون'), value: data.customers.revenueReturning, sub: iqd(data.customers.revenueReturning) }]} />
+          <Donut palette={NQ_PALETTE} centerLabel={tt('groups', 'فئات')} emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={[{ key: 'new', label: tt('New buyers', 'مشترون جدد'), value: data.customers.revenueNew, sub: iqd(data.customers.revenueNew) }, { key: 'ret', label: tt('Returning buyers', 'مشترون عائدون'), value: data.customers.revenueReturning, sub: iqd(data.customers.revenueReturning) }]} />
         </Card>
       </div>
     </>}
@@ -243,7 +251,7 @@ export function ReportsView({ data, section, finance }: { data: ReportsData; sec
         <Card icon={<Layers size={17} />} title={tt('Fulfilment funnel', 'مسار تنفيذ الطلبات')}>
           <ul className="dash-funnel">{data.funnel.map((f, i) => <li key={f.key}><span>{status(f.key)}</span><b style={{ width: `${(f.count / (data.funnel[0].count || 1)) * 100}%`, animationDelay: `${i * 90}ms` }} /><span><strong>{f.count}</strong><small>{pct(f.count / (data.funnel[0].count || 1))}</small></span></li>)}</ul>
         </Card>
-        <Card icon={<ShoppingCart size={17} />} title={tt('Orders per day', 'الطلبات يومياً')}><Columns labels={labels} values={data.series.map(s => s.placed)} emptyText={tt('No orders.', 'لا توجد طلبات.')} /></Card>
+        <Card icon={<ShoppingCart size={17} />} title={tt('Orders per day', 'الطلبات يومياً')}><Columns color="#8b5a2b" labels={labels} values={data.series.map(s => s.placed)} emptyText={tt('No orders.', 'لا توجد طلبات.')} /></Card>
       </div>
       <Card icon={<ShoppingCart size={17} />} title={tt('Orders in period', 'طلبات الفترة')} action={<Link className="dash-link" href="/admin/orders">{tt('Manage orders', 'إدارة الطلبات')} <ArrowRight size={13} /></Link>}>
         <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>{tt('Order', 'الطلب')}</th><th>{tt('Customer', 'الزبون')}</th><th>{tt('Channel', 'القناة')}</th><th>{tt('Status', 'الحالة')}</th><th className="num">{tt('Units', 'القطع')}</th><th className="num">{tt('Products', 'المنتجات')}</th>{finance && <th className="num">{tt('Profit', 'الربح')}</th>}<th className="num">{tt('Delivery', 'التوصيل')}</th><th>{tt('Placed', 'التاريخ')}</th></tr></thead>

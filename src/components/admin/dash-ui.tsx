@@ -140,7 +140,7 @@ export function Legend({ items }: { items: { label: string; color: string; dashe
 
 export type ShareRow = { key: string; label: string; value: number; sub?: string };
 
-export function Donut({ rows, centerLabel, emptyText, format = pct }: { rows: ShareRow[]; centerLabel: string; emptyText: string; format?: (share: number) => string }) {
+export function Donut({ rows, centerLabel, emptyText, format = pct, palette = PALETTE }: { rows: ShareRow[]; centerLabel: string; emptyText: string; format?: (share: number) => string; palette?: string[] }) {
   const total = rows.reduce((s, r) => s + r.value, 0);
   const R = 52, C = 2 * Math.PI * R;
   const offsets = rows.map((_, i) => rows.slice(0, i).reduce((sum, r) => sum + (r.value / (total || 1)) * C, 0));
@@ -148,10 +148,10 @@ export function Donut({ rows, centerLabel, emptyText, format = pct }: { rows: Sh
   return <div className="dash-donut">
     <svg viewBox="0 0 140 140" aria-hidden="true">
       <circle cx="70" cy="70" r={R} className="dash-donut-track" />
-      {rows.map((r, i) => { const len = (r.value / total) * C; return <circle key={r.key} cx="70" cy="70" r={R} stroke={PALETTE[i % PALETTE.length]} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offsets[i]} className="dash-donut-seg" style={{ animationDelay: `${i * 90}ms` }} />; })}
+      {rows.map((r, i) => { const len = (r.value / total) * C; return <circle key={r.key} cx="70" cy="70" r={R} stroke={palette[i % palette.length]} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offsets[i]} className="dash-donut-seg" style={{ animationDelay: `${i * 90}ms` }} />; })}
     </svg>
     <div className="dash-donut-center"><strong>{rows.length}</strong><span>{centerLabel}</span></div>
-    <ul className="dash-legend">{rows.map((r, i) => <li key={r.key}><i style={{ background: PALETTE[i % PALETTE.length] }} /><span>{r.label}</span><b>{format(r.value / total)}</b>{r.sub && <small>{r.sub}</small>}</li>)}</ul>
+    <ul className="dash-legend">{rows.map((r, i) => <li key={r.key}><i style={{ background: palette[i % palette.length] }} /><span>{r.label}</span><b>{format(r.value / total)}</b>{r.sub && <small>{r.sub}</small>}</li>)}</ul>
   </div>;
 }
 

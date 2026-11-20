@@ -11,6 +11,7 @@
     "test:wholesale": "node scripts/wholesale-edit-test.cjs"
   },
   "dependencies": {
+    "@fontsource/cairo": "^5.3.0",
     "@vercel/blob": "2.8.2",
     "@vercel/speed-insights": "2.0.0",
     "drizzle-orm": "0.45.2",
