@@ -1,15 +1,11 @@
 /* Hero headline in Reem Kufi: written in the admin, two lines, the second in UR brown.
-   It stays still while the product beside it rotates (only the rest of the copy animates). */
+   It sits above the product and stays still while the products rotate. */
 html body .hs-head,html body .hs-head *,html body .hs-head-preview,html body .hs-head-preview *{font-family:'Reem Kufi','Noto Kufi Arabic',sans-serif!important}
-html body .hs-head{margin:0 0 14px;font-size:clamp(40px,11vw,54px)!important;font-weight:700;line-height:1.12;letter-spacing:-.3px;color:#1f1d1a;text-wrap:balance}
+html body .hs-head{position:relative;z-index:1;text-align:center;margin:6px 0 10px;font-size:clamp(40px,11vw,54px)!important;font-weight:700;line-height:1.12;letter-spacing:-.3px;color:#1f1d1a;text-wrap:balance}
 html body .hs-head span{display:block}
 html body .hs-head .l2{color:#8b5a2b}
-html body .hs-copy.has-head{animation:none}
-html body .hs-copy.has-head>:not(.hs-head){animation:hs-up .6s .08s cubic-bezier(.2,.7,.2,1) both}
-html body .hs-still .hs-copy.has-head>*{animation:none}
 html body .hs-copy.has-head .hs-title{font-size:clamp(20px,5.5vw,26px)!important;margin-top:4px}
-@media (min-width:900px){html body .hs-head{font-size:clamp(54px,5.6vw,80px)!important;margin-bottom:18px}}
-@media (prefers-reduced-motion:reduce){html body .hs-copy.has-head>*{animation:none}}
+@media (min-width:900px){html body .hs-head{font-size:clamp(54px,5.6vw,80px)!important;margin:0 0 22px}}
 /* Admin preview */
 html body .hs-head-preview{margin-top:16px;padding:18px 22px;border-radius:14px;background:linear-gradient(180deg,#f4ede2,#efe5d6);font-size:40px;font-weight:700;line-height:1.15;color:#1f1d1a}
 html body .hs-head-preview span{display:block}

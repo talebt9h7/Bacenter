@@ -41,12 +41,16 @@ export function HeroSpotlight({ products, headline }: { products: Product[]; hea
   const go = (next: number) => { hold(); setMoved(true); setIndex(((next % count) + count) % count); };
   const product = products[index];
 
+  // Headline written in the admin (Homepage → Hero headline): above the product, still while the products rotate.
+  const l1 = (ar ? headline?.line1Ar : headline?.line1) || '', l2 = (ar ? headline?.line2Ar : headline?.line2) || '';
+  const hasHead = !!(l1 || l2);
   return <section className={`hs${moved ? '' : ' hs-still'}`} aria-roledescription="carousel" aria-label={ar ? 'الأكثر مبيعاً' : 'Bestsellers'}
     onPointerDown={hold}
     onTouchStart={e => { touchX.current = e.touches[0].clientX; }}
     onTouchEnd={e => { if (touchX.current == null) return; const d = touchX.current - e.changedTouches[0].clientX; touchX.current = null; if (Math.abs(d) > 45) go(index + ((d > 0) === ar ? -1 : 1)); }}>
     <div className="hs-glow" aria-hidden="true" />
-    <Slide key={product.id} product={product} headline={headline} colorId={colorIds[product.id]} onColor={id => { hold(); setColorIds(m => ({ ...m, [product.id]: id })); }} />
+    {hasHead && <h1 className="hs-head">{l1 && <span>{l1}</span>}{l2 && <span className="l2">{l2}</span>}</h1>}
+    <Slide key={product.id} product={product} hasHead={hasHead} colorId={colorIds[product.id]} onColor={id => { hold(); setColorIds(m => ({ ...m, [product.id]: id })); }} />
     {count > 1 && <div className="hs-nav">
       <button type="button" className="hs-arrow" aria-label={ar ? 'السابق' : 'Previous'} onClick={() => go(index - 1)}>{ar ? <ArrowRight size={18} strokeWidth={1.6} /> : <ArrowLeft size={18} strokeWidth={1.6} />}</button>
       <div className="hs-dots">{products.map((p, i) => <button type="button" key={p.id} aria-label={ar ? (p.nameAr || p.name) : p.name} aria-current={i === index} className={i === index ? 'on' : ''} onClick={() => go(i)}><i style={i === index ? { animationDuration: `${ROTATE_MS}ms` } : undefined} /></button>)}</div>
@@ -55,7 +59,7 @@ export function HeroSpotlight({ products, headline }: { products: Product[]; hea
   </section>;
 }
 
-function Slide({ product, headline, colorId, onColor }: { product: Product; headline?: HeroHeadline; colorId?: number; onColor: (id: number) => void }) {
+function Slide({ product, hasHead, colorId, onColor }: { product: Product; hasHead: boolean; colorId?: number; onColor: (id: number) => void }) {
   const { language } = useLanguage();
   const ar = language === 'ar';
   const sized = hasSizes(product);
@@ -65,9 +69,6 @@ function Slide({ product, headline, colorId, onColor }: { product: Product; head
   const subtitle = ar ? product.subtitleAr : product.subtitle;
   const href = `/products/${product.id}${color ? `?color=${encodeURIComponent(color.name)}` : ''}`;
   const img = primaryImage(color);
-  // Headline written in the admin (Homepage → Hero headline); stays put while the products rotate.
-  const l1 = (ar ? headline?.line1Ar : headline?.line1) || '', l2 = (ar ? headline?.line2Ar : headline?.line2) || '';
-  const hasHead = !!(l1 || l2);
 
   return <div className="hs-slide">
     <Link href={href} prefetch className="hs-media" aria-label={name}>
@@ -75,7 +76,6 @@ function Slide({ product, headline, colorId, onColor }: { product: Product; head
       <span className="hs-shadow" aria-hidden="true" />
     </Link>
     <div className={`hs-copy${hasHead ? ' has-head' : ''}`}>
-      {hasHead && <h1 className="hs-head">{l1 && <span>{l1}</span>}{l2 && <span className="l2">{l2}</span>}</h1>}
       {product.promotion && product.originalPriceIqd ? <span className="hs-offer">{(ar ? product.promotion.badgeAr : product.promotion.badge) || `−${product.promotion.percentOff}%`}</span> : <span className="hs-eyebrow">{ar ? 'الأكثر مبيعاً' : 'Bestseller'}</span>}
       {hasHead ? <h2 className="hs-title"><Link href={href}>{name}</Link></h2> : <h1 className="hs-title"><Link href={href}>{name}</Link></h1>}
       {subtitle && <p className="hs-sub">{subtitle}</p>}
