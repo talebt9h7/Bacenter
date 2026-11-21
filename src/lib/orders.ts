@@ -78,9 +78,27 @@ export async function adjustStock(tx: Tx | typeof db, variantId: number, delta: 
   const applied = target - variant.stock;
   if (applied === 0) return variant.stock;
   if (applied < 0) await trimBatchesToStock(tx, variantId, target);
+  if (applied > 0) await batchAddedStock(tx, variantId, target, reason);
   const [updated] = await tx.update(productVariants).set({ stock: target }).where(eq(productVariants.id, variantId)).returning({ stock: productVariants.stock });
   await tx.insert(inventoryMovements).values({ variantId, delta: applied, stockAfter: updated.stock, reason, reference: reference ?? null });
   return updated.stock;
+}
+
+/**
+ * Stock added by hand (a count, a correction, a return that cannot go back to its own batch) gets its
+ * own batch at the colour's last known purchase cost, so selling it later still has a cost and a profit.
+ * A colour that never had a costed purchase stays unbatched (unknown cost) rather than an invented one.
+ */
+async function batchAddedStock(tx: Tx | typeof db, variantId: number, stock: number, reason: string) {
+  // Only the units no batch covers (never more), so a partial batch restore is not counted twice.
+  const [{ batched }] = await tx.select({ batched: sql<number>`coalesce(sum(${inventoryBatches.quantityRemaining}), 0)::int` }).from(inventoryBatches).where(eq(inventoryBatches.variantId, variantId));
+  const quantity = stock - Number(batched);
+  if (quantity <= 0) return;
+  const [last] = await tx.select({ cost: inventoryBatches.purchaseCostIqd, usd: inventoryBatches.purchaseCostUsdCents, rate: inventoryBatches.purchaseExchangeRate }).from(inventoryBatches)
+    .where(and(eq(inventoryBatches.variantId, variantId), sql`${inventoryBatches.purchaseCostIqd} is not null`))
+    .orderBy(desc(inventoryBatches.receivedAt), desc(inventoryBatches.id)).limit(1);
+  if (!last) return;
+  await tx.insert(inventoryBatches).values({ variantId, batchNumber: `ADJ-${variantId}-${Date.now().toString(36)}`, quantityReceived: quantity, quantityRemaining: quantity, purchaseCostIqd: last.cost, purchaseCostUsdCents: last.usd, purchaseExchangeRate: last.rate, notes: `${reason} · بكلفة آخر دفعة`.slice(0, 500) });
 }
 
 /** Receive a new purchase batch. Purchase cost is snapshotted; storefront sale price is managed at product level. */

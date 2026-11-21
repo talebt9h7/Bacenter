@@ -36,10 +36,10 @@ export function estimateProfit(lines: ProfitLine[], layers: Record<number, CostL
   }
   const safeDiscount = Math.min(Math.max(0, Number(discount) || 0), revenue);
   // Units with no recorded cost are left out of the profit (as in the reports) rather than counted as free.
+  // The whole discount still comes off what is known, so the "most discount" never exceeds the known profit.
   const knownRevenue = revenue - unknownRevenue;
-  const share = revenue ? knownRevenue / revenue : 0;
   const profitBefore = knownRevenue - cost;
-  const profit = knownRevenue - safeDiscount * share - cost;
-  const maxDiscount = share > 0 ? Math.max(0, Math.floor(profitBefore / share)) : 0;
+  const profit = profitBefore - safeDiscount;
+  const maxDiscount = Math.max(0, Math.floor(profitBefore));
   return { revenue, cost, unknown, profitBefore, profit, maxDiscount, discount: safeDiscount };
 }
