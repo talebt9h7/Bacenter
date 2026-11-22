@@ -18,6 +18,8 @@ export function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [shake, setShake] = useState(0);
   const [done, setDone] = useState(false);
+  // On by default: this is the owner's own phone/computer most of the time.
+  const [remember, setRemember] = useState(true);
   const userRef = useRef<HTMLInputElement>(null);
   const passRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -34,7 +36,7 @@ export function LoginForm() {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: mode === 'team' ? username : '', password }),
+        body: JSON.stringify({ username: mode === 'team' ? username : '', password, remember }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || '');
@@ -75,6 +77,7 @@ export function LoginForm() {
           <button type="submit" className="al-go" disabled={!ready || busy} aria-label="دخول">{busy ? <span className="al-spin" /> : <ArrowLeft size={17} strokeWidth={2.4} />}</button>
         </div>
       </div>
+      <label className="al-remember"><input id="al-remember" type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} /><span>ابقَ مسجّل دخول على هذا الجهاز لمدة 30 يوم</span></label>
       <p className="al-error" role="alert" aria-live="polite">{error}</p>
 
 

@@ -6,6 +6,8 @@ import { adminUsers, settings } from '@/db/schema';
 
 export const ADMIN_COOKIE = 'bellroy_admin';
 const SESSION_HOURS = 12;
+/** "Stay signed in" on this device: 30 days instead of 12 hours. */
+const REMEMBER_HOURS = 30 * 24;
 
 export type PermissionLevel = 'view' | 'manage';
 export type AdminSection = 'overview' | 'sales' | 'catalog' | 'storefront' | 'finance' | 'configuration' | 'team';
@@ -100,18 +102,19 @@ export async function ownerPasswordMatches(candidate: string) {
   return safeEqual(adminPassword(), candidate);
 }
 
-function createToken(payload: string) {
-  const expires = Date.now() + SESSION_HOURS * 3600 * 1000;
+function createToken(payload: string, remember = false) {
+  const hours = remember ? REMEMBER_HOURS : SESSION_HOURS;
+  const expires = Date.now() + hours * 3600 * 1000;
   const body = `${payload}:${expires}`;
-  return { token: `${body}.${sign(body)}`, maxAge: SESSION_HOURS * 3600 };
+  return { token: `${body}.${sign(body)}`, maxAge: hours * 3600 };
 }
 
-export function createOwnerSessionToken() {
-  return createToken('owner');
+export function createOwnerSessionToken(remember = false) {
+  return createToken('owner', remember);
 }
 
-export function createUserSessionToken(userId: number) {
-  return createToken(`user:${userId}`);
+export function createUserSessionToken(userId: number, remember = false) {
+  return createToken(`user:${userId}`, remember);
 }
 
 export function verifySessionToken(token?: string) {

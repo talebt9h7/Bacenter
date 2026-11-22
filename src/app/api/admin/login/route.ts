@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const password = typeof body.password === 'string' ? body.password.trim() : '';
   const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const remember = body.remember === true;
   const keys = throttleKeys(clientIp(request.headers), username);
 
   if (await isLockedOut(keys)) {
@@ -14,10 +15,10 @@ export async function POST(request: NextRequest) {
 
   let tokenData: { token: string; maxAge: number } | null = null;
   if (!username) {
-    if (password && password.length <= 200 && await ownerPasswordMatches(password)) tokenData = createOwnerSessionToken();
+    if (password && password.length <= 200 && await ownerPasswordMatches(password)) tokenData = createOwnerSessionToken(remember);
   } else {
     const user = password.length <= 200 ? await authenticateTeamUser(username, password) : null;
-    if (user) tokenData = createUserSessionToken(user.id);
+    if (user) tokenData = createUserSessionToken(user.id, remember);
   }
 
   if (!tokenData) {
