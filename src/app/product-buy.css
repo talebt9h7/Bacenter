@@ -14,3 +14,6 @@ html body main.product-page .buy-actions .whatsapp-inquiry-button.is-icon .whats
   html body main.product-page .buy-actions .whatsapp-inquiry-button.is-icon{flex-basis:56px;width:56px!important;min-width:56px;height:56px!important;min-height:56px!important}
   html body main.product-page .buy-actions .product-add-to-cart{height:56px!important;min-height:56px!important}
 }
+/* Low stock line under the price (5 or fewer of the chosen colour) */
+html body .product-detail-layout .stock-left{margin:4px 0 2px;font-size:14px!important;line-height:1.5;color:#6b6b66}
+html body .product-detail-layout .stock-left b{color:#1f1d1a;font-weight:700;font-variant-numeric:tabular-nums}

@@ -146,6 +146,7 @@ export function ProductDetail({ product, related, initialColor, initialSize, ban
         <div className="product-heading">
           <h1>{displayName}</h1>
           {promoLive && pricing.regular > pricing.price ? <div className="product-price on-sale"><span className="price-now">{moneyIqd(pricing.price)}</span><s className="price-was">{moneyIqd(pricing.regular)}</s><span className="price-save">{language === 'ar' ? `وفّر ${moneyIqd(pricing.regular - pricing.price)}` : `Save ${moneyIqd(pricing.regular - pricing.price)}`}</span></div> : <div className="product-price">{moneyIqd(shownPrice)}</div>}
+          {lowStock && <p className="stock-left">{language === 'ar' ? <>تبقّى <b>{color.stock}</b> فقط في المخزون!</> : <>Only <b>{color.stock}</b> left in stock!</>}</p>}
           {promoLive && product.promotion && <div className="promo-panel"><span className="promo-panel-name">{(language === 'ar' ? product.promotion.badgeAr || product.promotion.nameAr : product.promotion.badge || product.promotion.name) || `−${product.promotion.percentOff}%`}</span>{product.promotion.showCountdown && <PromoCountdown endsAt={product.promotion.endsAt} language={language} refreshOnEnd />}</div>}
         </div>
 

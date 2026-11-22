@@ -432,3 +432,7 @@ html body .product-card .quick-add:hover .qa-icon i{background:#fff;color:#1d1a1
 @media(max-width:767px){html body .product-card .quick-add{width:36px!important;height:36px!important;bottom:8px!important;inset-inline-end:8px!important}}
 html body .product-card .quick-add .qa-icon svg{transform:none!important}
 html body .product-card .quick-add .qa-icon i{inset-inline-end:auto!important;right:-5px!important;left:auto!important}
+/* Low stock (5 or fewer of the chosen colour, after reservations) */
+html body .product-card .stock-left{margin:3px 0 0;font-size:12px!important;line-height:1.4;color:#6b6b66;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .product-card .stock-left b{color:#1f1d1a;font-weight:700;font-variant-numeric:tabular-nums}
+
