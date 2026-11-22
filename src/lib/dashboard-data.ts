@@ -108,6 +108,14 @@ async function computeDashboard(period: DashboardPeriod | 'custom', { finance, f
   };
   const bySource = group(delivered, o => (o.source || 'website') as string);
   const byGovernorate = group(delivered, o => (o.governorate || 'unknown') as string).map(row => ({ ...row, nameEn: zoneName.get(row.key)?.en ?? row.key, nameAr: zoneName.get(row.key)?.ar ?? row.key }));
+  // Per governorate for the map: orders placed in the period (any status), what was delivered, and the best seller there.
+  const govAgg = new Map<string, { placed: number; cancelled: number; delivered: number; revenue: number; units: number; products: Map<string, number> }>();
+  const govRow = (key: string) => { const row = govAgg.get(key) ?? { placed: 0, cancelled: 0, delivered: 0, revenue: 0, units: 0, products: new Map<string, number>() }; govAgg.set(key, row); return row; };
+  for (const o of placed) { const row = govRow((o.governorate || 'unknown') as string); row.placed++; if (o.status === 'cancelled') row.cancelled++; }
+  for (const o of delivered) {
+    const row = govRow((o.governorate || 'unknown') as string); row.delivered++;
+    for (const line of lineMoney(o)) { row.revenue += line.revenue; row.units += line.units; const id = line.item.productId || line.item.name || ''; if (id) row.products.set(id, (row.products.get(id) ?? 0) + line.units); }
+  }
 
   // ---- Products ----
   const productAgg = new Map<string, { units: number; revenue: number; cost: number; profit: number; knownRevenue: number; orders: Set<number> }>();
@@ -179,7 +187,12 @@ async function computeDashboard(period: DashboardPeriod | 'custom', { finance, f
     placed: { count: placed.length, previous: placedPrev.length, value: Math.round(placedValue(placed)), previousValue: Math.round(placedValue(placedPrev)), cancelRate: rate(placed, 'cancelled'), returnRate: rate(placed, 'returned'), previousCancelRate: rate(placedPrev, 'cancelled'), deliveredCount: deliveredPeriodCount.delivered },
     daily, byMonth,
     pipeline, expectedRevenue: Math.round(openMoney.revenue), expectedProfit: finance ? Math.round(openMoney.profit) : 0, toCollect: pipeline.find(p => p.status === 'shipped')?.collect ?? 0,
-    bySource, byGovernorate: byGovernorate.slice(0, 8), governoratesLive: zones.filter(z => z.enabled).length,
+    bySource, byGovernorate: byGovernorate.slice(0, 8),
+    governorateMap: [...govAgg.entries()].map(([key, v]) => {
+      const top = [...v.products.entries()].sort((a, b) => b[1] - a[1])[0];
+      const p = top ? productMap.get(top[0]) : undefined;
+      return { key, nameEn: zoneName.get(key)?.en ?? key, nameAr: zoneName.get(key)?.ar ?? key, placed: v.placed, cancelled: v.cancelled, delivered: v.delivered, revenue: Math.round(v.revenue), units: v.units, topProduct: top ? { name: p?.name ?? top[0], nameAr: p?.nameAr || p?.name || top[0], units: top[1] } : null };
+    }), governoratesLive: zones.filter(z => z.enabled).length,
     topProducts: finance ? topProducts : topProducts.map(p => ({ ...p, profit: 0, margin: null })),
     inventory: { ...valuation, knownValue: finance ? valuation.knownValue : 0, variants: variantRows.length, products: productRows.length, published: productRows.filter(p => p.published).length, soldOut: variantView.filter(v => v.published && v.available === 0).length, low: variantView.filter(v => v.published && v.available > 0 && v.available <= lowThreshold).length, lowThreshold },
     stockAlerts, deadStock,

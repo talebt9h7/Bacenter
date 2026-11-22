@@ -6,6 +6,7 @@ import { useMemo, type ReactNode } from 'react';
 import { Bars, Card, CountUp, Delta, Donut, Heatmap, Kpi, PALETTE, TrendChart, ago, compact, fmt, iqd, pct, type Lang } from './dash-ui';
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Boxes, CalendarDays, CircleDollarSign, Clock, Coins, Flame, Layers, MapPin, MessageSquare, Package, PackageX, Plus, Receipt, RefreshCw, ShoppingBag, ShoppingCart, Sparkles, Truck, Users, Wallet } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
+import { GovernorateMap } from './governorate-map';
 import type { DashboardData } from '@/lib/dashboard-data';
 
 const STATUS_AR: Record<string, string> = { pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التجهيز', shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي', returned: 'مرتجع' };
@@ -114,7 +115,7 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
 
     <div className="dash-grid three">
       <Card delay={420} icon={<ShoppingBag size={17} />} title={tt('Sales by channel', 'المبيعات حسب القناة')}><Donut centerLabel={tt('sources', 'مصادر')} emptyText={tt('No data yet.', 'لا توجد بيانات بعد.')} rows={data.bySource.map(r => ({ key: r.key, label: lang === 'ar' ? SOURCE_AR[r.key] ?? r.key : r.key.replace(/^./, c => c.toUpperCase()), value: r.revenue, sub: `${r.orders} ${tt('orders', 'طلب')}` }))} /></Card>
-      <Card delay={460} icon={<MapPin size={17} />} title={tt('Top governorates', 'أعلى المحافظات')} action={<span className="dash-muted">{tt(`${data.governoratesLive}/18 live`, `${data.governoratesLive}/18 مفعّلة`)}</span>}><Bars emptyText={tt('No data yet.', 'لا توجد بيانات بعد.')} color="linear-gradient(90deg,#3d5a80,#6f8db5)" rows={data.byGovernorate.map(r => ({ key: r.key, label: lang === 'ar' ? r.nameAr : r.nameEn, value: r.revenue, sub: String(r.orders) }))} /></Card>
+      <Card delay={460} icon={<MapPin size={17} />} title={tt('Orders by governorate', 'طلبات المحافظات')} action={<span className="dash-muted">{tt(`${data.governoratesLive}/18 live`, `${data.governoratesLive}/18 مفعّلة`)}</span>}><GovernorateMap rows={data.governorateMap} lang={lang} /></Card>
       <Card delay={500} icon={<Clock size={17} />} title={tt('When orders come in', 'أوقات وصول الطلبات')}><Heatmap grid={data.heatmap} lang={lang} /></Card>
     </div>
 

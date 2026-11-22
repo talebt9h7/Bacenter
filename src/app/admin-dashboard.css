@@ -656,3 +656,35 @@ tr.is-over td{box-shadow:inset 0 2px 0 var(--a-accent)}
   .dash .dash-kpi-value{font-size:19px}
   .dash .dash-card-head h2>svg{width:30px;height:30px;padding:7px}
 }
+
+/* Orders by governorate: map of Iraq */
+.gm{display:flex;flex-direction:column;gap:12px}
+.gm-stage{position:relative;background:linear-gradient(180deg,#fafbfc,#f5f6f8);border:1px solid var(--d-line,#eceef1);border-radius:14px;padding:10px 14px}
+.gm-stage svg{display:block;width:100%;height:auto;max-height:420px;margin:auto;overflow:visible}
+.gm-region{stroke:#fff;stroke-width:3;stroke-linejoin:round;cursor:pointer;transition:filter .15s,opacity .15s;outline:none}
+.gm-region:hover,.gm-region:focus-visible{filter:brightness(.94)}
+.gm-outline{fill:none;stroke:#16181d;stroke-width:4;stroke-linejoin:round;pointer-events:none}
+.gm-badge{pointer-events:none}
+.gm-badge circle{fill:#fff;stroke:rgba(16,24,40,.12);stroke-width:2;filter:drop-shadow(0 2px 3px rgba(16,24,40,.12))}
+.gm-badge circle.dark{fill:#16181d;stroke:none}
+.gm-badge text{font:700 19px system-ui,sans-serif;fill:#16181d;font-variant-numeric:tabular-nums}
+.gm-badge text.dark{fill:#fff}
+.gm-tip{position:absolute;z-index:3;min-width:150px;max-width:200px;background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px -12px rgba(16,24,40,.28);pointer-events:none;animation:gm-in .18s ease-out}
+.gm-tip.start{transform:translate(calc(-100% - 16px),-50%)}
+.gm-tip.end{transform:translate(16px,-50%)}
+.gm-tip strong{display:block;font-size:13px;font-weight:600;color:#16181d;margin-bottom:6px}
+.gm-tip p{font-size:12px;color:#7c818b;margin:0}
+.gm-tip dl{display:grid;gap:3px;margin:0}
+.gm-tip dl div{display:flex;justify-content:space-between;gap:10px;font-size:11.5px}
+.gm-tip dt{color:#7c818b}
+.gm-tip dd{margin:0;color:#16181d;font-weight:600;text-align:end;font-variant-numeric:tabular-nums}
+.gm-tip dd small{color:#b3402a;font-weight:500}
+@keyframes gm-in{from{opacity:0}to{opacity:1}}
+.gm-scale{display:flex;align-items:center;gap:8px;font-size:11px;color:#7c818b}
+.gm-scale i{flex:1;height:6px;border-radius:4px;background:linear-gradient(90deg,#f6ded2,#cd4c20)}
+[dir=rtl] .gm-scale i{background:linear-gradient(270deg,#f6ded2,#cd4c20)}
+.gm-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;border-top:1px solid var(--d-line,#eceef1);padding-top:12px}
+.gm-stats span{display:block;font-size:11.5px;color:#7c818b}
+.gm-stats b{font-size:13px;font-weight:600;color:#16181d;font-variant-numeric:tabular-nums}
+.gm-note{font-size:12px!important;line-height:1.6;color:#7c818b;background:#f6f7f9;border-radius:10px;padding:8px 10px;margin:0}
+@media (prefers-reduced-motion:reduce){.gm-tip{animation:none}}
