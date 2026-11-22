@@ -453,3 +453,10 @@ html body .admin-shell .pf-max button{height:28px;padding:0 10px;border-radius:8
 html body .admin-shell .pf-note{margin:8px 0 0;font-size:12px!important;line-height:1.6;color:#86868b}
 .pf-detail{margin-bottom:16px}.pf-detail .pf-box{margin-top:0}
 html body .admin-shell .pf-est{margin:6px 2px 0;font-size:12px!important;line-height:1.6;color:#86868b}
+
+/* Sidebar (Nov 2026): neutral line icons; the open page is a soft accent row with a marker on its edge. */
+.admin-shell .admin-sidebar nav a svg{color:#6b7079;opacity:1;stroke-width:1.7}
+.admin-shell .admin-sidebar nav a.active{position:relative;background:#fbe9e1!important;color:var(--ap-accent)!important;font-weight:600}
+.admin-shell .admin-sidebar nav a.active svg{color:var(--ap-accent)}
+.admin-shell .admin-sidebar nav a.active::before{content:"";position:absolute;inset-inline-start:-10px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--ap-accent)}
+.admin-shell .admin-sidebar nav a.active .admin-nav-badge{background:var(--ap-accent)!important;color:#fff!important}

@@ -69,8 +69,8 @@ export function Sparkline({ values, tone = 'accent' }: { values: number[]; tone?
 export function Kpi({ icon, label, value, format, current, previous, inverse, spark, note, tone, lang, href, delay = 0 }: { icon: ReactNode; label: string; value: number; format?: (n: number) => string; current?: number; previous?: number; inverse?: boolean; spark?: number[]; note?: ReactNode; tone?: string; lang: Lang; href?: string; delay?: number }) {
   const body = <>
     <div className="dash-kpi-top"><span className={`dash-kpi-icon ${tone ?? ''}`}>{icon}</span><span className="dash-kpi-label">{label}</span></div>
-    <div className="dash-kpi-row"><strong className="dash-kpi-value"><CountUp value={value} format={format} /></strong>{previous !== undefined && <Delta current={current ?? value} previous={previous} inverse={inverse} lang={lang} />}</div>
-    {note && <small className="dash-kpi-note">{note}</small>}
+    <div className="dash-kpi-row"><strong className="dash-kpi-value"><CountUp value={value} format={format} /></strong></div>
+    {(previous !== undefined || note) && <div className="dash-kpi-foot">{previous !== undefined && <Delta current={current ?? value} previous={previous} inverse={inverse} lang={lang} />}{note && <small className="dash-kpi-note">{note}</small>}</div>}
     {spark && <Sparkline values={spark} tone={tone} />}
   </>;
   return href ? <Link href={href} className="dash-kpi dash-rise" style={{ animationDelay: `${delay}ms` }}>{body}</Link> : <div className="dash-kpi dash-rise" style={{ animationDelay: `${delay}ms` }}>{body}</div>;
