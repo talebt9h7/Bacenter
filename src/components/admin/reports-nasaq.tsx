@@ -65,20 +65,30 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
   const prevMonthDate = new Date(Date.UTC(year, month - 2, 1));
   const prevMonth = `${prevMonthDate.getUTCFullYear()}-${String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0')}`;
   const prevMonthEnd = new Date(Date.UTC(year, month - 1, 0)).toISOString().slice(0, 10);
+  const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
   const ranges = {
+    today: `from=${today}&to=${today}`,
+    yesterday: `from=${yesterday}&to=${yesterday}`,
     month: `from=${monthStart}&to=${today}`,
     prevMonth: `from=${prevMonth}-01&to=${prevMonthEnd}`,
     year: `from=${year}-01-01&to=${today}`,
     all: `from=2023-01-01&to=${today}`,
   };
-  const active = data.fromDay === monthStart && data.toDay === today ? 'month'
+  const active = data.fromDay === today && data.toDay === today ? 'today'
+    : data.fromDay === yesterday && data.toDay === yesterday ? 'yesterday'
+    : data.fromDay === monthStart && data.toDay === today ? 'month'
     : data.fromDay === `${prevMonth}-01` && data.toDay === prevMonthEnd ? 'prevMonth'
     : data.fromDay === `${year}-01-01` && data.toDay === today ? 'year'
     : data.fromDay === '2023-01-01' ? 'all' : 'custom';
   const shownYear = Number(data.fromDay.slice(0, 4));
   const go = (q: string) => router.push(`/admin/reports?${q}`, { scroll: false });
   const qs = `from=${data.fromDay}&to=${data.toDay}`;
-  const rangeLabel = active === 'month' ? 'الشهر' : active === 'prevMonth' ? 'الشهر السابق' : active === 'year' ? 'العام' : active === 'all' ? 'كل الأوقات' : 'الفترة';
+  const singleDay = data.fromDay === data.toDay;
+  // Any day or span: picking a "from" after "to" (or the other way round) moves the other end with it.
+  const pickDay = (d: string) => { if (d) go(`from=${d}&to=${d}`); };
+  const pickFrom = (d: string) => { if (d) go(`from=${d}&to=${d > data.toDay ? d : data.toDay}`); };
+  const pickTo = (d: string) => { if (d) go(`from=${d < data.fromDay ? d : data.fromDay}&to=${d}`); };
+  const rangeLabel = active === 'today' ? 'اليوم' : active === 'yesterday' ? 'أمس' : singleDay ? `يوم ${data.fromDay}` : active === 'month' ? 'الشهر' : active === 'prevMonth' ? 'الشهر السابق' : active === 'year' ? 'العام' : active === 'all' ? 'كل الأوقات' : 'الفترة';
   const monthly = data.byMonth;
   const label = (key: string) => key.length === 7 ? MONTHS_AR[Number(key.slice(5)) - 1] : `${Number(key.slice(8))}/${Number(key.slice(5, 7))}`;
 
@@ -121,9 +131,18 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
 
     {/* Toolbar with time filter */}
     <div className="nq-toolbar">
-      {active === 'custom' ? <div className="nq-alert"><Calendar size={16} /><p><b>تنبيه:</b> التقرير مقيد بفترة مخصصة ({data.fromDay} إلى {data.toDay}).</p><button type="button" onClick={() => go(ranges.month)}>إلغاء القيد</button></div>
+      {active === 'custom' ? <div className="nq-alert"><Calendar size={16} /><p>{singleDay ? <>تقرير يوم <b dir="ltr">{data.fromDay}</b></> : <>تقرير الفترة من <b dir="ltr">{data.fromDay}</b> إلى <b dir="ltr">{data.toDay}</b></>}</p><button type="button" onClick={() => go(ranges.month)}>رجوع للشهر الحالي</button></div>
         : <div className="nq-title"><div className="nq-tile brown"><Calendar size={20} /></div><h2>تحليلات الأداء</h2></div>}
       <div className="nq-tools">
+        <div className="nq-seg">
+          <button type="button" className={active === 'today' ? 'on' : ''} onClick={() => go(ranges.today)}>اليوم</button>
+          <button type="button" className={active === 'yesterday' ? 'on' : ''} onClick={() => go(ranges.yesterday)}>أمس</button>
+        </div>
+        <label className="nq-date-pick"><span>يوم محدد</span><input id="rp-day" type="date" max={today} value={singleDay ? data.fromDay : ''} onChange={e => pickDay(e.target.value)} /></label>
+        <div className="nq-range" role="group" aria-label="فترة مخصصة">
+          <label className="nq-date-pick"><span>من</span><input id="rp-from" type="date" max={today} value={data.fromDay} onChange={e => pickFrom(e.target.value)} /></label>
+          <label className="nq-date-pick"><span>إلى</span><input id="rp-to" type="date" max={today} value={data.toDay} onChange={e => pickTo(e.target.value)} /></label>
+        </div>
         <label className="nq-select"><Calendar size={14} /><select value={shownYear} aria-label="السنة" onChange={e => { const y = Number(e.target.value); go(`from=${y}-01-01&to=${y === year ? today : `${y}-12-31`}`); }}>
           {Array.from({ length: 5 }, (_, i) => year - 4 + i).map(y => <option key={y} value={y}>{y}</option>)}
         </select></label>

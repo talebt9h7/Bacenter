@@ -193,3 +193,14 @@ html body .admin-shell .nq-reports .recharts-wrapper{direction:ltr}
 html body .admin-shell .nq-reports .recharts-legend-wrapper{direction:rtl}
 html body .admin-shell .nq-reports .nq-seg button{white-space:nowrap}
 @media (max-width:640px){html body .admin-shell .nq-reports .nq-seg button{font-size:12px!important;padding:0 6px}}
+/* Any day / any span */
+html body .admin-shell .nq-reports .nq-range{display:inline-flex;gap:8px;flex-wrap:wrap}
+html body .admin-shell .nq-reports .nq-date-pick{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 4px 0 10px;border:1px solid var(--line-2);border-radius:8px;background:#fff;color:var(--mut)}
+html body .admin-shell .nq-reports .nq-date-pick span{font-size:12px!important;font-weight:700;color:var(--mut);white-space:nowrap}
+html body .admin-shell .nq-reports .nq-date-pick input{border:0;background:transparent;font-size:13px!important;font-weight:600;color:var(--ink-2);min-height:36px;padding:0 4px;outline:none;font-variant-numeric:tabular-nums;cursor:pointer}
+html body .admin-shell .nq-reports .nq-date-pick:focus-within{border-color:var(--b);box-shadow:0 0 0 3px rgba(139,90,43,.14)}
+@media (max-width:640px){
+  html body .admin-shell .nq-reports .nq-date-pick{flex:1;min-width:0}
+  html body .admin-shell .nq-reports .nq-date-pick input{flex:1;min-width:0}
+  html body .admin-shell .nq-reports .nq-range{width:100%;flex-wrap:nowrap}
+}
