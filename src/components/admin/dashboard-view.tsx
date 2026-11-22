@@ -50,18 +50,21 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
         <p>{tt('Live overview of sales, orders, stock and customers. Revenue and profit count delivered orders on their delivery date; delivery fees are kept apart.', 'نظرة حية على المبيعات والطلبات والمخزون والزبائن. الإيراد والربح يُحتسبان للطلبات المُسلّمة بتاريخ التسليم، وأجور التوصيل منفصلة.')}</p>
       </div>
       <div className="dash-hero-actions">
-        <nav className="dash-periods" aria-label={tt('Period', 'الفترة')}>
-          {periods.map(([key, label]) => <Link key={key} href={`/admin?period=${key}`} className={data.period === key ? 'active' : ''} scroll={false}>{label}</Link>)}
-          <Link href={`/admin?from=${yesterday}&to=${yesterday}`} className={data.period === 'custom' && data.fromDay === yesterday && data.toDay === yesterday ? 'active' : ''} scroll={false}>{tt('Yesterday', 'أمس')}</Link>
-        </nav>
-        <div className="dash-dates">
-          <label><span>{tt('Day', 'يوم محدد')}</span><input id="dash-day" type="date" max={data.today} value={data.period === 'custom' && data.fromDay === data.toDay ? data.fromDay : ''} onChange={e => e.target.value && go(e.target.value, e.target.value)} /></label>
-          <label><span>{tt('From', 'من')}</span><input id="dash-from" type="date" max={data.today} value={data.fromDay} onChange={e => e.target.value && go(e.target.value, e.target.value > data.toDay ? e.target.value : data.toDay)} /></label>
-          <label><span>{tt('To', 'إلى')}</span><input id="dash-to" type="date" max={data.today} value={data.toDay} onChange={e => e.target.value && go(e.target.value < data.fromDay ? e.target.value : data.fromDay, e.target.value)} /></label>
-        </div>
         <div className="dash-quick"><Link href="/admin/orders" className="dash-btn primary"><Plus size={15} /> {tt('Manual order', 'طلب يدوي')}</Link><Link href="/admin/products/new" className="dash-btn"><Package size={15} /> {tt('New product', 'منتج جديد')}</Link><Link href={self} className="dash-btn icon" title={tt('Refresh', 'تحديث')} aria-label={tt('Refresh', 'تحديث')}><RefreshCw size={15} /></Link></div>
       </div>
     </header>
+    {/* Period: fixed ranges on one side, any day or span on the other — one row of its own under the greeting. */}
+    <div className="dash-filter dash-rise">
+      <nav className="dash-periods" aria-label={tt('Period', 'الفترة')}>
+        {periods.map(([key, label]) => <Link key={key} href={`/admin?period=${key}`} className={data.period === key ? 'active' : ''} scroll={false}>{label}</Link>)}
+        <Link href={`/admin?from=${yesterday}&to=${yesterday}`} className={data.period === 'custom' && data.fromDay === yesterday && data.toDay === yesterday ? 'active' : ''} scroll={false}>{tt('Yesterday', 'أمس')}</Link>
+      </nav>
+      <div className="dash-dates">
+        <label><span>{tt('Day', 'يوم محدد')}</span><input id="dash-day" type="date" max={data.today} value={data.period === 'custom' && data.fromDay === data.toDay ? data.fromDay : ''} onChange={e => e.target.value && go(e.target.value, e.target.value)} /></label>
+        <label><span>{tt('From', 'من')}</span><input id="dash-from" type="date" max={data.today} value={data.fromDay} onChange={e => e.target.value && go(e.target.value, e.target.value > data.toDay ? e.target.value : data.toDay)} /></label>
+        <label><span>{tt('To', 'إلى')}</span><input id="dash-to" type="date" max={data.today} value={data.toDay} onChange={e => e.target.value && go(e.target.value < data.fromDay ? e.target.value : data.fromDay, e.target.value)} /></label>
+      </div>
+    </div>
 
     <section className="dash-kpis">
       <Kpi lang={lang} delay={0} icon={<CircleDollarSign size={17} />} tone="accent" label={tt('Product revenue', 'إيراد المنتجات')} value={m.revenue} format={iqd} current={m.revenue} previous={p.revenue} spark={spark.revenue} note={tt(`${fmt(m.discounts)} IQD discounts · delivery excluded`, `خصومات ${fmt(m.discounts)} د.ع · بدون التوصيل`)} href="/admin/revenue" />
