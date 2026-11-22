@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, type ReactNode } from 'react';
 import { Bars, Card, CountUp, Delta, Donut, Heatmap, Kpi, PALETTE, TrendChart, ago, compact, fmt, iqd, pct, type Lang } from './dash-ui';
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Boxes, CalendarDays, CircleDollarSign, Clock, Coins, Flame, Layers, MapPin, MessageSquare, Package, PackageX, Plus, Receipt, RefreshCw, ShoppingBag, ShoppingCart, Sparkles, Truck, Users, Wallet } from 'lucide-react';
@@ -12,13 +13,18 @@ const STATUS_EN: Record<string, string> = { pending: 'Pending', confirmed: 'Conf
 const SOURCE_AR: Record<string, string> = { website: 'الموقع', instagram: 'إنستغرام', whatsapp: 'واتساب', facebook: 'فيسبوك', phone: 'هاتف', store: 'المتجر', other: 'أخرى', tiktok: 'تيك توك' };
 export function DashboardView({ data, adminName }: { data: DashboardData; adminName?: string }) {
   const { language } = useLanguage();
+  const router = useRouter();
   const lang: Lang = language === 'ar' ? 'ar' : 'en';
   const tt = (en: string, ar: string) => lang === 'ar' ? ar : en;
   const status = (s: string) => (lang === 'ar' ? STATUS_AR : STATUS_EN)[s] ?? s;
   const m = data.money, p = data.moneyPrevious;
   const spark = useMemo(() => ({ revenue: data.daily.map(d => d.revenue), profit: data.daily.map(d => d.profit), orders: data.daily.map(d => d.orders) }), [data.daily]);
+  const self = data.period === 'custom' ? `/admin?from=${data.fromDay}&to=${data.toDay}` : `/admin?period=${data.period}`;
+  const yesterday = new Date(Date.parse(`${data.today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  const go = (from: string, to: string) => router.push(`/admin?from=${from}&to=${to}`, { scroll: false });
   const periods: [string, string][] = [['today', tt('Today', 'اليوم')], ['7d', tt('7 days', '7 أيام')], ['30d', tt('30 days', '30 يوم')], ['90d', tt('90 days', '90 يوم')], ['year', tt('This year', 'هذه السنة')]];
   const range = `${new Date(data.from).toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Baghdad' })} – ${new Date(data.to).toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Baghdad' })}`;
+  const rangeText = data.fromDay === data.toDay ? new Date(data.from).toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Baghdad' }) : range;
   const hour = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Baghdad' }));
   const greeting = hour < 12 ? tt('Good morning', 'صباح الخير') : hour < 18 ? tt('Good afternoon', 'مساء الخير') : tt('Good evening', 'مساء الخير');
   const net = data.expenses ? m.profit - data.expenses.current : 0;
@@ -39,13 +45,21 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
   return <main className="admin-page dash" data-period={data.period}>
     <header className="dash-hero dash-rise">
       <div>
-        <span className="dash-eyebrow"><CalendarDays size={13} /> {range}</span>
+        <span className="dash-eyebrow"><CalendarDays size={13} /> {rangeText}</span>
         <h1>{greeting}{adminName ? `${lang === 'ar' ? '، ' : ', '}${adminName}` : ''}</h1>
         <p>{tt('Live overview of sales, orders, stock and customers. Revenue and profit count delivered orders on their delivery date; delivery fees are kept apart.', 'نظرة حية على المبيعات والطلبات والمخزون والزبائن. الإيراد والربح يُحتسبان للطلبات المُسلّمة بتاريخ التسليم، وأجور التوصيل منفصلة.')}</p>
       </div>
       <div className="dash-hero-actions">
-        <nav className="dash-periods" aria-label={tt('Period', 'الفترة')}>{periods.map(([key, label]) => <Link key={key} href={`/admin?period=${key}`} className={data.period === key ? 'active' : ''} scroll={false}>{label}</Link>)}</nav>
-        <div className="dash-quick"><Link href="/admin/orders" className="dash-btn primary"><Plus size={15} /> {tt('Manual order', 'طلب يدوي')}</Link><Link href="/admin/products/new" className="dash-btn"><Package size={15} /> {tt('New product', 'منتج جديد')}</Link><Link href={`/admin?period=${data.period}`} className="dash-btn icon" title={tt('Refresh', 'تحديث')} aria-label={tt('Refresh', 'تحديث')}><RefreshCw size={15} /></Link></div>
+        <nav className="dash-periods" aria-label={tt('Period', 'الفترة')}>
+          {periods.map(([key, label]) => <Link key={key} href={`/admin?period=${key}`} className={data.period === key ? 'active' : ''} scroll={false}>{label}</Link>)}
+          <Link href={`/admin?from=${yesterday}&to=${yesterday}`} className={data.period === 'custom' && data.fromDay === yesterday && data.toDay === yesterday ? 'active' : ''} scroll={false}>{tt('Yesterday', 'أمس')}</Link>
+        </nav>
+        <div className="dash-dates">
+          <label><span>{tt('Day', 'يوم محدد')}</span><input id="dash-day" type="date" max={data.today} value={data.period === 'custom' && data.fromDay === data.toDay ? data.fromDay : ''} onChange={e => e.target.value && go(e.target.value, e.target.value)} /></label>
+          <label><span>{tt('From', 'من')}</span><input id="dash-from" type="date" max={data.today} value={data.fromDay} onChange={e => e.target.value && go(e.target.value, e.target.value > data.toDay ? e.target.value : data.toDay)} /></label>
+          <label><span>{tt('To', 'إلى')}</span><input id="dash-to" type="date" max={data.today} value={data.toDay} onChange={e => e.target.value && go(e.target.value < data.fromDay ? e.target.value : data.fromDay, e.target.value)} /></label>
+        </div>
+        <div className="dash-quick"><Link href="/admin/orders" className="dash-btn primary"><Plus size={15} /> {tt('Manual order', 'طلب يدوي')}</Link><Link href="/admin/products/new" className="dash-btn"><Package size={15} /> {tt('New product', 'منتج جديد')}</Link><Link href={self} className="dash-btn icon" title={tt('Refresh', 'تحديث')} aria-label={tt('Refresh', 'تحديث')}><RefreshCw size={15} /></Link></div>
       </div>
     </header>
 

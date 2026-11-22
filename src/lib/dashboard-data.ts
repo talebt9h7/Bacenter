@@ -28,12 +28,14 @@ const baghdadWeekday = (date: Date) => new Date(date.getTime() + 3 * 3600_000).g
  * Operational figures (orders placed, cancellations, heatmap) use the date an order was placed.
  */
 /** Dashboard numbers, kept for 30 seconds per period so reloads and quick navigation stay instant. */
-export function loadDashboard(period: DashboardPeriod, opts: { finance: boolean }) {
-  return memo(`stats:dashboard:${period}:${opts.finance ? 1 : 0}`, 30_000, () => computeDashboard(period, opts));
+/** A fixed period, or 'custom' with any day or span (fromDay / toDay as YYYY-MM-DD, Baghdad time). */
+export function loadDashboard(period: DashboardPeriod | 'custom', opts: { finance: boolean; fromDay?: string; toDay?: string }) {
+  const span = period === 'custom' ? `${opts.fromDay}_${opts.toDay}` : period;
+  return memo(`stats:dashboard:${span}:${opts.finance ? 1 : 0}`, 30_000, () => computeDashboard(period, opts));
 }
-async function computeDashboard(period: DashboardPeriod, { finance }: { finance: boolean }) {
+async function computeDashboard(period: DashboardPeriod | 'custom', { finance, fromDay, toDay }: { finance: boolean; fromDay?: string; toDay?: string }) {
   const now = new Date();
-  const { from, to } = reportRange(period, undefined, undefined, now);
+  const { from, to } = period === 'custom' ? reportRange(undefined, fromDay, toDay, now) : reportRange(period, undefined, undefined, now);
   const prev = previousRange(from, to);
   const today = startOfBaghdadToday(now);
   const velocityFrom = new Date(today.getTime() - 29 * DAY);
@@ -171,7 +173,7 @@ async function computeDashboard(period: DashboardPeriod, { finance }: { finance:
 
   const hideMoney = (m: MoneySummary) => finance ? m : { ...m, cogs: 0, profit: 0, margin: 0, knownCostRevenue: 0 };
   return {
-    period, from: from.toISOString(), to: to.toISOString(), previousFrom: prev.from.toISOString(), previousTo: prev.to.toISOString(), generatedAt: now.toISOString(), finance,
+    period, fromDay: baghdadDayKey(from), toDay: baghdadDayKey(to), today: baghdadDayKey(now), from: from.toISOString(), to: to.toISOString(), previousFrom: prev.from.toISOString(), previousTo: prev.to.toISOString(), generatedAt: now.toISOString(), finance,
     money: hideMoney(money), moneyPrevious: hideMoney(moneyPrev),
     expenses: finance ? { current: expenseTotal, previous: expensePrev } : null,
     placed: { count: placed.length, previous: placedPrev.length, value: Math.round(placedValue(placed)), previousValue: Math.round(placedValue(placedPrev)), cancelRate: rate(placed, 'cancelled'), returnRate: rate(placed, 'returned'), previousCancelRate: rate(placedPrev, 'cancelled'), deliveredCount: deliveredPeriodCount.delivered },
