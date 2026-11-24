@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSection } from '@/lib/admin-auth';
 import { iraqPhonePattern, normalizeIraqPhone, orderStatuses, statusTransitions, type OrderStatus } from '@/lib/iraq';
+import { logActivity } from '@/lib/activity-log';
 import { deleteOrder, orderWithEvents, transitionOrder, updateOrderDetails } from '@/lib/orders';
 
 export const dynamic = 'force-dynamic';
@@ -51,8 +52,16 @@ export async function PATCH(request: NextRequest, { params }: Context) {
 
 
 export async function DELETE(request: NextRequest, { params }: Context) {
-  if (!(await requireAdminSection('sales', 'manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const actor = await requireAdminSection('sales', 'manage');
+  if (!actor) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
-  try { await deleteOrder(Number(id)); return NextResponse.json({ ok: true }); }
-  catch (error) { const message = error instanceof Error ? error.message : ''; if (message === 'NOT_FOUND') return NextResponse.json({ error: 'Order not found.' }, { status: 404 }); if (message === 'CANNOT_DELETE_DELIVERED') return NextResponse.json({ error: 'Delivered orders cannot be deleted. Mark the order as returned first.' }, { status: 409 }); console.error('Order delete failed', error); return NextResponse.json({ error: 'The order could not be deleted.' }, { status: 500 }); }
+  try {
+    const found = await orderWithEvents(Number(id));
+    await deleteOrder(Number(id));
+    // Who deleted which order, with enough to rebuild it, kept in the activity log.
+    const o = found?.order;
+    await logActivity(actor, 'delete', 'order', id, o ? `${o.reference} · ${o.name} · ${o.phone} · ${o.paymentMethod} · ${o.totalCents} IQD · ${JSON.stringify((o.items as { name?: string; color?: string; quantity?: number }[]).map(i => `${i.name} ${i.color ?? ''} x${i.quantity}`))}`.slice(0, 2000) : null);
+    return NextResponse.json({ ok: true });
+  }
+  catch (error) { const message = error instanceof Error ? error.message : ''; if (message === 'NOT_FOUND') return NextResponse.json({ error: 'Order not found.' }, { status: 404 }); if (message === 'CANNOT_DELETE_PAID') return NextResponse.json({ error: 'This order has an electronic payment, so it cannot be deleted. Cancel it instead.' }, { status: 409 }); if (message === 'CANNOT_DELETE_DELIVERED') return NextResponse.json({ error: 'Delivered orders cannot be deleted. Mark the order as returned first.' }, { status: 409 }); console.error('Order delete failed', error); return NextResponse.json({ error: 'The order could not be deleted.' }, { status: 500 }); }
 }

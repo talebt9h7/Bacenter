@@ -2,7 +2,7 @@ import { clearMemo } from './memo-cache';
 import { variantNameSql } from '@/lib/variant-sql';
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { activityLog, coupons, couriers, customers, inventoryBatches, inventoryMovements, orderEvents, orders, productVariants, products, shippingZones } from '@/db/schema';
+import { activityLog, coupons, couriers, customers, inventoryBatches, inventoryMovements, orderEvents, orders, payments, productVariants, products, shippingZones } from '@/db/schema';
 import { roundIqd } from './iraq';
 import { invalidateCatalog } from './cache-tags';
 import type { OrderStatus } from './iraq';
@@ -431,6 +431,10 @@ export async function deleteOrder(orderId: number) {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
     if (!order) throw new Error('NOT_FOUND');
     if (order.status === 'delivered') throw new Error('CANNOT_DELETE_DELIVERED');
+    // An order with an electronic payment (paid, or still open at the gateway) is never deleted: deleting
+    // it would also erase the payment record. Cancel it instead; the record stays for reconciliation.
+    const [paymentRow] = await tx.select({ id: payments.id }).from(payments).where(eq(payments.orderId, orderId)).limit(1);
+    if (paymentRow || order.paymentMethod === 'electronic' || order.paymentStatus === 'paid') throw new Error('CANNOT_DELETE_PAID');
     const wasCancelled = order.status === 'cancelled' || order.status === 'returned';
     if (statusHoldsStock(order.status)) await releaseOrderStock(tx, order.items as OrderItem[], 'Order deleted', order.reference);
     if (!wasCancelled) await releaseCoupon(tx, order.couponCode);
