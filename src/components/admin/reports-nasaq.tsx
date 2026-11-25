@@ -23,7 +23,7 @@ import './reports-nasaq.css';
 const BROWN = '#8b5a2b', BROWN_L = '#c8a27a', GREEN = '#10B981', RED = '#EF4444', AMBER = '#F59E0B', BLUE = '#3B82F6', VIOLET = '#8B5CF6', PINK = '#EC4899', SLATE = '#CBD5E1';
 const PALETTE = [BROWN, GREEN, BLUE, AMBER, PINK, VIOLET, BROWN_L, SLATE];
 const GRID = '#E2E8F0', AXIS = '#64748B';
-const TIP = { background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'Cairo, sans-serif', fontSize: 12 };
+const TIP = { background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'var(--ap-font)', fontSize: 12 };
 
 const SOURCE_AR: Record<string, string> = { website: 'الموقع', instagram: 'إنستغرام', whatsapp: 'واتساب', facebook: 'فيسبوك', phone: 'هاتف', store: 'المتجر', other: 'أخرى', tiktok: 'تيك توك', manual: 'يدوي', wholesale: 'جملة' };
 const CATEGORY_AR: Record<string, string> = { handbag: 'حقائب يد', handbags: 'حقائب يد', 'phone-cases': 'كفرات موبايل', 'card-holders': 'حاملات بطاقات', belts: 'أحزمة', wallets: 'محافظ', backpacks: 'حقائب ظهر', bags: 'حقائب', accessories: 'أكسسوار' };

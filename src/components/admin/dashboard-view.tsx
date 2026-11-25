@@ -2,11 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Bars, Card, CountUp, Delta, Donut, Heatmap, Kpi, PALETTE, TrendChart, ago, compact, fmt, iqd, pct, type Lang } from './dash-ui';
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Boxes, CalendarDays, CircleDollarSign, Clock, Coins, Flame, Layers, MapPin, MessageSquare, Package, PackageX, Plus, Receipt, RefreshCw, ShoppingBag, ShoppingCart, Sparkles, Truck, Users, Wallet } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import { GovernorateMap } from './governorate-map';
+import { Breakdown, GlassBars, GlassCard, GlassLink, GlassSpark, Gauge, HeroChart, Num, PeriodSwitch, useGlassMotion } from './dash-glass';
+
+/** Channels in UR orange shades, so the page keeps one colour. */
+const GL_PALETTE = ['#ef7342', '#f39a6c', '#f6bd9c', '#d65a2a', '#fad8c4', '#b9481f', '#c9c9cc', '#e2e2e4'];
 import type { DashboardData } from '@/lib/dashboard-data';
 
 const STATUS_AR: Record<string, string> = { pending: 'قيد الانتظار', confirmed: 'مؤكد', processing: 'قيد التجهيز', shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي', returned: 'مرتجع' };
@@ -19,7 +23,9 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
   const tt = (en: string, ar: string) => lang === 'ar' ? ar : en;
   const status = (s: string) => (lang === 'ar' ? STATUS_AR : STATUS_EN)[s] ?? s;
   const m = data.money, p = data.moneyPrevious;
-  const spark = useMemo(() => ({ revenue: data.daily.map(d => d.revenue), profit: data.daily.map(d => d.profit), orders: data.daily.map(d => d.orders) }), [data.daily]);
+  const root = useRef<HTMLElement>(null);
+  const [pending, setPending] = useState(false);
+  useGlassMotion(root, `${data.period}-${data.fromDay}-${data.toDay}`);
   const self = data.period === 'custom' ? `/admin?from=${data.fromDay}&to=${data.toDay}` : `/admin?period=${data.period}`;
   const yesterday = new Date(Date.parse(`${data.today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
   const go = (from: string, to: string) => router.push(`/admin?from=${from}&to=${to}`, { scroll: false });
@@ -43,91 +49,105 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
     att.openMessages && { tone: 'info', icon: <MessageSquare size={15} />, text: tt(`${att.openMessages} customer messages waiting`, `${att.openMessages} رسالة زبون بانتظار الرد`), href: '/admin/messages' },
   ].filter(Boolean) as { tone: string; icon: ReactNode; text: string; href: string }[];
 
-  return <main className="admin-page dash" data-period={data.period}>
-    <header className="dash-hero dash-rise">
-      <div>
-        <span className="dash-eyebrow"><CalendarDays size={13} /> {rangeText}</span>
+  const custom = data.period === 'custom';
+  const periodItems = [
+    { key: 'today', label: tt('Today', 'اليوم'), href: '/admin?period=today' },
+    { key: 'yesterday', label: tt('Yesterday', 'أمس'), href: `/admin?from=${yesterday}&to=${yesterday}` },
+    { key: '7d', label: tt('7D', '7 أيام'), href: '/admin?period=7d' },
+    { key: '30d', label: tt('30D', '30 يوم'), href: '/admin?period=30d' },
+    { key: '90d', label: tt('90D', '90 يوم'), href: '/admin?period=90d' },
+    { key: 'year', label: tt('Year', 'السنة'), href: '/admin?period=year' },
+  ];
+  const isYesterday = custom && data.fromDay === yesterday && data.toDay === yesterday;
+  const daily = data.daily;
+  const avgDaily = daily.map(d => d.delivered ? d.revenue / d.delivered : 0);
+  const cancelDaily = daily.map(d => d.orders ? (d.cancelled / d.orders) * 100 : 0);
+  const iqdText = (n: number) => `${fmt(n)} ${tt('IQD', 'د.ع')}`;
+  const pipeline = <GlassCard className="gl-pipeline" title={tt('Order pipeline', 'مسار الطلبات')} aside={<GlassLink href="/admin/orders">{tt('Orders', 'الطلبات')} <ArrowRight size={13} /></GlassLink>}>
+    <ol className="gl-pipe">{data.pipeline.map(s => <li key={s.status}><Link href={`/admin/orders?status=${s.status}`}>
+      <span className="gl-pipe-name">{status(s.status)}{s.orders > 0 && s.oldestHours > 24 && <small><Clock size={10} /> {tt(`${Math.round(s.oldestHours / 24)}d`, `${Math.round(s.oldestHours / 24)} يوم`)}</small>}</span>
+      <span className="gl-pipe-track"><i className={`gl-hbar ${s.status === 'shipped' ? 'hot' : ''}`} style={{ width: `${Math.max(s.orders ? 6 : 0, (s.orders / pipelineMax) * 100)}%` }} /><b>{s.orders}</b></span>
+      <span className="gl-pipe-val">{compact(s.value)}</span>
+    </Link></li>)}</ol>
+    <div className="gl-pipe-foot">
+      <div><span>{tt('Expected revenue', 'إيراد متوقع')}</span><strong>{iqdText(data.expectedRevenue)}</strong>{data.finance && <small>{tt('profit', 'ربح')} {compact(data.expectedProfit)}</small>}</div>
+      <div><span>{tt('To collect from couriers', 'بانتظار التحصيل')}</span><strong>{iqdText(data.toCollect)}</strong></div>
+    </div>
+  </GlassCard>;
+
+  return <main ref={root} className={`admin-page dash gl-dash ${pending ? 'is-pending' : ''}`} data-period={data.period}>
+    <header className="gl-top">
+      <div className="gl-hello">
+        <span className="gl-date"><i className="gl-live" />{rangeText}</span>
         <h1>{greeting}{adminName ? `${lang === 'ar' ? '، ' : ', '}${adminName}` : ''}</h1>
-        <p>{tt('Live overview of sales, orders, stock and customers. Revenue and profit count delivered orders on their delivery date; delivery fees are kept apart.', 'نظرة حية على المبيعات والطلبات والمخزون والزبائن. الإيراد والربح يُحتسبان للطلبات المُسلّمة بتاريخ التسليم، وأجور التوصيل منفصلة.')}</p>
       </div>
-      <div className="dash-hero-actions">
-        <div className="dash-quick"><Link href="/admin/orders" className="dash-btn primary"><Plus size={15} /> {tt('Manual order', 'طلب يدوي')}</Link><Link href="/admin/products/new" className="dash-btn"><Package size={15} /> {tt('New product', 'منتج جديد')}</Link><Link href={self} className="dash-btn icon" title={tt('Refresh', 'تحديث')} aria-label={tt('Refresh', 'تحديث')}><RefreshCw size={15} /></Link></div>
+      <div className="gl-top-actions">
+        <PeriodSwitch items={periodItems} active={isYesterday ? 'yesterday' : data.period} custom={custom && !isYesterday} today={data.today} fromDay={data.fromDay} toDay={data.toDay} lang={lang} onPending={setPending} />
+        <Link href="/admin/orders" className="gl-btn primary"><Plus size={16} /> {tt('Manual order', 'طلب يدوي')}</Link>
+        <Link href={self} className="gl-btn icon" title={tt('Refresh', 'تحديث')} aria-label={tt('Refresh', 'تحديث')}><RefreshCw size={16} /></Link>
       </div>
     </header>
-    {/* Period: fixed ranges on one side, any day or span on the other — one row of its own under the greeting. */}
-    <div className="dash-filter dash-rise">
-      <nav className="dash-periods" aria-label={tt('Period', 'الفترة')}>
-        {periods.map(([key, label]) => <Link key={key} href={`/admin?period=${key}`} className={data.period === key ? 'active' : ''} scroll={false}>{label}</Link>)}
-        <Link href={`/admin?from=${yesterday}&to=${yesterday}`} className={data.period === 'custom' && data.fromDay === yesterday && data.toDay === yesterday ? 'active' : ''} scroll={false}>{tt('Yesterday', 'أمس')}</Link>
-      </nav>
-      <div className="dash-dates">
-        <label><span>{tt('Day', 'يوم محدد')}</span><input id="dash-day" type="date" max={data.today} value={data.period === 'custom' && data.fromDay === data.toDay ? data.fromDay : ''} onChange={e => e.target.value && go(e.target.value, e.target.value)} /></label>
-        <label><span>{tt('From', 'من')}</span><input id="dash-from" type="date" max={data.today} value={data.fromDay} onChange={e => e.target.value && go(e.target.value, e.target.value > data.toDay ? e.target.value : data.toDay)} /></label>
-        <label><span>{tt('To', 'إلى')}</span><input id="dash-to" type="date" max={data.today} value={data.toDay} onChange={e => e.target.value && go(e.target.value < data.fromDay ? e.target.value : data.fromDay, e.target.value)} /></label>
-      </div>
+
+    {attention.length > 0 && <nav className="gl-attn" aria-label={tt('Needs attention', 'يحتاج انتباهك')}>{attention.map((a, i) => <Link key={i} href={a.href} className={`gl-attn-chip ${a.tone}`}>{a.icon}<span>{a.text}</span></Link>)}</nav>}
+
+    <div className={`gl-row1 ${data.finance ? '' : 'no-finance'}`}>
+      <GlassCard className="gl-hero">
+        <div className="gl-hero-head">
+          <span className="gl-label"><i />{tt('Product revenue', 'إيراد المنتجات')}</span>
+          <div className="gl-big"><Num value={m.revenue} format="iqd" /><small>{tt('IQD', 'د.ع')}</small><Delta current={m.revenue} previous={p.revenue} lang={lang} /></div>
+          <p className="gl-sub">{p.revenue ? tt(`vs ${compact(p.revenue)} in the previous period`, `مقابل ${compact(p.revenue)} بالفترة السابقة`) : tt('Delivered orders, delivery fees excluded', 'الطلبات المُسلّمة بدون أجور التوصيل')}{m.discounts ? tt(` · discounts ${compact(m.discounts)}`, ` · خصومات ${compact(m.discounts)}`) : ''}</p>
+        </div>
+        <HeroChart lang={lang} labels={daily.map(d => d.key)} emptyText={tt('No delivered sales in this period yet.', 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.')} tabs={[
+          { key: 'revenue', label: tt('Revenue', 'الإيراد'), values: daily.map(d => d.revenue), compare: daily.map(d => d.previousRevenue), compareLabel: tt('previous', 'السابقة'), format: iqdText },
+          ...(data.finance ? [{ key: 'profit', label: tt('Profit', 'الربح'), values: daily.map(d => d.profit), format: iqdText }] : []),
+          { key: 'orders', label: tt('Orders', 'الطلبات'), values: daily.map(d => d.orders), second: { label: tt('delivered', 'مُسلّمة'), values: daily.map(d => d.delivered) }, format: (n: number) => `${fmt(n)} ${tt('orders', 'طلب')}` },
+        ]} />
+      </GlassCard>
+      {data.finance ? <GlassCard className="gl-net">
+        <span className="gl-label"><i />{tt('Net profit', 'صافي الربح')}</span>
+        <div className="gl-big"><Num value={net} format="iqd" /><small>{tt('IQD', 'د.ع')}</small><Delta current={net} previous={netPrev} lang={lang} /></div>
+        <Gauge value={m.margin} label={pct(m.margin, 1)} sub={tt('product margin', 'هامش ربح المنتجات')} />
+        <Breakdown format={compact} rows={[
+          { label: tt('Revenue', 'الإيراد'), value: m.revenue, kind: 'total' },
+          { label: tt('Cost of goods', 'تكلفة البضاعة'), value: m.cogs + m.unknownCostRevenue, kind: 'minus' },
+          { label: tt('Expenses', 'المصاريف'), value: data.expenses?.current ?? 0, kind: 'minus' },
+          { label: tt('Net profit', 'صافي الربح'), value: net, kind: 'result' },
+        ]} />
+        {m.unknownCostUnits > 0 && <p className="gl-note">{tt(`${m.unknownCostUnits} units sold without a cost`, `${m.unknownCostUnits} قطعة مباعة بدون تكلفة`)}</p>}
+      </GlassCard> : pipeline}
     </div>
 
-    <section className="dash-kpis">
-      <Kpi lang={lang} delay={0} icon={<CircleDollarSign size={17} />} tone="accent" label={tt('Product revenue', 'إيراد المنتجات')} value={m.revenue} format={iqd} current={m.revenue} previous={p.revenue} spark={spark.revenue} note={tt(`${fmt(m.discounts)} IQD discounts · delivery excluded`, `خصومات ${fmt(m.discounts)} د.ع · بدون التوصيل`)} href="/admin/revenue" />
-      {data.finance && <Kpi lang={lang} delay={60} icon={<Wallet size={17} />} tone="success" label={tt('Product profit', 'ربح المنتجات')} value={m.profit} format={iqd} current={m.profit} previous={p.profit} spark={spark.profit} note={<>{tt('Margin', 'الهامش')} <b>{pct(m.margin, 1)}</b>{m.unknownCostUnits ? ` · ${tt(`${m.unknownCostUnits} units unknown cost`, `${m.unknownCostUnits} قطعة بدون تكلفة`)}` : ''}</>} href="/admin/profit" />}
-      <Kpi lang={lang} delay={120} icon={<Truck size={17} />} tone="blue" label={tt('Delivered orders', 'طلبات مُسلّمة')} value={m.orders} current={m.orders} previous={p.orders} note={tt(`${fmt(m.units)} units sold`, `${fmt(m.units)} قطعة مباعة`)} href="/admin/orders" />
-      <Kpi lang={lang} delay={180} icon={<Receipt size={17} />} tone="gold" label={tt('Average order', 'متوسط الطلب')} value={m.averageOrder} format={iqd} current={m.averageOrder} previous={p.averageOrder} note={tt('Product revenue ÷ delivered orders', 'إيراد المنتجات ÷ الطلبات المُسلّمة')} />
-      <Kpi lang={lang} delay={240} icon={<ShoppingCart size={17} />} tone="violet" label={tt('Orders placed', 'طلبات جديدة')} value={data.placed.count} current={data.placed.count} previous={data.placed.previous} spark={spark.orders} note={tt(`Worth ${fmt(data.placed.value)} IQD`, `بقيمة ${fmt(data.placed.value)} د.ع`)} href="/admin/orders" />
-      <Kpi lang={lang} delay={300} icon={<PackageX size={17} />} tone="danger" inverse label={tt('Cancellation rate', 'نسبة الإلغاء')} value={data.placed.cancelRate * 100} format={n => `${n.toFixed(1)}%`} current={data.placed.cancelRate} previous={data.placed.previousCancelRate} note={tt(`Returns ${pct(data.placed.returnRate, 1)} of orders placed`, `المرتجع ${pct(data.placed.returnRate, 1)} من الطلبات`)} />
+    <section className="gl-tiles">
+      <Link href="/admin/orders?status=delivered" className="gl-card gl-tile">
+        <div className="gl-tile-top"><span className="gl-label">{tt('Delivered orders', 'طلبات مُسلّمة')}</span><span className="gl-ic"><Truck size={17} /></span></div>
+        <div className="gl-tile-val"><Num value={m.orders} /><small>{tt('orders', 'طلب')}</small></div>
+        <div className="gl-tile-foot"><span>{tt(`${fmt(m.units)} units`, `${fmt(m.units)} قطعة مباعة`)}</span><Delta current={m.orders} previous={p.orders} lang={lang} /></div>
+        <GlassBars values={daily.map(d => d.delivered)} labels={daily.map(d => d.key)} />
+      </Link>
+      <div className="gl-card gl-tile">
+        <div className="gl-tile-top"><span className="gl-label">{tt('Average order', 'متوسط الطلب')}</span><span className="gl-ic"><Receipt size={17} /></span></div>
+        <div className="gl-tile-val"><Num value={m.averageOrder} format="compact" /><small>{tt('IQD', 'د.ع')}</small></div>
+        <div className="gl-tile-foot"><span>{tt('Revenue ÷ delivered', 'الإيراد ÷ المُسلّمة')}</span><Delta current={m.averageOrder} previous={p.averageOrder} lang={lang} /></div>
+        <GlassSpark values={avgDaily} />
+      </div>
+      <Link href="/admin/orders" className="gl-card gl-tile">
+        <div className="gl-tile-top"><span className="gl-label">{tt('Orders placed', 'طلبات جديدة')}</span><span className="gl-ic"><ShoppingCart size={17} /></span></div>
+        <div className="gl-tile-val"><Num value={data.placed.count} /><small>{tt('orders', 'طلب')}</small></div>
+        <div className="gl-tile-foot"><span>{tt(`Worth ${compact(data.placed.value)}`, `بقيمة ${compact(data.placed.value)} د.ع`)}</span><Delta current={data.placed.count} previous={data.placed.previous} lang={lang} /></div>
+        <GlassBars values={daily.map(d => d.orders)} labels={daily.map(d => d.key)} />
+      </Link>
+      <div className="gl-card gl-tile">
+        <div className="gl-tile-top"><span className="gl-label">{tt('Cancellation rate', 'نسبة الإلغاء')}</span><span className="gl-ic"><PackageX size={17} /></span></div>
+        <div className="gl-tile-val"><Num value={data.placed.cancelRate * 100} format="pct1" /></div>
+        <div className="gl-tile-foot"><span>{tt(`Returns ${pct(data.placed.returnRate, 1)}`, `المرتجع ${pct(data.placed.returnRate, 1)}`)}</span><Delta current={data.placed.cancelRate} previous={data.placed.previousCancelRate} inverse lang={lang} /></div>
+        <GlassSpark values={cancelDaily} />
+      </div>
     </section>
 
-    {data.finance && data.expenses && <section className="dash-pnl dash-rise" style={{ animationDelay: '320ms' }}>
-      <div><span>{tt('Revenue', 'الإيراد')}</span><strong><CountUp value={m.revenue} format={iqd} /></strong></div>
-      <em>−</em>
-      <div><span>{tt('Cost of goods sold', 'تكلفة البضاعة المباعة')}</span><strong><CountUp value={m.cogs} format={iqd} /></strong></div>
-      {m.unknownCostRevenue > 0 && <><em>−</em><div><span>{tt('Revenue with unknown cost', 'إيراد بدون تكلفة معروفة')}</span><strong><CountUp value={m.unknownCostRevenue} format={iqd} /></strong></div></>}
-      <em>=</em>
-      <div><span>{tt('Gross profit', 'إجمالي الربح')}</span><strong><CountUp value={m.profit} format={iqd} /></strong></div>
-      <em>−</em>
-      <div><span>{tt('Operating expenses', 'المصاريف التشغيلية')}</span><strong><CountUp value={data.expenses.current} format={iqd} /></strong></div>
-      <em>=</em>
-      <div className={`total ${net < 0 ? 'negative' : ''}`}><span>{tt('Net profit', 'صافي الربح')} <Delta current={net} previous={netPrev} lang={lang} /></span><strong><CountUp value={net} format={iqd} /></strong></div>
-    </section>}
-
-    <div className="dash-grid main">
-      <Card delay={340} className="span-2 dash-summary" icon={<Flame size={17} />} title={tt('Sales summary', 'ملخص المبيعات')} action={<Link href="/admin/reports" className="dash-link">{tt('Reports', 'التقارير')} <ArrowRight size={13} /></Link>}>
-        <div className="dash-summary-head">
-          <div className="dash-summary-value"><strong><CountUp value={m.revenue} format={iqd} /></strong><Delta current={m.revenue} previous={p.revenue} lang={lang} /></div>
-          <p>{tt(`Delivered product sales · ${rangeText}`, `إجمالي مبيعات المنتجات المُسلّمة · ${rangeText}`)}</p>
-          <div className="dash-legend-inline"><span><i className="sw revenue" />{tt('Revenue', 'الإيراد')}</span>{data.finance && <span><i className="sw profit" />{tt('Profit', 'الربح')}</span>}<span><i className="sw previous" />{tt('Previous period', 'الفترة السابقة')}</span></div>
-        </div>
-        <TrendChart soft height={270} labels={data.daily.map(d => d.key)} emptyText={tt('No delivered sales in this period yet.', 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.')} series={[
-          { key: 'previous', label: tt('Previous period', 'الفترة السابقة'), values: data.daily.map(d => d.previousRevenue), color: '#b9bab4', dashed: true },
-          { key: 'revenue', label: tt('Revenue', 'الإيراد'), values: data.daily.map(d => d.revenue), color: '#f06a2a', area: true },
-          ...(data.finance ? [{ key: 'profit', label: tt('Profit', 'الربح'), values: data.daily.map(d => d.profit), color: '#2f6b4f' }] : []),
-        ]} extra={[{ label: tt('New orders', 'طلبات جديدة'), values: data.daily.map(d => d.orders) }]} />
-        <div className="dash-summary-foot">
-          <div><span className="dash-summary-icon"><Truck size={16} /></span><div><small>{tt('Delivered orders', 'طلبات مُسلّمة')}</small><b><CountUp value={m.orders} /></b></div><Delta current={m.orders} previous={p.orders} lang={lang} /></div>
-          {data.finance
-            ? <div><span className="dash-summary-icon"><Wallet size={16} /></span><div><small>{tt('Profit · margin', 'الربح · الهامش')}</small><b><CountUp value={m.profit} format={compact} /> <em>{pct(m.margin, 1)}</em></b></div><Delta current={m.profit} previous={p.profit} lang={lang} /></div>
-            : <div><span className="dash-summary-icon"><Receipt size={16} /></span><div><small>{tt('Average order', 'متوسط الطلب')}</small><b><CountUp value={m.averageOrder} format={iqd} /></b></div><Delta current={m.averageOrder} previous={p.averageOrder} lang={lang} /></div>}
-        </div>
-      </Card>
-      <Card delay={380} icon={<Layers size={17} />} title={tt('Order pipeline', 'مسار الطلبات')} action={<Link href="/admin/orders" className="dash-link">{tt('Orders', 'الطلبات')} <ArrowRight size={13} /></Link>}>
-        <ol className="dash-pipeline">{data.pipeline.map((s, i) => <li key={s.status} className={`st-${s.status}`}>
-          <Link href={`/admin/orders?status=${s.status}`}>
-            <span className="dash-pipe-name"><i>{i + 1}</i>{status(s.status)}</span>
-            <span className="dash-pipe-bar"><b style={{ width: `${(s.orders / pipelineMax) * 100}%`, animationDelay: `${i * 80}ms` }} /></span>
-            <span className="dash-pipe-num"><strong>{s.orders}</strong><small>{compact(s.value)} IQD</small></span>
-          </Link>
-          {s.orders > 0 && s.oldestHours > 24 && <small className="dash-pipe-age"><Clock size={11} /> {tt(`oldest ${Math.round(s.oldestHours / 24)}d`, `الأقدم ${Math.round(s.oldestHours / 24)} يوم`)}</small>}
-        </li>)}</ol>
-        <div className="dash-pipe-summary">
-          <div><span>{tt('Expected revenue (confirmed → shipped)', 'إيراد متوقع (مؤكد ← مشحون)')}</span><strong>{iqd(data.expectedRevenue)}</strong>{data.finance && <small>{tt('expected profit', 'ربح متوقع')} {iqd(data.expectedProfit)}</small>}</div>
-          <div><span>{tt('Cash to collect from couriers', 'نقد بانتظار التحصيل من المندوب')}</span><strong>{iqd(data.toCollect)}</strong></div>
-        </div>
-      </Card>
-    </div>
-
     <div className="dash-grid three">
-      <Card delay={420} icon={<ShoppingBag size={17} />} title={tt('Sales by channel', 'المبيعات حسب القناة')}><Donut centerLabel={tt('sources', 'مصادر')} emptyText={tt('No data yet.', 'لا توجد بيانات بعد.')} rows={data.bySource.map(r => ({ key: r.key, label: lang === 'ar' ? SOURCE_AR[r.key] ?? r.key : r.key.replace(/^./, c => c.toUpperCase()), value: r.revenue, sub: `${r.orders} ${tt('orders', 'طلب')}` }))} /></Card>
-      <Card delay={460} icon={<MapPin size={17} />} title={tt('Orders by governorate', 'طلبات المحافظات')} action={<span className="dash-muted">{tt(`${data.governoratesLive}/18 live`, `${data.governoratesLive}/18 مفعّلة`)}</span>}><GovernorateMap rows={data.governorateMap} lang={lang} /></Card>
-      <Card delay={500} icon={<Clock size={17} />} title={tt('When orders come in', 'أوقات وصول الطلبات')}><Heatmap grid={data.heatmap} lang={lang} /></Card>
+      {data.finance && pipeline}
+      <Card icon={<ShoppingBag size={17} />} title={tt('Sales by channel', 'المبيعات حسب القناة')}><Donut palette={GL_PALETTE} centerLabel={tt('sources', 'مصادر')} emptyText={tt('No data yet.', 'لا توجد بيانات بعد.')} rows={data.bySource.map(r => ({ key: r.key, label: lang === 'ar' ? SOURCE_AR[r.key] ?? r.key : r.key.replace(/^./, c => c.toUpperCase()), value: r.revenue, sub: `${r.orders} ${tt('orders', 'طلب')}` }))} /></Card>
+      <Card icon={<Clock size={17} />} title={tt('When orders come in', 'أوقات وصول الطلبات')}><Heatmap grid={data.heatmap} lang={lang} /></Card>
     </div>
 
     <div className="dash-grid main">
@@ -141,6 +161,10 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
           </tr>)}</tbody>
         </table></div> : <div className="dash-empty"><Package size={22} />{tt('No delivered sales in this period yet.', 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.')}</div>}
       </Card>
+      <Card icon={<MapPin size={17} />} title={tt('Orders by governorate', 'طلبات المحافظات')} action={<span className="dash-muted">{tt(`${data.governoratesLive}/18 live`, `${data.governoratesLive}/18 مفعّلة`)}</span>}><GovernorateMap rows={data.governorateMap} lang={lang} /></Card>
+    </div>
+
+    <div className="dash-grid three">
       <Card delay={580} icon={<Boxes size={17} />} title={tt('Inventory health', 'صحة المخزون')} action={<Link href="/admin/inventory" className="dash-link">{tt('Inventory', 'المخزون')} <ArrowRight size={13} /></Link>}>
         <div className="dash-inv-top">
           {data.finance && <div><span>{tt('Stock value (cost)', 'قيمة المخزون (تكلفة)')}</span><strong><CountUp value={inv.knownValue} format={iqd} /></strong></div>}
@@ -157,9 +181,6 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
         </li>)}</ul> : <p className="dash-ok">{tt('Every published colour has healthy stock.', 'كل الألوان المنشورة مخزونها جيد.')}</p>}
         {data.deadStock.length > 0 && <><h3 className="dash-sub">{tt('Not selling (60+ days)', 'راكد (أكثر من 60 يوم)')}</h3><ul className="dash-dead">{data.deadStock.map(v => <li key={v.id}><span><i style={{ background: v.hex }} />{lang === 'ar' ? v.productAr : v.product} · {lang === 'ar' ? v.colorAr : v.color}</span><b>{v.onHand}</b></li>)}</ul></>}
       </Card>
-    </div>
-
-    <div className="dash-grid three">
       <Card delay={620} icon={<Users size={17} />} title={tt('Customers', 'الزبائن')} action={<Link href="/admin/customers" className="dash-link">CRM <ArrowRight size={13} /></Link>}>
         <div className="dash-cust-stats">
           <div><strong><CountUp value={data.customers.buyers} /></strong><span>{tt('buyers in period', 'مشتري بالفترة')}</span></div>
@@ -169,9 +190,6 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
         </div>
         <h3 className="dash-sub">{tt('Top customers', 'أفضل الزبائن')}</h3>
         {data.customers.top.length ? <ul className="dash-people">{data.customers.top.map((c, i) => <li key={c.phone}><span className="dash-avatar" style={{ background: PALETTE[i % PALETTE.length] }}>{c.name.trim().charAt(0) || '?'}</span><div><b>{c.name}</b><small dir="ltr">{c.phone}</small></div><span><strong>{compact(c.revenue)}</strong><small>{c.orders} {tt('orders', 'طلب')}</small></span></li>)}</ul> : <p className="dash-muted">{tt('No orders in this period.', 'لا توجد طلبات بالفترة.')}</p>}
-      </Card>
-      <Card delay={660} icon={<AlertTriangle size={17} />} title={tt('Needs attention', 'يحتاج انتباهك')} action={<span className={`dash-count ${attention.length ? 'hot' : ''}`}>{attention.length}</span>}>
-        {attention.length ? <ul className="dash-attn">{attention.map((a, i) => <li key={i} className={a.tone}><Link href={a.href}>{a.icon}<span>{a.text}</span><ArrowRight size={13} /></Link></li>)}</ul> : <p className="dash-ok">{tt('All clear. Nothing needs your attention right now.', 'كل شي تمام. ماكو شي يحتاج انتباهك هسه.')}</p>}
       </Card>
       <Card delay={700} icon={<ShoppingCart size={17} />} title={tt('Latest orders', 'آخر الطلبات')} action={<Link href="/admin/orders" className="dash-link">{tt('All', 'الكل')} <ArrowRight size={13} /></Link>}>
         <ul className="dash-orders">{data.recentOrders.map(o => <li key={o.id}><Link href={`/admin/orders/${o.id}`}>

@@ -9,7 +9,8 @@
   --ap-shadow:0 1px 2px rgba(0,0,0,.04),0 0 0 1px rgba(0,0,0,.05);
   --a-bg:var(--ap-bg);--a-ink:var(--ap-ink);--a-muted:var(--ap-muted);--a-line:#e5e5ea;
   background:var(--ap-bg)!important;color:var(--ap-ink);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Arabic","Segoe UI",UR,"Noto Sans Arabic",Tahoma,sans-serif!important;
+  --ap-font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","SF Arabic","Geeza Pro","IBM Plex Sans Arabic","Segoe UI","Noto Sans Arabic",Tahoma,sans-serif;
+  font-family:var(--ap-font)!important;
   -webkit-font-smoothing:antialiased;
 }
 .admin-shell .admin-main{background:var(--ap-bg)}
@@ -460,3 +461,8 @@ html body .admin-shell .pf-est{margin:6px 2px 0;font-size:12px!important;line-he
 .admin-shell .admin-sidebar nav a.active svg{color:var(--ap-accent)}
 .admin-shell .admin-sidebar nav a.active::before{content:"";position:absolute;inset-inline-start:-10px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--ap-accent)}
 .admin-shell .admin-sidebar nav a.active .admin-nav-badge{background:var(--ap-accent)!important;color:#fff!important}
+
+/* Apple's system font across the whole admin (SF Pro / SF Arabic on Apple devices, IBM Plex Sans Arabic elsewhere).
+   Print sheets keep their own display faces (Ruqaa titles) through more specific rules. */
+html body .admin-shell :where(*:not(svg):not(svg *):not(code):not(pre):not(kbd)){font-family:var(--ap-font)}
+html body .admin-shell :where(svg text){font-family:var(--ap-font)}

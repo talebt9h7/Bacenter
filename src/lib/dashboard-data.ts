@@ -82,9 +82,9 @@ async function computeDashboard(period: DashboardPeriod | 'custom', { finance, f
   const bucketKey = (date: Date) => byMonth ? baghdadDayKey(date).slice(0, 7) : baghdadDayKey(date);
   const buckets: string[] = [];
   for (let i = 0; i < dayCount; i++) { const key = bucketKey(new Date(from.getTime() + i * DAY)); if (buckets[buckets.length - 1] !== key) buckets.push(key); }
-  const series = new Map(buckets.map(key => [key, { revenue: 0, profit: 0, orders: 0, previousRevenue: 0 }]));
-  for (const o of delivered) { const point = series.get(bucketKey(recognizedAt(o))); if (point) { const m = orderMoney(o); point.revenue += m.revenue; point.profit += m.profit; } }
-  for (const o of placed) { const point = series.get(bucketKey(o.createdAt)); if (point) point.orders += 1; }
+  const series = new Map(buckets.map(key => [key, { revenue: 0, profit: 0, orders: 0, delivered: 0, cancelled: 0, previousRevenue: 0 }]));
+  for (const o of delivered) { const point = series.get(bucketKey(recognizedAt(o))); if (point) { const m = orderMoney(o); point.revenue += m.revenue; point.profit += m.profit; point.delivered += 1; } }
+  for (const o of placed) { const point = series.get(bucketKey(o.createdAt)); if (point) { point.orders += 1; if (o.status === 'cancelled') point.cancelled += 1; } }
   const prevBuckets: string[] = [];
   for (let i = 0; i < dayCount; i++) { const key = bucketKey(new Date(prev.from.getTime() + i * DAY)); if (prevBuckets[prevBuckets.length - 1] !== key) prevBuckets.push(key); }
   const prevSeries = new Map(prevBuckets.map(key => [key, 0]));

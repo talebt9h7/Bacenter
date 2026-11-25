@@ -16,7 +16,7 @@ export const iqd = (n: number) => `${fmt(n)} IQD`;
 export const compact = (n: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n || 0);
 export const pct = (n: number, digits = 0) => `${((n || 0) * 100).toFixed(digits)}%`;
 export function change(current: number, previous: number) {
-  if (!previous) return current ? { label: 'new', value: 1 } : { label: '—', value: 0 };
+  if (!previous) return { label: '—', value: 0 };
   const value = (current - previous) / Math.abs(previous);
   return { label: `${value > 0 ? '+' : ''}${(value * 100).toFixed(Math.abs(value) < 0.1 ? 1 : 0)}%`, value };
 }

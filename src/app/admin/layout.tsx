@@ -7,6 +7,7 @@ import '../admin-dashboard.css';
 import '../admin-theme.css';
 import '../admin-typography.css';
 import '../admin-apple.css';
+import '../admin-glass.css';
 
 // The admin can be added to a phone's home screen and opens full screen like an app
 // (public/admin.webmanifest, scoped to /admin; the storefront is not affected).

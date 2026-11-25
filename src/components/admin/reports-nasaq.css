@@ -1,8 +1,8 @@
 /* Admin → Reports, Nasaq's reports page (white cards, slate lines, Cairo, calm rise-in motion) with UR brown in place of Nasaq blue. */
 html body .admin-shell:has(.nq-reports) .admin-main{background:#f6f8fb}
 html body .admin-shell .nq-reports{--b:#8b5a2b;--b-d:#6f4620;--b-ink:#6b4220;--ink:#0f172a;--ink-2:#334155;--mut:#55657a;--line:#e6ebf2;--line-2:#e2e8f0;--fill:#f8fafc;color:var(--ink);display:flex;flex-direction:column;gap:24px;padding-bottom:40px}
-html[lang] body .admin-shell .nq-reports,html[lang] body .admin-shell .nq-reports *:not(svg):not(svg *){font-family:Cairo,'Noto Sans Arabic',system-ui,sans-serif!important}
-html body .admin-shell .nq-reports .recharts-wrapper text,html body .admin-shell .nq-reports .recharts-legend-item-text{font-family:Cairo,sans-serif!important}
+html[lang] body .admin-shell .nq-reports,html[lang] body .admin-shell .nq-reports *:not(svg):not(svg *){font-family:var(--ap-font)!important}
+html body .admin-shell .nq-reports .recharts-wrapper text,html body .admin-shell .nq-reports .recharts-legend-item-text{font-family:var(--ap-font)!important}
 html body .admin-shell .nq-reports b,html body .admin-shell .nq-reports strong{font-variant-numeric:tabular-nums}
 html body .admin-shell .nq-reports h1,html body .admin-shell .nq-reports h2,html body .admin-shell .nq-reports h3,html body .admin-shell .nq-reports p{margin:0}
 
