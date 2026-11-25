@@ -146,7 +146,7 @@ export function PaymentsManager({ initial, rows: initialRows, siteUrl, canManage
           {qaseh.rows.map((r, i) => <tr key={`${r.paymentId}-${i}`}>
             <td><small dir="ltr">{r.date}</small></td>
             <td><small>{r.description || r.orderId}</small></td>
-            <td className="num">{fmt(r.amount)} {r.currency}</td>
+            <td className="num">{fmt(r.amount)}</td>
             <td><span className={`dash-chip ${/succe/i.test(r.status) ? 'success' : /fail|declin|expir|revok/i.test(r.status) ? 'danger' : ''}`}>{r.status || '—'}</span></td>
             <td><small dir="ltr">{[r.rrn, r.approval].filter(Boolean).join(' · ') || '—'}</small></td>
           </tr>)}
