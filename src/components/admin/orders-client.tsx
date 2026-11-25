@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useGlassMotion } from './dash-glass';
 import { ArrowRight, Banknote, Clock, LoaderCircle, MapPin, Phone, Printer, Save, Search, Truck, Plus, Pencil, Trash2, Check, Download, X, MessageCircle, ChevronDown } from 'lucide-react';
 import { orderStatuses, statusLabels, statusTransitions, type OrderStatus } from '@/lib/iraq';
 import { api, money, Modal, StatusBadge, useFlash, when } from './ui';
@@ -327,6 +328,8 @@ function OrderMoneyPanel({ order, couriers, busy, onPatch }: { order: OrderRow; 
 }
 
 export function OrderDetail({ initial, events: initialEvents, couriers = [], showProfit = false, costLayers = {} }: { initial: OrderRow; events: OrderEvent[]; couriers?: CourierOption[]; showProfit?: boolean; costLayers?: Record<number, CostLayer[]> }) {
+  const glassRoot = useRef<HTMLElement>(null);
+  useGlassMotion(glassRoot, String(initial.id));
   const { language } = useLanguage(); const tr = (label: keyof typeof import('@/lib/i18n').orderTranslations) => orderT(label, language);
   const router = useRouter();
   const [order, setOrder] = useState(initial);
@@ -347,7 +350,7 @@ export function OrderDetail({ initial, events: initialEvents, couriers = [], sho
   const steps: OrderStatus[] = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
   const stepIndex = steps.indexOf(current);
   const address = order.address ?? {};
-  return <main className="admin-page"><div className="admin-page-heading"><div><Link href="/admin/orders" className="admin-link">← {tr('All orders')}</Link><h1>{tr('Order')} {order.reference}</h1><p>{tr('Source')}: {order.source === 'website' ? (language === 'ar' ? 'الموقع' : 'Website') : order.source} · {tr('Placed')} {when(order.createdAt)} · {paymentMethodLabel(order.paymentMethod, language)} · <StatusBadge status={order.status} /> <StatusBadge status={order.paymentStatus} /></p></div><div className="admin-heading-actions">{order.phone && <><a className="admin-btn admin-btn-whatsapp" href={whatsappLink(order, 'confirm')} target="_blank" rel="noreferrer"><MessageCircle size={15} />{language === 'ar' ? 'واتساب: تأكيد الطلب' : 'WhatsApp: confirm'}</a>{(order.status === 'shipped' || order.trackingNumber) && <a className="admin-btn admin-btn-whatsapp" href={whatsappLink(order, 'shipped')} target="_blank" rel="noreferrer"><MessageCircle size={15} />{language === 'ar' ? 'واتساب: تم الشحن' : 'WhatsApp: shipped'}</a>}</>}<a className="admin-btn admin-btn-ghost" href={`/admin/print/orders?type=invoice&ids=${order.id}`} target="_blank" rel="noreferrer"><Printer size={15} />{language === 'ar' ? 'فاتورة' : 'Invoice'}</a><a className="admin-btn admin-btn-ghost" href={`/admin/print/orders?type=label&ids=${order.id}`} target="_blank" rel="noreferrer"><Printer size={15} />{language === 'ar' ? 'ملصق شحن' : 'Shipping label'}</a></div></div>{flash}
+  return <main ref={glassRoot} className="admin-page gl-page"><div className="admin-page-heading"><div><Link href="/admin/orders" className="admin-link">← {tr('All orders')}</Link><h1>{tr('Order')} {order.reference}</h1><p>{tr('Source')}: {order.source === 'website' ? (language === 'ar' ? 'الموقع' : 'Website') : order.source} · {tr('Placed')} {when(order.createdAt)} · {paymentMethodLabel(order.paymentMethod, language)} · <StatusBadge status={order.status} /> <StatusBadge status={order.paymentStatus} /></p></div><div className="admin-heading-actions">{order.phone && <><a className="admin-btn admin-btn-whatsapp" href={whatsappLink(order, 'confirm')} target="_blank" rel="noreferrer"><MessageCircle size={15} />{language === 'ar' ? 'واتساب: تأكيد الطلب' : 'WhatsApp: confirm'}</a>{(order.status === 'shipped' || order.trackingNumber) && <a className="admin-btn admin-btn-whatsapp" href={whatsappLink(order, 'shipped')} target="_blank" rel="noreferrer"><MessageCircle size={15} />{language === 'ar' ? 'واتساب: تم الشحن' : 'WhatsApp: shipped'}</a>}</>}<a className="admin-btn admin-btn-ghost" href={`/admin/print/orders?type=invoice&ids=${order.id}`} target="_blank" rel="noreferrer"><Printer size={15} />{language === 'ar' ? 'فاتورة' : 'Invoice'}</a><a className="admin-btn admin-btn-ghost" href={`/admin/print/orders?type=label&ids=${order.id}`} target="_blank" rel="noreferrer"><Printer size={15} />{language === 'ar' ? 'ملصق شحن' : 'Shipping label'}</a></div></div>{flash}
     <OrderStatusBar current={current} busy={busy} onChange={step => { if (!confirmStatusChange(current, step, language)) return; void patch({ status: step, trackingNumber: tracking, courier, force: !statusTransitions[current].includes(step) }, `Status ${statusLabels[step]}`); }} />
     <div className="admin-grid-order">
       <div>

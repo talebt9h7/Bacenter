@@ -260,3 +260,77 @@ html body .gl-page .acc-chips a{background:rgba(255,255,255,.8);border-color:var
 html body .gl-page .dash-kpi-value{font-size:clamp(16px,1.35vw,22px)!important;white-space:nowrap}
 html body .gl-page .dash-kpi-row{min-width:0;overflow:hidden}
 @media (max-width:720px){html body .gl-page .dash-kpi-value{font-size:17px!important}}
+
+/* ---------- Generic admin pieces inside glass pages (customers, order detail, …) ---------- */
+html body .gl-page .admin-page-heading{margin-bottom:0!important;align-items:flex-end}
+html body .gl-page .admin-page-heading h1{font-size:30px!important;font-weight:700!important;letter-spacing:-.6px}
+html body .gl-page .admin-page-heading p,html body .gl-page .admin-eyebrow{color:var(--gl-muted)!important}
+html body .gl-page :is(.admin-card,.admin-stat){background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:26px!important;box-shadow:var(--gl-shadow)!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);margin-bottom:0}
+html body .gl-page .admin-stats{gap:14px;margin-bottom:0}
+html body .gl-page .admin-stat{padding:18px!important}
+html body .gl-page .admin-stat strong,html body .gl-page .admin-stat b{letter-spacing:-.5px}
+html body .gl-page .admin-search{border-radius:999px!important;background:rgba(255,255,255,.75)!important;border:1.5px solid var(--gl-edge)!important;box-shadow:var(--gl-shadow)}
+html body .gl-page :is(.admin-filter-select,.admin-toolbar select){border-radius:999px!important;background:rgba(255,255,255,.75)!important;border:1.5px solid var(--gl-edge)!important}
+html body .gl-page .admin-table th{background:transparent!important;color:var(--gl-muted)!important;border-color:rgba(0,0,0,.06)!important}
+html body .gl-page .admin-table td{border-color:rgba(0,0,0,.05)!important}
+html body .gl-page .admin-table tbody tr:hover td{background:rgba(255,255,255,.55)!important}
+html body .gl-page .admin-tag{border-radius:999px;background:var(--gl-or-tint);color:#c4501f;border:0}
+html body .gl-page :is(.admin-link,.admin-strong-link){color:var(--gl-or)!important}
+html body .gl-page .admin-count{background:var(--gl-or-tint);color:#c4501f;border-radius:999px}
+html body .gl-page .admin-segment-hint{background:var(--gl-well);border:1px solid var(--gl-edge);border-radius:18px}
+html body .gl-page .admin-btn-ghost{background:rgba(255,255,255,.6)!important}
+
+/* ---------- Orders board ---------- */
+html body .gl-orders .ob-grid{gap:16px}
+html body .gl-orders .ob-card{background:var(--gl-card);border:1.5px solid var(--gl-edge);border-radius:26px;box-shadow:var(--gl-shadow);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);padding:18px;transition:transform .25s,box-shadow .25s}
+html body .gl-orders .ob-card:hover{transform:translateY(-2px);border-color:var(--gl-edge);box-shadow:var(--gl-shadow),0 20px 40px -24px rgba(0,0,0,.25)}
+html body .gl-orders .ob-card.is-selected{border-color:var(--gl-or);box-shadow:0 0 0 3px rgba(239,115,66,.18),var(--gl-shadow)}
+html body .gl-orders .ob-check{accent-color:var(--gl-or)}
+html body .gl-orders .ob-name:hover{color:var(--gl-or)}
+html body .gl-orders .ob-tag{border-radius:999px;background:rgba(255,255,255,.75);border:1px solid var(--gl-edge);color:#3a3a3c}
+html body .gl-orders .ob-ref{background:var(--gl-or-tint);color:#c4501f;border-color:transparent}
+html body .gl-orders .ob-items{border-color:rgba(0,0,0,.05)}
+html body .gl-orders .ob-thumb{border-radius:11px;background:rgba(255,255,255,.7)}
+html body .gl-orders .ob-facts{background:var(--gl-well);border:1px solid var(--gl-edge);border-radius:18px}
+html body .gl-orders .ob-fact{border-color:rgba(0,0,0,.05)}
+html body .gl-orders .ob-deliv{color:#c4501f}
+html body .gl-orders .ob-bulk{background:rgba(250,250,251,.88);border:1.5px solid var(--gl-edge);border-radius:999px;box-shadow:0 14px 34px -14px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
+html body .gl-orders .ob-bulk-btn{border-radius:999px!important;border:1.5px solid var(--gl-edge)!important;background:rgba(255,255,255,.75)!important}
+html body .gl-orders .ob-bulk-btn.is-primary{background:var(--gl-or)!important;color:#fff!important}
+html body .gl-orders .ob-bulk-status select{border-radius:999px;border:1.5px solid var(--gl-edge)}
+html body .gl-page .acc-pill.ok{background:var(--gl-or-tint);color:#c4501f}
+
+/* ---------- Sidebar: frosted panel, active row as a raised white pill with the orange icon ---------- */
+html body .admin-shell .admin-sidebar{background:rgba(246,246,247,.72)!important;-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);border-inline-end:1.5px solid rgba(255,255,255,.9)!important;box-shadow:inset -1px 0 0 rgba(0,0,0,.04),8px 0 30px -24px rgba(0,0,0,.25)!important;padding:16px 12px 0}
+html body .admin-shell .admin-sidebar-bottom{background:transparent!important;border-top:1px solid rgba(0,0,0,.05)}
+html body .admin-shell .admin-sidebar-search{border-radius:999px!important;background:rgba(255,255,255,.7)!important;border:1.5px solid rgba(255,255,255,.95)!important;box-shadow:0 1px 2px rgba(0,0,0,.04),inset 0 1px 0 #fff}
+html body .admin-shell .admin-sidebar nav a{border-radius:14px!important;min-height:38px;padding-inline:12px!important;transition:background .2s,box-shadow .2s,transform .15s;color:#3a3a3c!important}
+html body .admin-shell .admin-sidebar nav a svg{color:#8e8e93!important;transition:color .2s}
+html body .admin-shell .admin-sidebar nav a:hover{background:rgba(255,255,255,.6)!important}
+html body .admin-shell .admin-sidebar nav a:hover svg{color:#ef7342!important}
+html body .admin-shell .admin-sidebar nav a:active{transform:scale(.98)}
+html body .admin-shell .admin-sidebar nav a.active{background:#fff!important;color:#1d1d1f!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 18px -10px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.9)!important}
+html body .admin-shell .admin-sidebar nav a.active::before{content:none!important}
+html body .admin-shell .admin-sidebar nav a.active svg{color:#ef7342!important}
+html body .admin-shell .admin-sidebar nav a.active .admin-nav-badge{background:#ef7342!important;color:#fff!important}
+html body .admin-shell .admin-nav-badge.hot{background:#ef7342!important}
+html body .admin-shell .admin-nav-badge.warn{background:#f39a6c!important}
+html body .admin-shell .admin-nav-group-head>span{color:#aeaeb2}
+html body .admin-shell .sidebar-language-switcher{border-radius:999px!important;background:rgba(0,0,0,.045)!important;border:1.5px solid rgba(255,255,255,.7)!important}
+html body .admin-shell .sidebar-language-switcher button{border-radius:999px!important}
+@media(max-width:900px){html body .admin-shell .admin-sidebar{background:rgba(246,246,247,.94)!important}}
+html body .admin-shell .admin-sidebar nav.has-glider{position:relative}
+html body .admin-shell .admin-sidebar .nav-glider{position:absolute;top:0;inset-inline:0;height:38px;border-radius:14px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 18px -10px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.9);opacity:0;pointer-events:none;z-index:0}
+html body .admin-shell .admin-sidebar nav.has-glider :is(a,.admin-nav-group-head){position:relative;z-index:1}
+html body .admin-shell .admin-sidebar nav.has-glider a.active{background:transparent!important;box-shadow:none!important}
+html body .admin-shell .admin-sidebar-bottom{background:rgba(246,246,247,.9)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);position:sticky;bottom:0;z-index:3}
+html body .gl-page .admin-segmented{background:rgba(0,0,0,.045)!important;border:1.5px solid rgba(255,255,255,.7)!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)!important;padding:4px!important}
+html body .gl-page .admin-segmented button{border-radius:999px!important;color:var(--gl-muted)!important;background:transparent!important}
+html body .gl-page .admin-segmented button.active{background:#fff!important;color:var(--gl-ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)!important}
+html body .gl-page .admin-steps li{border-radius:16px!important;background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;box-shadow:var(--gl-shadow)}
+html body .gl-page .admin-steps li.done{color:#c4501f!important}
+html body .gl-page .admin-steps li.done i{background:var(--gl-or)!important;color:#fff}
+html body .gl-page .admin-steps li.current{background:linear-gradient(160deg,#fff,rgba(253,224,206,.9))!important;color:var(--gl-ink)!important}
+html body .gl-page .admin-steps li.current i{background:var(--gl-or)!important}
+html body .gl-page .admin-pager a,html body .gl-page .admin-pager button{border-radius:999px!important}
+html body .admin-shell .admin-sidebar-bottom{margin:auto -12px 0}

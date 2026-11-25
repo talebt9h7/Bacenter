@@ -29,7 +29,7 @@ export function useGlassMotion(root: RefObject<HTMLElement | null>, key: string)
   useIso(() => {
     if (!root.current || reduced()) return;
     const ctx = gsap.context(() => {
-      gsap.from('.gl-card, .dash-card, .nq-card, .dash-kpi, .dash-pnl, .acc-card, .acc-kpi', { y: 22, opacity: 0, scale: 0.985, duration: 0.75, ease: 'power3.out', stagger: 0.045, clearProps: 'transform,opacity' });
+      gsap.from('.gl-card, .dash-card, .nq-card, .dash-kpi, .dash-pnl, .acc-card, .acc-kpi, .admin-card, .admin-stat, .ob-card', { y: 22, opacity: 0, scale: 0.985, duration: 0.75, ease: 'power3.out', stagger: (i: number) => Math.min(i * 0.045, 0.6), clearProps: 'transform,opacity' });
       root.current!.querySelectorAll<HTMLElement>('.gl-num[data-count]').forEach(el => {
         const target = Number(el.dataset.count) || 0, f = formatters[(el.dataset.format as NumFormat) || 'int'];
         const o = { v: 0 };
@@ -215,4 +215,11 @@ export function Breakdown({ rows, format }: { rows: { label: string; value: numb
 
 export function GlassLink({ href, children, className = '' }: { href: string; children: ReactNode; className?: string }) {
   return <Link href={href} className={`gl-link ${className}`}>{children}</Link>;
+}
+
+/** A page wrapper that brings the glass motion to server-rendered pages. */
+export function GlassScope({ className, motionKey, children }: { className: string; motionKey: string; children: ReactNode }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, motionKey);
+  return <main ref={root} className={className}>{children}</main>;
 }

@@ -6,6 +6,7 @@ import { costLayersByVariant } from '@/lib/cost-layers';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { orders, productVariants, products, shippingZones } from '@/db/schema';
+import { GlassScope } from '@/components/admin/dash-glass';
 import { OrdersHeader, OrdersTable, type OrderRow } from '@/components/admin/orders-client';
 import { startOfBaghdadToday } from '@/lib/report-period';
 import { getSettings } from '@/lib/settings';
@@ -49,5 +50,5 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   // Products offered for manual orders show what can still be sold (on hand − pending reservations).
   const catalog = catalogRows.map(row => ({ ...row, stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)), salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));
   const serialised = rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(), paidAt: row.paidAt?.toISOString() ?? null, deliveredAt: row.deliveredAt?.toISOString() ?? null })) as unknown as OrderRow[];
-  return <main className="admin-page dash"><OrdersHeader stats={stats} /><OrdersTable rows={serialised} catalog={catalog} costLayers={showProfit ? costLayers : undefined} status={initialStatus ?? 'all'} query={query} page={page} pages={pages} total={totalMatches} counts={matchCounts} pageSize={PAGE_SIZE} couriers={couriers} defaultCourierId={accounts.defaultCourierId} zoneRates={zoneRates} /></main>;
+  return <GlassScope className="admin-page dash gl-page gl-orders" motionKey={`${initialStatus ?? "all"}-${query}-${page}`}><OrdersHeader stats={stats} /><OrdersTable rows={serialised} catalog={catalog} costLayers={showProfit ? costLayers : undefined} status={initialStatus ?? 'all'} query={query} page={page} pages={pages} total={totalMatches} counts={matchCounts} pageSize={PAGE_SIZE} couriers={couriers} defaultCourierId={accounts.defaultCourierId} zoneRates={zoneRates} /></GlassScope>;
 }

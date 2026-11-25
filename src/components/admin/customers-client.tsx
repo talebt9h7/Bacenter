@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { MessageCircle, PackageOpen, Repeat2, ShoppingBag, Users, WalletCards } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useGlassMotion } from './dash-glass';
 import { useLanguage } from '@/components/language-provider';
 import { iqd, when } from '@/lib/format';
 
@@ -37,6 +38,8 @@ type Props = { rows: Row[]; zones: { code:string; nameEn:string; nameAr?:string|
 
 const EXPORT_CUSTOMERS = ['/api/admin/export', 'customers'].join('/');
 export function CustomersClient({ rows, zones, initialQuery, initialSegment }: Props) {
+  const glassRoot = useRef<HTMLElement>(null);
+  useGlassMotion(glassRoot, 'customers');
   const { language } = useLanguage();
   const t = T[language];
   const [q, setQ] = useState(initialQuery);
@@ -64,7 +67,7 @@ export function CustomersClient({ rows, zones, initialQuery, initialSegment }: P
     repeat: rows.filter(r=>r.ordersCount>=2).length,
   };
   const activeLabel = segmentOptions.find(x=>x[0]===segment)?.[1] ?? t.all;
-  return <main className="admin-page">
+  return <main ref={glassRoot} className="admin-page gl-page">
     <div className="admin-page-heading"><div><span className="admin-eyebrow">{t.eyebrow}</span><h1>{t.title}</h1><p>{t.desc}</p></div><div className="admin-heading-actions"><a className="admin-btn admin-btn-ghost" href={EXPORT_CUSTOMERS} download>{language === 'ar' ? 'تصدير Excel' : 'Export Excel'}</a></div></div>
     <div className="admin-stats admin-stats-4">
       <div className="admin-stat"><Users size={18}/><span>{t.all}</span><strong>{counts.all}</strong></div>

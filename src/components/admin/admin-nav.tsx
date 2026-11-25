@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
 import { CommandPalette, type PaletteLink } from './command-palette';
 import type { AdminActor, AdminSection } from '@/lib/admin-auth';
 import { useLanguage } from '@/components/language-provider';
@@ -31,6 +32,8 @@ function canViewPath(actor: AdminActor, href: string) {
 export function AdminNav({ actor }: { actor: AdminActor }) {
   const { language, setLanguage } = useLanguage();
   const pathname = usePathname();
+  // A white pill that glides to the active row when the page changes.
+  const navRef = useRef<HTMLElement>(null), gliderRef = useRef<HTMLSpanElement>(null), placed = useRef(false);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -59,6 +62,21 @@ export function AdminNav({ actor }: { actor: AdminActor }) {
     return () => { alive = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', load); };
   }, [pathname]);
   async function logout() { await fetch('/api/admin/login', { method: 'DELETE' }); router.replace('/admin/login'); router.refresh(); }
+  useLayoutEffect(() => {
+    const nav = navRef.current, glider = gliderRef.current;
+    if (!nav || !glider) return;
+    const place = (animate: boolean) => {
+      const link = nav.querySelector<HTMLElement>('a.active');
+      if (!link) { gsap.to(glider, { opacity: 0, duration: 0.2 }); return; }
+      const to = { y: link.offsetTop, height: link.offsetHeight, opacity: 1 };
+      if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) gsap.set(glider, to);
+      else gsap.to(glider, { ...to, duration: 0.45, ease: 'power3.out' });
+    };
+    place(placed.current); placed.current = true;
+    const observer = new ResizeObserver(() => place(false));
+    observer.observe(nav);
+    return () => observer.disconnect();
+  });
   const tr = (label: string) => adminT(label as keyof typeof import('@/lib/i18n').adminTranslations, language as AppLanguage);
   const badges: Record<string, { n: number; tone: string; title: string }> = pulse ? {
     '/admin/orders': { n: pulse.pendingOrders, tone: 'hot', title: language === 'ar' ? 'طلبات بانتظار التأكيد' : 'Orders awaiting confirmation' },
@@ -69,7 +87,7 @@ export function AdminNav({ actor }: { actor: AdminActor }) {
   const paletteLinks: PaletteLink[] = groups.flatMap(group => group.links.filter(link => canViewPath(actor, link.href)).map(link => ({ href: link.href, label: tr(link.label), group: tr(group.title), icon: link.icon })));
   return <>
     <header className="admin-topbar"><button className="admin-icon-btn" aria-label={open ? 'Close menu' : 'Open menu'} onClick={() => setOpen(!open)}>{open ? <X size={22} /> : <Menu size={22} />}</button><Link href="/admin" className="admin-brand"><img src="/images/UR-logo.svg" alt="UR" width="64" height="38" /><span>Admin</span></Link><button className="admin-icon-btn admin-search-btn" aria-label={language === 'ar' ? 'بحث' : 'Search'} onClick={() => setSearchOpen(true)}><Search size={20} /></button><div className="admin-language-switcher" role="group" aria-label="Language"><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>EN</button><button type="button" className={language === 'ar' ? 'active' : ''} onClick={() => setLanguage('ar')}>ع</button></div><button className="admin-icon-btn" aria-label="Sign out" onClick={logout}><LogOut size={19} /></button></header>
-    <aside className={`admin-sidebar ${open ? 'open' : ''}`}><Link href="/admin" className="admin-brand"><img src="/images/UR-logo.svg" alt="UR" width="74" height="44" /><span>Admin</span></Link><div className="admin-language-panel"><div className="admin-language-label">Language / اللغة</div><div className="admin-language-switcher sidebar-language-switcher" role="group" aria-label="Language"><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button><button type="button" className={language === 'ar' ? 'active' : ''} onClick={() => setLanguage('ar')}>العربية</button></div></div><button type="button" className="admin-sidebar-search" onClick={() => { setSearchOpen(true); setOpen(false); }}><Search size={16} /><span>{language === 'ar' ? 'بحث سريع…' : 'Quick search…'}</span><kbd>Ctrl K</kbd></button><nav aria-label="Admin navigation">{groups.filter(group => group.links.some(link => canViewPath(actor, link.href))).map(group => { const visible = group.links.filter(link => canViewPath(actor, link.href)); const holdsActive = visible.some(link => 'exact' in link && link.exact ? pathname === link.href : pathname.startsWith(link.href)); const folded = collapsed.includes(group.title) && !holdsActive; const count = visible.reduce((n, link) => n + (badges[link.href]?.n ?? 0), 0); return <div key={group.title} className={`admin-nav-group${folded ? ' folded' : ''}`}><button type="button" className="admin-nav-group-head" aria-expanded={!folded} onClick={() => toggleGroup(group.title)}><span>{tr(group.title)}</span>{folded && count ? <b className="admin-nav-badge hot">{count > 99 ? '99+' : count}</b> : null}<ChevronDown size={14} strokeWidth={1.8} /></button>{!folded && visible.map(link => { const active = 'exact' in link && link.exact ? pathname === link.href : pathname.startsWith(link.href); return <Link key={link.href} href={link.href} className={active ? 'active' : ''} onClick={() => setOpen(false)}><link.icon size={17} strokeWidth={1.6} /><span className="admin-nav-label">{tr(link.label)}</span>{badges[link.href]?.n ? <b className={`admin-nav-badge ${badges[link.href].tone}`} title={badges[link.href].title}>{badges[link.href].n > 99 ? '99+' : badges[link.href].n}</b> : null}</Link>; })}</div>; })}</nav><div className="admin-sidebar-bottom"><div className="admin-language-switcher sidebar-language-switcher" role="group" aria-label="Language"><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button><button type="button" className={language === 'ar' ? 'active' : ''} onClick={() => setLanguage('ar')}>العربية</button></div><a href="/" target="_blank" rel="noreferrer"><ExternalLink size={16} /> {tr('View storefront')}</a><button onClick={logout}><LogOut size={16} /> {tr('Sign out')}</button></div></aside>
+    <aside className={`admin-sidebar ${open ? 'open' : ''}`}><Link href="/admin" className="admin-brand"><img src="/images/UR-logo.svg" alt="UR" width="74" height="44" /><span>Admin</span></Link><div className="admin-language-panel"><div className="admin-language-label">Language / اللغة</div><div className="admin-language-switcher sidebar-language-switcher" role="group" aria-label="Language"><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button><button type="button" className={language === 'ar' ? 'active' : ''} onClick={() => setLanguage('ar')}>العربية</button></div></div><button type="button" className="admin-sidebar-search" onClick={() => { setSearchOpen(true); setOpen(false); }}><Search size={16} /><span>{language === 'ar' ? 'بحث سريع…' : 'Quick search…'}</span><kbd>Ctrl K</kbd></button><nav ref={navRef} aria-label="Admin navigation" className="has-glider"><span ref={gliderRef} className="nav-glider" aria-hidden="true" />{groups.filter(group => group.links.some(link => canViewPath(actor, link.href))).map(group => { const visible = group.links.filter(link => canViewPath(actor, link.href)); const holdsActive = visible.some(link => 'exact' in link && link.exact ? pathname === link.href : pathname.startsWith(link.href)); const folded = collapsed.includes(group.title) && !holdsActive; const count = visible.reduce((n, link) => n + (badges[link.href]?.n ?? 0), 0); return <div key={group.title} className={`admin-nav-group${folded ? ' folded' : ''}`}><button type="button" className="admin-nav-group-head" aria-expanded={!folded} onClick={() => toggleGroup(group.title)}><span>{tr(group.title)}</span>{folded && count ? <b className="admin-nav-badge hot">{count > 99 ? '99+' : count}</b> : null}<ChevronDown size={14} strokeWidth={1.8} /></button>{!folded && visible.map(link => { const active = 'exact' in link && link.exact ? pathname === link.href : pathname.startsWith(link.href); return <Link key={link.href} href={link.href} className={active ? 'active' : ''} onClick={() => setOpen(false)}><link.icon size={17} strokeWidth={1.6} /><span className="admin-nav-label">{tr(link.label)}</span>{badges[link.href]?.n ? <b className={`admin-nav-badge ${badges[link.href].tone}`} title={badges[link.href].title}>{badges[link.href].n > 99 ? '99+' : badges[link.href].n}</b> : null}</Link>; })}</div>; })}</nav><div className="admin-sidebar-bottom"><div className="admin-language-switcher sidebar-language-switcher" role="group" aria-label="Language"><button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button><button type="button" className={language === 'ar' ? 'active' : ''} onClick={() => setLanguage('ar')}>العربية</button></div><a href="/" target="_blank" rel="noreferrer"><ExternalLink size={16} /> {tr('View storefront')}</a><button onClick={logout}><LogOut size={16} /> {tr('Sign out')}</button></div></aside>
     {open && <div className="admin-sidebar-backdrop" onClick={() => setOpen(false)} />}
     <CommandPalette links={paletteLinks} ar={language === 'ar'} open={searchOpen} onOpenChange={setSearchOpen} />
   </>;
