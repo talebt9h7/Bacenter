@@ -221,7 +221,11 @@ async function qsCreate(s: PaymentSettings, input: StartInput): Promise<StartRes
 async function qsCheck(s: PaymentSettings, token: string, expectedIqd?: number) {
   const a = alqasehAccess(s);
   const body = await call(`${a.api}/egw/payments/info/${encodeURIComponent(token)}`, { method: 'GET', headers: qsHeaders(s) });
-  let status = qsStatus(pick(body, ['payment_status', 'status']));
+  // The payment's own status field. A top-level "status" can be the API envelope ("success" = the
+  // request worked), which once marked unpaid attempts as paid; it only counts when it says "succeeded".
+  const own = pick(body, ['payment_status', 'paymentStatus', 'transaction_status']);
+  const loose = str(pick(body, ['status'])).toLowerCase();
+  let status = own !== undefined ? qsStatus(own) : loose === 'succeeded' ? 'paid' : qsStatus(loose === 'success' ? 'pending' : loose);
   if (status === 'paid' && expectedIqd !== undefined) {
     const amount = Number(pick(body, ['amount']));
     const currency = str(pick(body, ['currency'])).toUpperCase();

@@ -6,7 +6,7 @@ import { costLayersByVariant } from '@/lib/cost-layers';
 import { OrderDetail, type OrderEvent, type OrderRow } from '@/components/admin/orders-client';
 
 type Props = { params: Promise<{ id: string }> };
-export async function generateMetadata({ params }: Props) { const { id } = await params; const data = await orderWithEvents(Number(id)); return { title: data ? `Order ${data.order.reference}` : 'Order' }; }
+export async function generateMetadata({ params }: Props) { const { id } = await params; const data = await orderWithEvents(Number(id)); return { title: data?.order ? `Order ${data.order.reference}` : 'Order' }; }
 export default async function AdminOrderPage({ params }: Props) {
   const actor = await requireAdminSection('sales', 'view');
   if (!actor) redirect('/admin');
