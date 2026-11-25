@@ -9,11 +9,13 @@ import { mediaSrc } from '@/lib/types';
 import { useLanguage } from './language-provider';
 import { storeT } from '@/lib/i18n-store';
 import { iraqPhonePattern, normalizeIraqPhone } from '@/lib/iraq';
+import { APPEND_KEY, MY_PHONE_KEY } from '@/lib/my-orders-keys';
 
 type Zone = { code: string; nameEn: string; nameAr: string; rate: number; minDays: number; maxDays: number };
 type Config = { gateway?: { enabled: boolean; provider: 'zaincash' | 'fib' | 'alqaseh' }; zones: Zone[]; settings: { logoUrl?: string; exchangeRate: number; freeShippingThreshold: number; codFee: number; codEnabled: boolean; checkoutNote: string; supportPhone: string; whatsapp?: string | number } };
 type Coupon = { code: string; discount: number; freeShipping: boolean; description: string };
-type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone; payment?: 'cod' | 'electronic' };
+type PlacedOrder = { reference: string; total: number; phone: string; governorate: string; eta: string; shipping: number; zone?: Zone; payment?: 'cod' | 'electronic'; link?: string; appended?: boolean; addedValue?: number; paid?: number };
+type OpenOrder = { reference: string; createdAt: string; total: number; governorateAr: string; governorate: string; items: { quantity: number }[] };
 type Saved = { name?: string; phone?: string; altPhone?: string; email?: string; governorate?: string; city?: string; address?: string; landmark?: string };
 
 const SAVED_KEY = 'checkout-details-v1';
@@ -66,6 +68,25 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [contact, setContact] = useState({ name: '', phone: '' });
   const [place, setPlace] = useState({ city: '', landmark: '' });
+  // An order of this phone that has not shipped yet: the bag can join it with no second delivery fee.
+  const [openOrder, setOpenOrder] = useState<OpenOrder | null>(null);
+  const [appendTo, setAppendTo] = useState('');
+  const lookedUp = useRef('');
+  async function lookupOpen(raw: string) {
+    const phone = normalizeIraqPhone(raw);
+    if (!iraqPhonePattern.test(phone) || lookedUp.current === phone) return;
+    lookedUp.current = phone;
+    try {
+      const response = await fetch('/api/my-orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
+      const data = await response.json() as { orders?: (OpenOrder & { canAdd: boolean })[] };
+      if (lookedUp.current !== phone) return;
+      const open = data.orders?.find(o => o.canAdd) ?? null;
+      setOpenOrder(open);
+      let wanted = ''; try { wanted = localStorage.getItem(APPEND_KEY) || ''; } catch { /* storage unavailable */ }
+      setAppendTo(open && wanted === open.reference ? open.reference : '');
+    } catch { /* lookup is optional */ }
+  }
+  const appending = !!openOrder && appendTo === openOrder.reference;
   const step1 = useRef<HTMLFieldSetElement>(null), step2 = useRef<HTMLFieldSetElement>(null), step3 = useRef<HTMLFieldSetElement>(null);
   // InitiateCheckout / begin_checkout once, when the bag has loaded with items.
   const checkoutTracked = useRef(false);
@@ -88,6 +109,8 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
         if (field && value && !field.value && key !== 'governorate') field.value = value;
       }
       if (saved.governorate && config.zones.some(z => z.code === saved.governorate)) setGovernorate(current => current || saved.governorate!);
+      let phone = saved.phone || ''; try { phone = phone || localStorage.getItem(MY_PHONE_KEY) || ''; } catch { /* storage unavailable */ }
+      if (phone) { const field = form.elements.namedItem('phone') as HTMLInputElement | null; if (field && !field.value) field.value = phone; void lookupOpen(field?.value || phone); }
     });
     return () => cancelAnimationFrame(frame);
   }, [config, cart.length]);
@@ -99,13 +122,13 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
   const threshold = config?.settings.freeShippingThreshold ?? 0;
   const freeByThreshold = threshold > 0 && subtotal >= threshold;
   const freeShipping = freeByThreshold || Boolean(coupon?.freeShipping);
-  const shipping = zone ? (freeShipping ? 0 : zone.rate) : 0;
-  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0;
+  const shipping = appending ? 0 : zone ? (freeShipping ? 0 : zone.rate) : 0;
+  const discount = coupon && !appending ? Math.min(coupon.discount, subtotal) : 0;
   const [payment, setPayment] = useState<'cod' | 'electronic'>('cod');
   const isCard = !!config?.gateway?.enabled && config.gateway.provider === 'alqaseh';
   // Electronic payment with the gateway on: the button takes the shopper to the payment page.
-  const payOnline = payment === 'electronic' && !!config?.gateway?.enabled;
-  const codFee = payment === 'cod' ? (config?.settings.codFee ?? 0) : 0;
+  const payOnline = !appending && payment === 'electronic' && !!config?.gateway?.enabled;
+  const codFee = !appending && payment === 'cod' ? (config?.settings.codFee ?? 0) : 0;
   const total = Math.max(0, subtotal - discount) + shipping + codFee;
   const promoSavings = cart.reduce((sum, item) => sum + Math.max(0, (item.originalPriceIqd ?? item.salePriceIqd) - item.salePriceIqd) * item.quantity, 0);
   const savings = discount + promoSavings + (zone && freeShipping ? zone.rate : 0);
@@ -140,6 +163,7 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
   function goTo(target: 1 | 2 | 3) {
     setError('');
     for (let n = 1 as 1 | 2 | 3; n < target; n = (n + 1) as 1 | 2 | 3) {
+      if (n === 2 && appending) continue;
       const bad = invalidIn(n);
       if (bad) { setStep(n); requestAnimationFrame(() => { bad.reportValidity(); bad.focus(); }); return false; }
     }
@@ -150,27 +174,43 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (submitting) return; setError('');
-    if (step < 3) { goTo((step + 1) as 2 | 3); return; }
+    if (step < 3) { goTo(appending ? 3 : (step + 1) as 2 | 3); return; }
     if (!goTo(3)) return;
     const data = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
     data.phone = normalizeIraqPhone(data.phone || ''); data.altPhone = normalizeIraqPhone(data.altPhone || '');
     if (!iraqPhonePattern.test(data.phone)) { checkPhone(data.phone); (event.currentTarget.elements.namedItem('phone') as HTMLInputElement)?.focus(); return; }
     setSubmitting(true);
     try {
-      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, coupon: coupon?.code ?? '' }) });
+      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, ...(appending ? { appendTo, payment: 'cod' } : {}), coupon: appending ? '' : coupon?.code ?? '' }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error);
-      try { const { note: _note, payment: _payment, ...keep } = data; void _note; void _payment; localStorage.setItem(SAVED_KEY, JSON.stringify(keep)); } catch { /* storage unavailable */ }
+      try { const { note: _note, payment: _payment, ...keep } = data; void _note; void _payment; if (!appending) localStorage.setItem(SAVED_KEY, JSON.stringify(keep)); localStorage.setItem(MY_PHONE_KEY, data.phone); localStorage.removeItem(APPEND_KEY); } catch { /* storage unavailable */ }
       // Online gateway: go to the payment page (ZainCash directly, FIB via our QR page).
       if (payment === 'electronic' && result.payment?.url) {
         track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping });
         window.location.assign(result.payment.redirectUrl || result.payment.url);
         return;
       }
+      if (result.appended) { setOrder({ ...result.order, appended: true }); await refreshCart(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       setOrder({ ...result.order, zone, payment });
       track.purchase(result.order.reference, result.order.total, (result.order.items ?? []).map((i: { productId: string; name: string; color: string; unitPrice: number; quantity: number }) => ({ id: i.productId, name: i.name, variant: i.color, price: i.unitPrice, quantity: i.quantity })), { shipping: result.order.shipping, coupon: coupon?.code }); await refreshCart(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) { setError(err instanceof Error ? err.message : (ar ? 'تحقق من الاتصال وحاول مرة أخرى.' : 'Please check your connection and try again.')); }
     finally { setSubmitting(false); }
   }
+
+  if (order?.appended) return <main className="checkout-page co-page"><section className="co-success">
+    <CheckCircle2 size={56} strokeWidth={1.2} aria-hidden="true" />
+    <h1>{ar ? 'تمت الإضافة على طلبك' : 'Added to your order'}</h1>
+    <p className="co-success-ref">{ar ? 'رقم الطلب' : 'Order number'} <strong>{order.reference}</strong></p>
+    <ol className="co-timeline">
+      <li className="is-done"><Check size={15} aria-hidden="true" /><div><strong>{ar ? `أضفنا ${iqd(order.addedValue ?? 0)} على الطلب` : `${iqd(order.addedValue ?? 0)} added to the order`}</strong><span>{ar ? 'بدون أجور توصيل إضافية' : 'No extra delivery fee'}</span></div></li>
+      <li><Banknote size={15} aria-hidden="true" /><div><strong>{ar ? `مجموع الطلب الآن ${iqd(order.total)}` : `Order total is now ${iqd(order.total)}`}</strong><span>{order.paid ? (ar ? `مدفوع مسبقاً ${iqd(order.paid)} · تدفع ${iqd(Math.max(0, order.total - order.paid))} عند الاستلام` : `${iqd(order.paid)} already paid · ${iqd(Math.max(0, order.total - order.paid))} on delivery`) : (ar ? 'تدفع المبلغ كامل عند الاستلام' : 'Pay the full amount on delivery')}</span></div></li>
+      <li><Truck size={15} aria-hidden="true" /><div><strong>{ar ? 'يوصلك ويا نفس الطلب' : 'Arrives with the same order'}</strong><span>{ar ? 'نفس العنوان ونفس موعد التوصيل' : 'Same address and delivery window'}</span></div></li>
+    </ol>
+    <div className="co-success-actions">
+      {order.link && <Link className="co-secondary" href={order.link}><Package size={16} aria-hidden="true" /> {ar ? 'تابع طلبك' : 'Track your order'}</Link>}
+      <Link className="co-primary" href="/">{ar ? 'متابعة التسوق' : 'Keep shopping'} {ar ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</Link>
+    </div>
+  </section></main>;
 
   if (order) return <main className="checkout-page co-page"><section className="co-success">
     <CheckCircle2 size={56} strokeWidth={1.2} aria-hidden="true" />
@@ -183,6 +223,7 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
       <li><Banknote size={15} aria-hidden="true" /><div><strong>{order.payment === 'electronic' ? (ar ? `نرسل لك رابط دفع ${iqd(order.total)}` : `We will send a payment link for ${iqd(order.total)}`) : (ar ? `تدفع ${iqd(order.total)} عند الاستلام` : `Pay ${iqd(order.total)} on delivery`)}</strong><span>{order.shipping === 0 ? (ar ? 'التوصيل مجاني' : 'Delivery is free') : (ar ? `يشمل ${iqd(order.shipping)} أجور التوصيل` : `Includes ${iqd(order.shipping)} delivery`)}</span></div></li>
     </ol>
     <div className="co-success-actions">
+      {order.link && <Link className="co-secondary co-track" href={order.link}><Package size={16} aria-hidden="true" /> {ar ? 'تابع طلبك' : 'Track your order'}</Link>}
       {whatsapp && <a className="co-secondary" href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(ar ? `مرحباً، بخصوص طلبي رقم ${order.reference}` : `Hi, about my order ${order.reference}`)}`} target="_blank" rel="noreferrer"><MessageCircle size={16} aria-hidden="true" /> {ar ? 'تابع طلبك على واتساب' : 'Follow up on WhatsApp'}</a>}
       <Link className="co-primary" href="/">{ar ? 'متابعة التسوق' : 'Keep shopping'} {ar ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}</Link>
     </div>
@@ -211,12 +252,12 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
       <div><dt>{ar ? `المنتجات (${units})` : `Items (${units})`}</dt><dd>{iqd(subtotal)}</dd></div>
       {promoSavings > 0 && <div className="is-saving"><dt>{ar ? 'وفّرت بالعروض (محسوبة بالأسعار)' : 'Offer savings (already in prices)'}</dt><dd>{iqd(promoSavings)}</dd></div>}
       {discount > 0 && <div className="is-saving"><dt>{ar ? 'الخصم' : 'Discount'}</dt><dd>− {iqd(discount)}</dd></div>}
-      <div><dt>{ar ? 'التوصيل' : 'Delivery'}{zone ? ` · ${ar ? zone.nameAr : zone.nameEn}` : ''}</dt><dd>{freeShipping ? <span className="co-free">{ar ? 'مجاني' : 'Free'}{zone && <s>{iqd(zone.rate)}</s>}</span> : zone ? iqd(shipping) : <span className="co-muted">{ar ? `من ${iqd(cheapestZone)}` : `from ${iqd(cheapestZone)}`}</span>}</dd></div>
+      <div><dt>{ar ? 'التوصيل' : 'Delivery'}{zone && !appending ? ` · ${ar ? zone.nameAr : zone.nameEn}` : ''}</dt><dd>{appending ? <span className="co-free">{ar ? 'ويا طلبك السابق' : 'With your earlier order'}</span> : freeShipping ? <span className="co-free">{ar ? 'مجاني' : 'Free'}{zone && <s>{iqd(zone.rate)}</s>}</span> : zone ? iqd(shipping) : <span className="co-muted">{ar ? `من ${iqd(cheapestZone)}` : `from ${iqd(cheapestZone)}`}</span>}</dd></div>
       {codFee > 0 && <div><dt>{t('Cash handling')}</dt><dd>{iqd(codFee)}</dd></div>}
       <div className="co-grand"><dt>{ar ? 'المجموع' : 'Total'}</dt><dd>{iqd(total)}</dd></div>
     </dl>
     {savings > 0 && <p className="co-savings">{ar ? `وفّرت ${iqd(savings)} بهذا الطلب` : `You’re saving ${iqd(savings)} on this order`}</p>}
-    {!freeShipping && threshold > subtotal && <p className="co-upsell">{ar ? <>باقي <strong>{iqd(threshold - subtotal)}</strong> على التوصيل المجاني. <button type="button" onClick={() => setCartOpen(true)}>أضف منتج</button></> : <><strong>{iqd(threshold - subtotal)}</strong> away from free delivery. <button type="button" onClick={() => setCartOpen(true)}>Add an item</button></>}</p>}
+    {!appending && !freeShipping && threshold > subtotal && <p className="co-upsell">{ar ? <>باقي <strong>{iqd(threshold - subtotal)}</strong> على التوصيل المجاني. <button type="button" onClick={() => setCartOpen(true)}>أضف منتج</button></> : <><strong>{iqd(threshold - subtotal)}</strong> away from free delivery. <button type="button" onClick={() => setCartOpen(true)}>Add an item</button></>}</p>}
   </>;
 
   return <main className="checkout-page co-page cs-page">
@@ -240,8 +281,13 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
         <fieldset ref={step1} className="cs-step" hidden={step !== 1}>
           <h2 className="cs-h">{ar ? 'معلومات التواصل' : 'Contact details'}</h2>
           <div className="co-field"><label htmlFor="name">{ar ? 'الاسم الكامل' : 'Full name'}</label><input id="name" name="name" autoComplete="name" maxLength={100} minLength={2} required /></div>
-          <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => checkPhone(event.target.value)} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError}</small></div>
+          <div className="co-field"><label htmlFor="phone">{ar ? 'رقم الموبايل' : 'Mobile number'}</label><input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} required aria-invalid={Boolean(phoneError)} aria-describedby="phone-help" onBlur={event => { checkPhone(event.target.value); void lookupOpen(event.target.value); }} onChange={() => phoneError && setPhoneError('')} /><small id="phone-help" className={phoneError ? 'co-error' : ''}>{phoneError}</small></div>
           <div className="co-field"><label htmlFor="altPhone">{ar ? 'رقم ثاني (اختياري)' : 'Second number (optional)'}</label><input id="altPhone" name="altPhone" type="tel" inputMode="tel" dir="ltr" placeholder="07XX XXX XXXX" maxLength={20} /></div>
+          {openOrder && <div className="cs-append" role="radiogroup" aria-label={ar ? 'عندك طلب ما انشحن' : 'You have an order that has not shipped'}>
+            <p className="cs-append-q"><Package size={18} aria-hidden="true" /> <span>{ar ? <>عندك طلب ما انشحن (<bdi>{openOrder.reference}</bdi>)، تريد نضيف هاي المنتجات عليه بدون توصيل؟</> : <>Your order <bdi>{openOrder.reference}</bdi> has not shipped yet. Add these items to it with no delivery fee?</>}</span></p>
+            <label className={`cs-option ${appending ? 'is-on' : ''}`}><input type="radio" name="appendChoice" checked={appending} onChange={() => setAppendTo(openOrder.reference)} /><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? 'أضفها على طلبي' : 'Add to my order'}</strong><span>{ar ? `توصل ويا نفس الطلب · بدون أجور توصيل` : 'Arrives with the same order · no delivery fee'}</span></div></label>
+            <label className={`cs-option ${!appending ? 'is-on' : ''}`}><input type="radio" name="appendChoice" checked={!appending} onChange={() => setAppendTo('')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? 'طلب جديد منفصل' : 'A separate new order'}</strong><span>{ar ? 'لعنوان أو موعد ثاني' : 'For another address or time'}</span></div></label>
+          </div>}
           <h2 className="cs-h">{ar ? 'طلبك' : 'Your order'}</h2>
           <ul className="cs-lines">{!loaded && <li className="cs-skeleton" aria-hidden="true"><span /><div><i /><i /></div></li>}{lines.map(item => <li key={item.id}>
             <img src={mediaSrc(item.image, 160)} alt="" />
@@ -263,8 +309,14 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
         </fieldset>
 
         <fieldset ref={step3} className="cs-step" hidden={step !== 3}>
+          {appending && openOrder ? <>
+            <div className="cs-h-row"><h2 className="cs-h">{ar ? 'تنضاف على الطلب' : 'Added to order'}</h2><button type="button" className="cs-link" onClick={() => goTo(1)}>{ar ? 'تغيير' : 'Change'}</button></div>
+            <div className="cs-card"><span className="cs-card-icon"><Package size={17} /></span><div><strong dir="ltr">{openOrder.reference}</strong><span>{ar ? `توصل ويا نفس الطلب إلى ${openOrder.governorateAr || openOrder.governorate} · الدفع عند الاستلام` : `Arrives with the same order to ${openOrder.governorate} · cash on delivery`}</span><span dir="ltr">{contact.phone}</span></div></div>
+          </> : <>
           <div className="cs-h-row"><h2 className="cs-h">{ar ? 'يوصل إلى' : 'Deliver to'}</h2><button type="button" className="cs-link" onClick={() => goTo(2)}>{ar ? 'تعديل' : 'Edit'}</button></div>
           <div className="cs-card"><span className="cs-card-icon"><MapPin size={17} /></span><div><strong>{contact.name || '—'}</strong><span>{[zone ? (ar ? zone.nameAr : zone.nameEn) : '', place.city, place.landmark].filter(Boolean).join('، ')}</span><span dir="ltr">{contact.phone}</span></div></div>
+          </>}
+          {!appending && <>
           <h2 className="cs-h">{ar ? 'طريقة الدفع' : 'Payment method'}</h2>
           <div className="cs-pay" role="radiogroup">
             <label className={`cs-option ${payment === 'cod' ? 'is-on' : ''}`}><input type="radio" name="payment" value="cod" checked={payment === 'cod'} onChange={() => setPayment('cod')} /><span className="cs-radio" aria-hidden="true" /><div><strong>{ar ? 'الدفع عند الاستلام' : 'Cash on delivery'}</strong>{config?.settings.codFee ? <span>{ar ? `تُضاف ${iqd(config.settings.codFee)} رسوم.` : `A ${iqd(config.settings.codFee)} fee applies.`}</span> : null}</div><Banknote size={20} aria-hidden="true" /></label>
@@ -277,20 +329,23 @@ export function Checkout({ initialConfig = null }: { initialConfig?: Config | nu
               : <button type="button" className="co-coupon-toggle" onClick={() => setCouponOpen(true)}><Tag size={14} aria-hidden="true" /> {ar ? 'عندك رمز خصم؟' : 'Have a coupon code?'}</button>}
             {couponError && <p className="co-error">{couponError}</p>}
           </div>
+          </>}
           <dl className="cs-totals">
             <div><dt>{ar ? `المنتجات (${units})` : `Items (${units})`}</dt><dd>{iqd(subtotal)}</dd></div>
             {discount > 0 && <div className="is-saving"><dt>{ar ? 'الخصم' : 'Discount'}</dt><dd>− {iqd(discount)}</dd></div>}
-            <div><dt>{ar ? 'التوصيل' : 'Delivery'}{zone ? ` · ${ar ? zone.nameAr : zone.nameEn}` : ''}</dt><dd>{freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(shipping)}</dd></div>
+            <div><dt>{ar ? 'التوصيل' : 'Delivery'}{appending ? '' : zone ? ` · ${ar ? zone.nameAr : zone.nameEn}` : ''}</dt><dd>{appending ? (ar ? 'بدون · ويا طلبك السابق' : 'None · with your earlier order') : freeShipping ? (ar ? 'مجاني' : 'Free') : iqd(shipping)}</dd></div>
             {codFee > 0 && <div><dt>{t('Cash handling')}</dt><dd>{iqd(codFee)}</dd></div>}
-            <div className="cs-grand"><dt>{ar ? 'المجموع الكلي' : 'Total'}</dt><dd>{iqd(total)}</dd></div>
+            <div className="cs-grand"><dt>{appending ? (ar ? 'المبلغ المضاف' : 'Amount added') : (ar ? 'المجموع الكلي' : 'Total')}</dt><dd>{iqd(total)}</dd></div>
           </dl>
           <p className="co-legal">{t('By continuing, you agree to our')} <Link href="/info/terms">{ar ? 'الشروط والأحكام' : 'terms & conditions'}</Link>.</p>
         </fieldset>
 
         {error && <p className="co-error co-error-box" role="alert">{error}</p>}
         <div className="cs-bar">
-          <div className="cs-bar-info"><span>{step < 3 ? <>{ar ? 'التالي: ' : 'Next: '}<b>{step === 1 ? (ar ? 'التوصيل' : 'Delivery') : (ar ? 'الدفع' : 'Payment')}</b></> : <>{ar ? 'الخطوة الأخيرة' : 'Last step'}</>}</span><span>{ar ? 'المجموع ' : 'Total '}<b>{iqd(total)}</b></span></div>
-          <button type="submit" className="cs-next" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</>
+          <div className="cs-bar-info"><span>{step < 3 ? <>{ar ? 'التالي: ' : 'Next: '}<b>{appending ? (ar ? 'التأكيد' : 'Confirm') : step === 1 ? (ar ? 'التوصيل' : 'Delivery') : (ar ? 'الدفع' : 'Payment')}</b></> : <>{ar ? 'الخطوة الأخيرة' : 'Last step'}</>}</span><span>{ar ? 'المجموع ' : 'Total '}<b>{iqd(total)}</b></span></div>
+          <button type="submit" className="cs-next" disabled={submitting}>{submitting ? <><LoaderCircle size={18} className="spin" /> {payOnline ? (ar ? 'جارٍ فتح صفحة الدفع…' : 'Opening the payment page…') : appending ? (ar ? 'جارٍ الإضافة…' : 'Adding…') : (ar ? 'جارٍ تثبيت الطلب…' : 'Placing your order…')}</>
+            : step === 1 && appending ? <>{ar ? 'متابعة للتأكيد' : 'Continue'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</>
+            : step === 3 && appending ? <>{ar ? 'أضف على طلبي' : 'Add to my order'}</>
             : step === 1 ? <>{ar ? 'متابعة للتوصيل' : 'Continue to delivery'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</>
             : step === 2 ? <>{ar ? 'متابعة للدفع' : 'Continue to payment'} {ar ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}</>
             : payOnline ? <><LockKeyhole size={17} aria-hidden="true" /> {ar ? 'الانتقال إلى صفحة الدفع' : 'Continue to payment'}</> : <>{ar ? 'تأكيد الطلب' : 'Place order'}</>}</button>

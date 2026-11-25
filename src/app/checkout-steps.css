@@ -108,3 +108,11 @@ html body .cs-brand img{height:38px;width:auto;display:block}
 .cs-skeleton i+i{width:40%;margin-top:8px}
 .cs-skeleton span,.cs-skeleton i{animation:cs-pulse 1.2s ease-in-out infinite}
 @keyframes cs-pulse{50%{opacity:.5}}
+
+/* "Add to my order": an order of this phone that has not shipped can take the bag with no delivery fee. */
+.cs-append{display:grid;gap:10px;margin:6px 0 4px;padding:14px;border-radius:18px;background:#fbf6f0;border:1px solid #ecdccb}
+.cs-append-q{display:flex;align-items:flex-start;gap:8px;margin:0;font-size:14px;font-weight:700;line-height:1.6;color:#5a3a1e}
+.cs-append-q svg{flex:none;margin-top:3px;color:#8b5a2b}
+.cs-append .cs-option{grid-template-columns:auto minmax(0,1fr);padding:13px 14px}
+.cs-append .cs-option.is-on{padding:12px 13px}
+.co-secondary.co-track,.co-success-actions a.co-secondary[href^="/my-orders"]{border-color:#8b5a2b;color:#6b4320!important}

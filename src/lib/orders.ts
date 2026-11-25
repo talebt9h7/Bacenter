@@ -456,3 +456,45 @@ export async function orderWithEvents(id: number) {
   const events = await db.select().from(orderEvents).where(eq(orderEvents.orderId, id)).orderBy(asc(orderEvents.createdAt), asc(orderEvents.id));
   return { order, events };
 }
+
+/** Orders a customer can still add to: not shipped yet. */
+export const APPENDABLE_STATUSES = ['pending', 'confirmed', 'processing'] as const;
+
+/**
+ * Adds new lines to an order that has not shipped (the customer liked something else after ordering),
+ * inside the checkout transaction: no second delivery fee and no new order. A confirmed/processing order
+ * already took its units out of stock, so the added units are taken now too; a pending one only reserves.
+ * A paid order becomes partially paid: the added amount is collected on delivery.
+ */
+export async function appendItemsToOrder(tx: Tx, orderId: number, added: OrderItem[]) {
+  const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
+  if (!order || !(APPENDABLE_STATUSES as readonly string[]).includes(order.status)) throw new Error('NOT_APPENDABLE');
+  const holds = statusHoldsStock(order.status);
+  const lines = [...(order.items as OrderItem[])];
+  for (const item of added) {
+    let line: OrderItem = { ...item, profitIqd: 0, purchaseCostCents: null, batchAllocations: [] };
+    if (holds) {
+      const consumed = await consumeInventoryBatches(tx, item.variantId, item.quantity, 'Added to order by customer', order.reference);
+      line = { ...line, purchaseCostCents: consumed.purchaseCostCents, profitIqd: consumed.purchaseCostCents == null ? 0 : Number(item.unitPrice ?? 0) - Number(consumed.purchaseCostCents), batchAllocations: consumed.allocations.map(a => ({ batchId: a.batchId, quantity: a.quantity })) };
+    }
+    // Same colour at the same price: one line with a bigger quantity.
+    const same = lines.findIndex(l => l.variantId === line.variantId && Number(l.unitPrice) === Number(line.unitPrice) && !l.bundleId && !line.bundleId);
+    if (same >= 0) {
+      const prev = lines[same];
+      const qty = prev.quantity + line.quantity;
+      const knownCost = prev.purchaseCostCents != null && line.purchaseCostCents != null;
+      const cost = knownCost ? Math.round((Number(prev.purchaseCostCents) * prev.quantity + Number(line.purchaseCostCents) * line.quantity) / qty) : null;
+      lines[same] = { ...prev, quantity: qty, purchaseCostCents: holds ? cost : prev.purchaseCostCents, profitIqd: holds && cost != null ? Number(prev.unitPrice ?? 0) - cost : prev.profitIqd, batchAllocations: [...(prev.batchAllocations ?? []), ...(line.batchAllocations ?? [])] };
+    } else lines.push(line);
+  }
+  const addedValue = added.reduce((sum, item) => sum + Number(item.unitPrice ?? 0) * item.quantity, 0);
+  const subtotal = lines.reduce((sum, item) => sum + Number(item.unitPrice ?? 0) * item.quantity, 0);
+  const total = Math.max(0, subtotal - order.discountCents) + order.shippingCents + order.codFeeCents;
+  const paymentStatus = order.paymentStatus === 'paid' ? 'partial' : order.paymentStatus;
+  // A fully paid order keeps what it already paid on record; only the added items are due on delivery.
+  const paidCents = order.paymentStatus === 'paid' ? Math.max(order.paidCents ?? 0, order.totalCents) : (order.paidCents ?? 0);
+  await tx.update(orders).set({ items: lines, subtotalCents: subtotal, totalCents: total, paymentStatus, paidCents, updatedAt: new Date() }).where(eq(orders.id, orderId));
+  if (order.customerId) await tx.update(customers).set({ totalSpent: sql`${customers.totalSpent} + ${addedValue}`, lastOrderAt: new Date(), updatedAt: new Date() }).where(eq(customers.id, order.customerId));
+  await tx.insert(orderEvents).values({ orderId, type: 'note', message: `Customer added ${added.map(i => `${i.quantity} × ${i.name} (${i.color})`).join(', ')} · +${addedValue.toLocaleString('en-US')} IQD · no extra delivery` });
+  return { order, items: lines, subtotal, total, addedValue, paymentStatus, paidCents };
+}

@@ -1,16 +1,17 @@
 import { after, NextRequest, NextResponse } from 'next/server';
-import { notifyNewOrder } from '@/lib/notify';
+import { notifyItemsAdded, notifyNewOrder } from '@/lib/notify';
 import { requestUser, sendCapi } from '@/lib/meta-capi';
 import { getBundleById, splitBundlePrice, withSelection } from '@/lib/bundles';
 import { randomBytes } from 'node:crypto';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { cartBundles, cartItems, customers, orderEvents, orders, payments, productVariants, products, shippingZones } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { getSettings, freeShippingFrom } from '@/lib/settings';
 import { iraqPhonePattern, normalizeIraqPhone, roundIqd } from '@/lib/iraq';
-import { assertAvailable, claimCoupon, transitionOrder, validateCoupon } from '@/lib/orders';
+import { APPENDABLE_STATUSES, appendItemsToOrder, assertAvailable, claimCoupon, transitionOrder, validateCoupon, type OrderItem } from '@/lib/orders';
 import { invalidateCatalog } from '@/lib/cache-tags';
+import { trackPath } from '@/lib/order-track';
 import { bestPromotion, getUpcomingPromotions } from '@/lib/promotions';
 import { startPayment } from '@/lib/payments';
 import { variantLabel } from '@/lib/variants';
@@ -31,23 +32,29 @@ export async function POST(request: NextRequest) {
     const text = (key: string, max = 200) => typeof body[key] === 'string' ? body[key].trim().slice(0, max) : '';
     const name = text('name', 100); const phone = normalizeIraqPhone(text('phone', 30)); const altPhone = normalizeIraqPhone(text('altPhone', 30));
     const governorate = text('governorate', 40); const city = text('city', 120); const address = text('address', 300); const payment = text('payment', 20) === 'electronic' ? 'electronic' : 'cod'; const landmark = text('landmark', 200); const email = text('email', 254).toLowerCase(); const note = text('note', 500); const couponCode = text('coupon', 40).toUpperCase();
-    if (name.length < 2) return NextResponse.json({ error: 'Please enter the recipient’s full name.' }, { status: 400 });
     if (!iraqPhonePattern.test(phone)) return NextResponse.json({ error: 'Please enter a valid Iraqi mobile number (e.g. 0770 123 4567).' }, { status: 400 });
     if (altPhone && !iraqPhonePattern.test(altPhone)) return NextResponse.json({ error: 'The alternative phone number must be a valid Iraqi mobile number.' }, { status: 400 });
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Please enter a valid email address or leave it empty.' }, { status: 400 });
-    if (!city || city.length < 2) return NextResponse.json({ error: 'Please add the city or district.' }, { status: 400 });
+    // "Add to my order": the bag joins an order of the same phone that has not shipped, with no second delivery fee.
+    // The address is the earlier order's, so the delivery step is not required.
+    const appendTo = text('appendTo', 30).toUpperCase();
+    const [appendTarget] = appendTo ? await db.select({ governorate: orders.governorate, name: orders.name }).from(orders).where(and(eq(orders.reference, appendTo), eq(orders.phone, phone), inArray(orders.status, [...APPENDABLE_STATUSES]))) : [];
+    if (appendTo && !appendTarget) return NextResponse.json({ error: 'This order can no longer take new items (it may have shipped). Please place a new order.' }, { status: 409 });
+    if (!appendTarget && name.length < 2) return NextResponse.json({ error: 'Please enter the recipient’s full name.' }, { status: 400 });
+    if (!appendTarget && (!city || city.length < 2)) return NextResponse.json({ error: 'Please add the city or district.' }, { status: 400 });
     const settings = await getSettings();
     const paySettings = payment === 'electronic' ? await getPaymentSettings() : null;
     const online = !!paySettings && gatewayReady(paySettings);
-    if (!settings.codEnabled && !online) return NextResponse.json({ error: 'Cash on delivery is temporarily unavailable. Please try again later.' }, { status: 409 });
-    const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, governorate));
-    if (!zone || !zone.enabled) return NextResponse.json({ error: 'Please choose a governorate we currently deliver to.' }, { status: 400 });
+    if (!appendTarget && !settings.codEnabled && !online) return NextResponse.json({ error: 'Cash on delivery is temporarily unavailable. Please try again later.' }, { status: 409 });
+    const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, appendTarget?.governorate || governorate));
+    if (!zone || (!appendTarget && !zone.enabled)) return NextResponse.json({ error: 'Please choose a governorate we currently deliver to.' }, { status: 400 });
     const sessionId = await getSession();
     // An earlier card checkout from this bag that was never paid (the shopper left the payment page
     // and came back) is replaced by this one, so its units are not held twice.
     const unpaid = await db.select({ id: orders.id, reference: orders.reference }).from(orders)
       .where(and(eq(orders.sessionId, sessionId), eq(orders.status, 'pending'), eq(orders.paymentMethod, 'electronic'), ne(orders.paymentStatus, 'paid')));
     for (const stale of unpaid) {
+      if (stale.reference === appendTo) continue;
       const [paid] = await db.select({ id: payments.id }).from(payments).where(and(eq(payments.orderId, stale.id), eq(payments.status, 'paid')));
       if (!paid) await transitionOrder(stale.id, 'cancelled', { adminNote: 'لم يكتمل الدفع الإلكتروني؛ الزبون رجع وأعاد الطلب' }).catch(() => {});
     }
@@ -95,6 +102,19 @@ export async function POST(request: NextRequest) {
         }
       }
       const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+      if (appendTo) {
+        const [target] = await tx.select({ id: orders.id }).from(orders).where(and(eq(orders.reference, appendTo), eq(orders.phone, phone), inArray(orders.status, [...APPENDABLE_STATUSES])));
+        if (!target) throw new CheckoutError('This order can no longer take new items (it may have shipped). Please place a new order.');
+        try {
+          const added = await appendItemsToOrder(tx, target.id, items as OrderItem[]);
+          await emptyBag(tx, sessionId);
+          return { orderId: target.id, appended: true as const, order: { reference: added.order.reference, link: trackPath(added.order.reference), paid: added.paidCents, total: added.total, subtotal: added.subtotal, shipping: added.order.shippingCents, discount: added.order.discountCents, codFee: added.order.codFeeCents, addedValue: added.addedValue, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
+        } catch (error) {
+          if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') throw new CheckoutError('Some items just sold out. Please review your bag.');
+          if (error instanceof Error && error.message === 'NOT_APPENDABLE') throw new CheckoutError('This order can no longer take new items (it may have shipped). Please place a new order.');
+          throw error;
+        }
+      }
       let discount = 0; const freeFrom = freeShippingFrom(settings); let freeShipping = freeFrom > 0 && subtotal >= freeFrom; let appliedCoupon: string | null = null;
       if (couponCode) {
         // Validated inside the transaction and claimed atomically. Throwing (not returning)
@@ -115,11 +135,17 @@ export async function POST(request: NextRequest) {
       // Card payments keep the bag until the payment is confirmed (lib/payments applyStatus empties it),
       // so a shopper who leaves the payment page finds their bag as it was.
       if (!online) await emptyBag(tx, sessionId);
-      return { orderId: created.id, order: { reference, total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
+      return { orderId: created.id, order: { reference, link: trackPath(reference), total, subtotal, shipping, discount, codFee, currency: 'IQD', phone, email, governorate: zone.nameEn, eta: `${zone.minDays}–${zone.maxDays} business days`, items } };
     });
     invalidateCatalog();
     // Tell the owner (Telegram / WhatsApp) after the response is sent, so checkout never waits on it.
     const origin = request.nextUrl.origin;
+    if ('appended' in result) {
+      const added = result.order;
+      after(() => notifyItemsAdded(result.orderId, added.items as OrderItem[], added.addedValue ?? 0, origin));
+      const { orderId: _id, ...appendedResponse } = result; void _id;
+      return NextResponse.json({ ...appendedResponse, payment: null, paymentError: false }, { status: 201 });
+    }
     after(() => notifyNewOrder(result.orderId, origin));
     // Server-side Purchase for Meta (same event_id as the browser pixel, so it is counted once).
     const capiUser = { ...requestUser(request.headers, request.cookies), phone, email, name, city, governorate: result.order.governorate, externalId: phone };

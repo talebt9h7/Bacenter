@@ -89,3 +89,27 @@ export async function notifyNewOrder(orderId: number, origin: string) {
     await broadcast(lines.filter((l, i, all) => l !== '' || (i > 0 && all[i - 1] !== '')).join('\n'), config);
   } catch (error) { console.error('New-order notification failed', error); }
 }
+
+/** A customer added items to an order that had not shipped (no second delivery fee). */
+export async function notifyItemsAdded(orderId: number, added: { name: string; color: string; quantity: number; unitPrice?: number }[], addedValue: number, origin: string) {
+  try {
+    const config = await getIntegrations();
+    if (!config.notify.newOrder || (!config.telegram.enabled && !config.whatsapp.enabled)) return;
+    const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+    if (!order) return;
+    const settings = await getSettings();
+    const base = (settings.canonicalBaseUrl || origin).replace(/\/$/, '');
+    const due = Math.max(0, order.totalCents - (order.paidCents ?? 0));
+    await broadcast([
+      `➕ <b>إضافة على الطلب ${escape(order.reference)}</b>`,
+      `👤 ${escape(order.name)} · ${escape(order.phone)}`,
+      '',
+      ...added.map(i => `• ${i.quantity} × ${escape(i.name)} — ${escape(i.color)}  ${money((i.unitPrice ?? 0) * i.quantity)}`),
+      '',
+      `قيمة الإضافة: ${money(addedValue)} · بدون توصيل جديد`,
+      `مجموع الطلب الآن: ${money(order.totalCents)}`,
+      order.paidCents ? `مدفوع مسبقاً: ${money(order.paidCents)} · 💰 <b>المطلوب تحصيله: ${money(due)}</b>` : `💰 <b>المطلوب تحصيله: ${money(due)}</b>`,
+      `🔗 ${base}/admin/orders/${order.id}`,
+    ].join('\n'), config);
+  } catch (error) { console.error('Items-added notification failed', error); }
+}
