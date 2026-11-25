@@ -8,7 +8,11 @@ import { useLanguage } from '@/components/language-provider';
 import { catalogT } from '@/lib/i18n';
 import { availableUnits, stockLevel } from '@/lib/stock-level';
 
-export type InventoryRow = { variantId: number; productId: string; productName: string; category: string; color: string; hex: string; stock: number; reserved?: number; photos: number; image: string; price: number; priceIqd: number; published: boolean; knownCostIqd: number; unknownCostUnits: number ; costedUnits?: number; lastCostIqd?: number | null; sold30?: number };
+/** Arabic-friendly matching: ignores case, diacritics and tatweel, and treats أ/إ/آ as ا, ة as ه and ى as ي. */
+function normalizeSearch(text: string) {
+  return text.toLowerCase().normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/\s+/g, ' ').trim();
+}
+export type InventoryRow = { variantId: number; productId: string; productName: string; searchText?: string; category: string; color: string; hex: string; stock: number; reserved?: number; photos: number; image: string; price: number; priceIqd: number; published: boolean; knownCostIqd: number; unknownCostUnits: number ; costedUnits?: number; lastCostIqd?: number | null; sold30?: number };
 export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeRate }: { rows: InventoryRow[]; lowStockThreshold: number; exchangeRate: number }) {
   const { language } = useLanguage();
   const tr = (label: keyof typeof import('@/lib/i18n').catalogTranslations) => catalogT(label, language);
@@ -123,11 +127,11 @@ export function InventoryTable({ rows: initialRows, lowStockThreshold, exchangeR
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, lowStockThreshold]);
   const groups = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearch(query);
     const map = new Map<string, InventoryRow[]>();
     for (const row of rows) {
       if (category && row.category !== category) continue;
-      if (q && !`${row.productName} ${row.color} ${row.productId} ${row.category}`.toLowerCase().includes(q)) continue;
+      if (q && !q.split(' ').every(word => normalizeSearch(`${row.searchText ?? ''} ${row.productName} ${row.color} ${row.productId} ${row.category}`).includes(word))) continue;
       const m = metric(row);
       if (filter === 'low' && m.level !== 'low') continue;
       if (filter === 'out' && m.level !== 'out') continue;
