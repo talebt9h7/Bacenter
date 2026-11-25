@@ -90,12 +90,23 @@ export function DashboardView({ data, adminName }: { data: DashboardData; adminN
     </section>}
 
     <div className="dash-grid main">
-      <Card delay={340} className="span-2" icon={<Flame size={17} />} title={tt('Revenue & profit', 'الإيراد والربح')} action={<div className="dash-legend-inline"><span><i className="sw revenue" />{tt('Revenue', 'الإيراد')}</span>{data.finance && <span><i className="sw profit" />{tt('Profit', 'الربح')}</span>}<span><i className="sw previous" />{tt('Previous period', 'الفترة السابقة')}</span></div>}>
-        <TrendChart labels={data.daily.map(d => d.key)} emptyText={tt('No delivered sales in this period yet.', 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.')} series={[
-          { key: 'previous', label: tt('Previous period', 'الفترة السابقة'), values: data.daily.map(d => d.previousRevenue), color: '#a7aaa2', dashed: true },
-          { key: 'revenue', label: tt('Revenue', 'الإيراد'), values: data.daily.map(d => d.revenue), color: '#cd4c20', area: true },
+      <Card delay={340} className="span-2 dash-summary" icon={<Flame size={17} />} title={tt('Sales summary', 'ملخص المبيعات')} action={<Link href="/admin/reports" className="dash-link">{tt('Reports', 'التقارير')} <ArrowRight size={13} /></Link>}>
+        <div className="dash-summary-head">
+          <div className="dash-summary-value"><strong><CountUp value={m.revenue} format={iqd} /></strong><Delta current={m.revenue} previous={p.revenue} lang={lang} /></div>
+          <p>{tt(`Delivered product sales · ${rangeText}`, `إجمالي مبيعات المنتجات المُسلّمة · ${rangeText}`)}</p>
+          <div className="dash-legend-inline"><span><i className="sw revenue" />{tt('Revenue', 'الإيراد')}</span>{data.finance && <span><i className="sw profit" />{tt('Profit', 'الربح')}</span>}<span><i className="sw previous" />{tt('Previous period', 'الفترة السابقة')}</span></div>
+        </div>
+        <TrendChart soft height={270} labels={data.daily.map(d => d.key)} emptyText={tt('No delivered sales in this period yet.', 'لا توجد مبيعات مُسلّمة في هذه الفترة بعد.')} series={[
+          { key: 'previous', label: tt('Previous period', 'الفترة السابقة'), values: data.daily.map(d => d.previousRevenue), color: '#b9bab4', dashed: true },
+          { key: 'revenue', label: tt('Revenue', 'الإيراد'), values: data.daily.map(d => d.revenue), color: '#f06a2a', area: true },
           ...(data.finance ? [{ key: 'profit', label: tt('Profit', 'الربح'), values: data.daily.map(d => d.profit), color: '#2f6b4f' }] : []),
         ]} extra={[{ label: tt('New orders', 'طلبات جديدة'), values: data.daily.map(d => d.orders) }]} />
+        <div className="dash-summary-foot">
+          <div><span className="dash-summary-icon"><Truck size={16} /></span><div><small>{tt('Delivered orders', 'طلبات مُسلّمة')}</small><b><CountUp value={m.orders} /></b></div><Delta current={m.orders} previous={p.orders} lang={lang} /></div>
+          {data.finance
+            ? <div><span className="dash-summary-icon"><Wallet size={16} /></span><div><small>{tt('Profit · margin', 'الربح · الهامش')}</small><b><CountUp value={m.profit} format={compact} /> <em>{pct(m.margin, 1)}</em></b></div><Delta current={m.profit} previous={p.profit} lang={lang} /></div>
+            : <div><span className="dash-summary-icon"><Receipt size={16} /></span><div><small>{tt('Average order', 'متوسط الطلب')}</small><b><CountUp value={m.averageOrder} format={iqd} /></b></div><Delta current={m.averageOrder} previous={p.averageOrder} lang={lang} /></div>}
+        </div>
       </Card>
       <Card delay={380} icon={<Layers size={17} />} title={tt('Order pipeline', 'مسار الطلبات')} action={<Link href="/admin/orders" className="dash-link">{tt('Orders', 'الطلبات')} <ArrowRight size={13} /></Link>}>
         <ol className="dash-pipeline">{data.pipeline.map((s, i) => <li key={s.status} className={`st-${s.status}`}>

@@ -56,13 +56,33 @@ export function Delta({ current, previous, inverse = false, lang }: { current: n
   return <span className={`dash-delta ${tone}`} title={lang === 'ar' ? `الفترة السابقة: ${fmt(previous)}` : `Previous period: ${fmt(previous)}`}>{c.value > 0 ? <ArrowUpRight size={13} /> : c.value < 0 ? <ArrowDownRight size={13} /> : null}{label}</span>;
 }
 
+/** Smooth line through the points without overshooting (monotone cubic), so dips never go below zero. */
+export function smoothPath(pts: [number, number][]) {
+  if (pts.length < 2) return pts.length ? `M${pts[0][0]},${pts[0][1]}` : '';
+  const n = pts.length, d: number[] = [], m: number[] = [];
+  for (let i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / ((pts[i + 1][0] - pts[i][0]) || 1));
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], h = a * a + b * b;
+    if (h > 9) { const t = 3 / Math.sqrt(h); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  let out = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const dx = (pts[i + 1][0] - pts[i][0]) / 3;
+    out += ` C${(pts[i][0] + dx).toFixed(1)},${(pts[i][1] + m[i] * dx).toFixed(1)} ${(pts[i + 1][0] - dx).toFixed(1)},${(pts[i + 1][1] - m[i + 1] * dx).toFixed(1)} ${pts[i + 1][0].toFixed(1)},${pts[i + 1][1].toFixed(1)}`;
+  }
+  return out;
+}
+
 export function Sparkline({ values, tone = 'accent' }: { values: number[]; tone?: string }) {
   if (values.length < 2) return <svg className="dash-spark" viewBox="0 0 100 30" aria-hidden="true" />;
   const max = Math.max(...values, 1), min = Math.min(...values, 0);
-  const points = values.map((v, i) => `${(i / (values.length - 1)) * 100},${28 - ((v - min) / (max - min || 1)) * 26}`).join(' ');
+  const line = smoothPath(values.map((v, i) => [(i / (values.length - 1)) * 100, 28 - ((v - min) / (max - min || 1)) * 26]));
   return <svg className={`dash-spark ${tone}`} viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-    <polygon points={`0,30 ${points} 100,30`} className="dash-spark-area" />
-    <polyline points={points} pathLength={1} className="dash-spark-line" vectorEffect="non-scaling-stroke" />
+    <path d={`${line} L100,30 L0,30 Z`} className="dash-spark-area" />
+    <path d={line} pathLength={1} className="dash-spark-line" vectorEffect="non-scaling-stroke" />
   </svg>;
 }
 
@@ -94,7 +114,7 @@ export function Empty({ children, small = false }: { children: ReactNode; small?
 export type TrendSeries = { key: string; label: string; values: number[]; color: string; area?: boolean; dashed?: boolean };
 
 /** Time series chart: lines (optionally filled) with a hover readout. */
-export function TrendChart({ labels, series, extra, format = iqd, emptyText, height = 290 }: { labels: string[]; series: TrendSeries[]; extra?: { label: string; values: number[]; format?: (n: number) => string }[]; format?: (n: number) => string; emptyText: string; height?: number }) {
+export function TrendChart({ labels, series, extra, format = iqd, emptyText, height = 290, soft = false }: { labels: string[]; series: TrendSeries[]; extra?: { label: string; values: number[]; format?: (n: number) => string }[]; format?: (n: number) => string; emptyText: string; height?: number; soft?: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 1000, H = 260, pad = 8, n = labels.length;
   const all = series.flatMap(s => s.values);
@@ -102,19 +122,20 @@ export function TrendChart({ labels, series, extra, format = iqd, emptyText, hei
   const max = Math.max(1, ...all), min = Math.min(0, ...all);
   const x = (i: number) => n === 1 ? W / 2 : pad + (i / (n - 1)) * (W - pad * 2);
   const y = (v: number) => H - 22 - ((v - min) / (max - min || 1)) * (H - 40);
-  const path = (values: number[]) => values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const path = (values: number[]) => smoothPath(values.map((v, i) => [x(i), y(v)]));
   const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => min + (max - min) * t);
   const every = Math.max(1, Math.ceil(n / 8));
   function move(event: React.PointerEvent<HTMLDivElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     setHover(Math.round(Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)) * (n - 1)));
   }
-  return <div className="dash-chart" dir="ltr" style={{ height }}>
-    <div className="dash-chart-axis">{ticks.slice().reverse().map((t, i) => <span key={i}>{compact(t)}</span>)}</div>
+  return <div className={`dash-chart${soft ? ' soft' : ''}`} dir="ltr" style={{ height }}>
+    {!soft && <div className="dash-chart-axis">{ticks.slice().reverse().map((t, i) => <span key={i}>{compact(t)}</span>)}</div>}
     <div className="dash-chart-plot" onPointerMove={move} onPointerLeave={() => setHover(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={series.map(s => s.label).join(', ')}>
         <defs>{series.filter(s => s.area).map(s => <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={s.color} stopOpacity=".26" /><stop offset="100%" stopColor={s.color} stopOpacity="0" /></linearGradient>)}</defs>
-        {ticks.map((t, i) => <line key={i} x1="0" x2={W} y1={y(t)} y2={y(t)} className="dash-gridline" vectorEffect="non-scaling-stroke" />)}
+        {soft ? labels.map((_, i) => i % every === 0 || i === n - 1 ? <line key={i} x1={x(i)} x2={x(i)} y1="0" y2={H - 22} className="dash-vline" vectorEffect="non-scaling-stroke" /> : null)
+          : ticks.map((t, i) => <line key={i} x1="0" x2={W} y1={y(t)} y2={y(t)} className="dash-gridline" vectorEffect="non-scaling-stroke" />)}
         {series.map((s, index) => <g key={s.key}>
           {s.area && <path d={`${path(s.values)} L${x(n - 1)},${y(0)} L${x(0)},${y(0)} Z`} className="dash-area" fill={`url(#grad-${s.key})`} />}
           <path d={path(s.values)} className={`dash-line ${s.dashed ? 'previous' : ''}`} style={{ stroke: s.color, animationDelay: `${index * 0.2}s` }} pathLength={1} vectorEffect="non-scaling-stroke" />

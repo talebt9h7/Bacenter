@@ -689,3 +689,28 @@ tr.is-over td{box-shadow:inset 0 2px 0 var(--a-accent)}
 .gm-note{font-size:12px!important;line-height:1.6;color:#7c818b;background:#f6f7f9;border-radius:10px;padding:8px 10px;margin:0}
 @media (prefers-reduced-motion:reduce){.gm-tip{animation:none}}
 .int-raw{max-height:320px;overflow:auto;background:#f6f7f9;border:1px solid #eceef1;border-radius:10px;padding:10px;font-size:11.5px;white-space:pre-wrap;word-break:break-all}
+
+/* Sales summary: big figure with its change, a soft smooth area chart, two small figures underneath. */
+.dash-summary .dash-card-head{margin-bottom:6px}
+.dash-summary .dash-card-head h2{font-size:14px;font-weight:700;color:var(--a-muted)}
+.dash-summary .dash-card-head h2 svg{display:none}
+.dash-summary-head{display:grid;gap:4px;margin-bottom:6px}
+.dash-summary-value{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dash-summary-value strong{font-size:clamp(28px,3.2vw,38px);font-weight:800;letter-spacing:-.8px;line-height:1.15;font-variant-numeric:tabular-nums}
+.dash-summary-value .dash-delta{font-size:12px;padding:3px 9px}
+.dash-summary-head p{margin:0;font-size:12.5px;color:var(--a-muted)}
+.dash-summary-head .dash-legend-inline{margin-top:6px;font-size:11.5px}
+.dash-chart.soft{grid-template-columns:minmax(0,1fr)}
+.dash-chart.soft .dash-line{stroke-width:2.6}
+.dash-chart.soft .dash-line.previous{stroke-width:1.5}
+.dash-vline{stroke:#efefea;stroke-width:1;stroke-dasharray:3 4}
+.dash-chart.soft .dash-chart-x span{color:#a3a59d;font-size:10.5px}
+.dash-summary-foot{display:grid;grid-template-columns:1fr 1fr;margin-top:14px;border-top:1px solid var(--a-line,#ecece6)}
+.dash-summary-foot>div{display:flex;align-items:center;gap:10px;padding:14px 4px 2px;min-width:0}
+.dash-summary-foot>div+div{border-inline-start:1px solid var(--a-line,#ecece6);padding-inline-start:16px}
+.dash-summary-foot>div>div{flex:1;min-width:0;display:grid;gap:1px}
+.dash-summary-foot small{font-size:11.5px;color:var(--a-muted)}
+.dash-summary-foot b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dash-summary-foot b em{font-style:normal;font-size:12px;font-weight:700;color:var(--a-muted)}
+.dash-summary-icon{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;border:1px solid var(--a-line,#ecece6);color:var(--a-muted);background:#fff}
+@media (max-width:640px){.dash-summary-foot{grid-template-columns:1fr}.dash-summary-foot>div+div{border-inline-start:0;padding-inline-start:4px;border-top:1px solid var(--a-line,#ecece6)}}
