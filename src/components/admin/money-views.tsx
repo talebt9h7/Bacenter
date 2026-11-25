@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { AccountsTabs } from './accounts-views';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useGlassMotion } from './dash-glass';
 import { ArrowRight, CalendarDays, CircleDollarSign, Coins, LoaderCircle, Percent, Plus, Receipt, ShoppingBag, Tag, Trash2, TrendingUp, Truck, Wallet, Boxes } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
 import type { ReportsData } from '@/lib/reports-data';
@@ -17,10 +18,12 @@ function useLang() { const { language } = useLanguage(); const lang: Lang = lang
 const range = (data: ReportsData, lang: Lang) => { const f = (iso: string) => new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Baghdad' }); return `${f(data.from)} – ${f(data.to)}`; };
 
 export function RevenueView({ data, finance }: { data: ReportsData; finance: boolean }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, data.period);
   const { lang, tt } = useLang();
   const m = data.money, p = data.moneyPrevious;
   const labels = data.series.map(s => s.key);
-  return <main className="admin-page dash">
+  return <main ref={root} className="admin-page gl-page dash">
     <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {range(data, lang)}</>} title={tt('Revenue', 'الإيرادات')} description={tt('Product sales recognised on delivery. Delivery fees and cash handling are collected for couriers and kept apart from revenue.', 'مبيعات المنتجات المُحتسبة عند التسليم. أجور التوصيل ورسوم التحصيل تبقى منفصلة عن الإيراد.')}
       actions={<><PeriodNav base="/admin/revenue" period={data.period} lang={lang} /><div className="dash-quick">{finance && <Link href={`/admin/profit?period=${data.period}`} className="dash-btn">{tt('Profit', 'الأرباح')} <ArrowRight size={14} /></Link>}<Link href={`/admin/reports?period=${data.period}&section=sales`} className="dash-btn primary">{tt('Sales report', 'تقرير المبيعات')}</Link></div></>} />
@@ -33,8 +36,8 @@ export function RevenueView({ data, finance }: { data: ReportsData; finance: boo
       <Kpi lang={lang} delay={250} icon={<Truck size={17} />} tone="success" label={tt('Delivery collected', 'أجور التوصيل المحصلة')} value={m.shipping} format={iqd} current={m.shipping} previous={p.shipping} note={m.codFees ? tt(`+ ${fmt(m.codFees)} cash handling`, `+ ${fmt(m.codFees)} رسوم تحصيل`) : tt('Not revenue', 'ليست إيراداً')} />
     </section>
     <div className="dash-grid main">
-      <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Revenue by day', 'الإيراد اليومي')} action={<Legend items={[{ label: tt('Revenue', 'الإيراد'), color: '#cd4c20' }, { label: tt('Previous period', 'الفترة السابقة'), color: '#a7aaa2', dashed: true }]} />}>
-        <TrendChart labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة بالفترة.')} series={[{ key: 'prev', label: tt('Previous period', 'الفترة السابقة'), values: data.series.map(s => s.previousRevenue), color: '#a7aaa2', dashed: true }, { key: 'rev', label: tt('Revenue', 'الإيراد'), values: data.series.map(s => s.revenue), color: '#cd4c20', area: true }]} extra={[{ label: tt('Delivered orders', 'طلبات مُسلّمة'), values: data.series.map(s => s.delivered) }]} />
+      <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Revenue by day', 'الإيراد اليومي')} action={<Legend items={[{ label: tt('Revenue', 'الإيراد'), color: '#ef7342' }, { label: tt('Previous period', 'الفترة السابقة'), color: '#b8b8bd', dashed: true }]} />}>
+        <TrendChart soft labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة بالفترة.')} series={[{ key: 'prev', label: tt('Previous period', 'الفترة السابقة'), values: data.series.map(s => s.previousRevenue), color: '#b8b8bd', dashed: true }, { key: 'rev', label: tt('Revenue', 'الإيراد'), values: data.series.map(s => s.revenue), color: '#ef7342', area: true }]} extra={[{ label: tt('Delivered orders', 'طلبات مُسلّمة'), values: data.series.map(s => s.delivered) }]} />
       </Card>
       <Card icon={<ShoppingBag size={17} />} title={tt('By channel', 'حسب القناة')}><Donut centerLabel={tt('channels', 'قنوات')} emptyText={tt('No sales.', 'لا توجد مبيعات.')} rows={data.bySource.map(r => ({ key: r.key, label: lang === 'ar' ? SOURCE_AR[r.key] ?? r.key : cap(r.key), value: r.revenue, sub: `${r.orders} · ${compact(r.revenue)}` }))} /></Card>
     </div>
@@ -46,11 +49,13 @@ export function RevenueView({ data, finance }: { data: ReportsData; finance: boo
 }
 
 export function ProfitView({ data, expenses }: { data: ReportsData; expenses: { id: number; expenseDate: string; description: string; category: string; amountIqd: number }[] }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, data.period);
   const { lang, tt } = useLang();
   const m = data.money, p = data.moneyPrevious;
   const net = m.profit - data.expenses.current, netPrev = p.profit - data.expenses.previous;
   const labels = data.series.map(s => s.key);
-  return <main className="admin-page dash">
+  return <main ref={root} className="admin-page gl-page dash">
     <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {range(data, lang)}</>} title={tt('Profit', 'الأرباح')} description={tt('Gross profit uses the FIFO purchase cost saved on each sold unit; net profit subtracts operating expenses. Units with no purchase cost are reported apart instead of being given an invented cost.', 'إجمالي الربح يعتمد على تكلفة الشراء (أول داخل أول خارج) المحفوظة على كل قطعة مباعة، والصافي بعد طرح المصاريف. القطع بدون تكلفة تُعرض لحالها وما تنحسب بتكلفة وهمية.')}
       actions={<><PeriodNav base="/admin/profit" period={data.period} lang={lang} /><div className="dash-quick"><Link href={`/admin/finance?period=${data.period}`} className="dash-btn">{tt('Expenses', 'المصاريف')} <ArrowRight size={14} /></Link><Link href={`/admin/reports?period=${data.period}&section=profit`} className="dash-btn primary">{tt('Profit report', 'تقرير الأرباح')}</Link></div></>} />
@@ -64,13 +69,13 @@ export function ProfitView({ data, expenses }: { data: ReportsData; expenses: { 
     </section>
     <Bridge steps={[{ label: tt('Revenue', 'الإيراد'), value: m.revenue }, { label: tt('COGS', 'تكلفة البضاعة'), value: m.cogs, op: '−' }, ...(m.unknownCostRevenue ? [{ label: tt('Unknown-cost revenue', 'إيراد بدون تكلفة'), value: m.unknownCostRevenue, op: '−' as const }] : []), { label: tt('Gross profit', 'إجمالي الربح'), value: m.profit, op: '=' }, { label: tt('Expenses', 'المصاريف'), value: data.expenses.current, op: '−' }, { label: tt('Net profit', 'صافي الربح'), value: net, op: '=', total: true }]} />
     <div className="dash-grid main">
-      <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Profit over time', 'الربح عبر الوقت')} action={<Legend items={[{ label: tt('Gross profit', 'إجمالي الربح'), color: '#2f6b4f' }, { label: tt('Net', 'الصافي'), color: '#3d5a80' }]} />}>
-        <TrendChart labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة بالفترة.')} series={[{ key: 'gp', label: tt('Gross profit', 'إجمالي الربح'), values: data.series.map(s => s.profit), color: '#2f6b4f', area: true }, { key: 'net', label: tt('Net', 'الصافي'), values: data.series.map(s => s.net), color: '#3d5a80' }]} />
+      <Card className="span-2" icon={<TrendingUp size={17} />} title={tt('Profit over time', 'الربح عبر الوقت')} action={<Legend items={[{ label: tt('Gross profit', 'إجمالي الربح'), color: '#b9481f' }, { label: tt('Net', 'الصافي'), color: '#f39a6c' }]} />}>
+        <TrendChart soft labels={labels} emptyText={tt('No delivered sales in this period.', 'لا توجد مبيعات مُسلّمة بالفترة.')} series={[{ key: 'gp', label: tt('Gross profit', 'إجمالي الربح'), values: data.series.map(s => s.profit), color: '#b9481f', area: true }, { key: 'net', label: tt('Net', 'الصافي'), values: data.series.map(s => s.net), color: '#f39a6c' }]} />
       </Card>
-      <Card icon={<Receipt size={17} />} title={tt('Expenses by category', 'المصاريف حسب النوع')}><Bars emptyText={tt('No expenses.', 'لا توجد مصاريف.')} rows={data.expenses.byCategory.map(e => ({ key: e.key, label: EXPENSE[e.key]?.[lang === 'ar' ? 1 : 0] ?? e.key, value: e.value }))} color="linear-gradient(90deg,#7a5195,#a685c4)" /></Card>
+      <Card icon={<Receipt size={17} />} title={tt('Expenses by category', 'المصاريف حسب النوع')}><Bars emptyText={tt('No expenses.', 'لا توجد مصاريف.')} rows={data.expenses.byCategory.map(e => ({ key: e.key, label: EXPENSE[e.key]?.[lang === 'ar' ? 1 : 0] ?? e.key, value: e.value }))} color="linear-gradient(90deg,#8e8e93,#c7c7cc)" /></Card>
     </div>
     <div className="dash-grid two">
-      <Card icon={<Wallet size={17} />} title={tt('Most profitable products', 'أكثر المنتجات ربحاً')}><Bars emptyText="—" rows={[...data.productTable].filter(r => r.units).sort((a, b) => b.profit - a.profit).slice(0, 8).map(r => ({ key: r.id, label: lang === 'ar' ? r.nameAr : r.name, value: r.profit, sub: r.margin == null ? tt('cost unknown', 'تكلفة غير معروفة') : pct(r.margin) }))} color="linear-gradient(90deg,#2f6b4f,#5e9c7d)" /></Card>
+      <Card icon={<Wallet size={17} />} title={tt('Most profitable products', 'أكثر المنتجات ربحاً')}><Bars emptyText="—" rows={[...data.productTable].filter(r => r.units).sort((a, b) => b.profit - a.profit).slice(0, 8).map(r => ({ key: r.id, label: lang === 'ar' ? r.nameAr : r.name, value: r.profit, sub: r.margin == null ? tt('cost unknown', 'تكلفة غير معروفة') : pct(r.margin) }))} color="linear-gradient(90deg,#b9481f,#d65a2a)" /></Card>
       <Card icon={<Receipt size={17} />} title={tt('Operating expenses', 'المصاريف التشغيلية')} action={<Link href="/admin/finance" className="dash-link">{tt('Manage', 'إدارة')} <ArrowRight size={13} /></Link>}>
         <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>{tt('Date', 'التاريخ')}</th><th>{tt('Description', 'الوصف')}</th><th>{tt('Category', 'النوع')}</th><th className="num">{tt('Amount', 'المبلغ')}</th></tr></thead><tbody>{expenses.map(e => <tr key={e.id}><td>{new Date(e.expenseDate).toLocaleDateString('en-GB')}</td><td>{e.description}</td><td><span className="dash-chip">{EXPENSE[e.category]?.[lang === 'ar' ? 1 : 0] ?? e.category}</span></td><td className="num">{iqd(e.amountIqd)}</td></tr>)}{!expenses.length && <tr><td colSpan={4} className="dash-muted">{tt('No operating expenses in this period.', 'لا توجد مصاريف بالفترة.')}</td></tr>}</tbody></table></div>
       </Card>
@@ -80,6 +85,8 @@ export function ProfitView({ data, expenses }: { data: ReportsData; expenses: { 
 
 type ExpenseRow = { id: number; expenseDate: string; description: string; reference: string | null; category: string; paymentMethod: string; amountIqd: number };
 export function FinanceView({ data, rows, purchases, canManage }: { data: ReportsData; rows: ExpenseRow[]; purchases: number; canManage: boolean }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, data.period);
   const { lang, tt } = useLang();
   const router = useRouter();
   const [busy, setBusy] = useState<number | null>(null);
@@ -92,7 +99,7 @@ export function FinanceView({ data, rows, purchases, canManage }: { data: Report
     catch { window.alert(tt('Could not delete the expense.', 'تعذر حذف المصروف.')); }
     finally { setBusy(null); }
   }
-  return <main className="admin-page dash">
+  return <main ref={root} className="admin-page gl-page dash">
     <AccountsTabs />
     <PageHero eyebrow={<><CalendarDays size={13} /> {range(data, lang)}</>} title={tt('Finance', 'المالية')} description={tt('Expenses, purchases and stock value next to sales and profit. Purchases are cash put into stock; they become cost only when the units are sold.', 'المصاريف والمشتريات وقيمة المخزون جنب المبيعات والأرباح. المشتريات فلوس داخلة بالمخزون، وتصير تكلفة بس من تنباع القطع.')}
       actions={<><PeriodNav base="/admin/finance" period={data.period} lang={lang} /><div className="dash-quick">{canManage && <a href="#add-expense" className="dash-btn primary"><Plus size={15} /> {tt('Add expense', 'إضافة مصروف')}</a>}<Link href={`/admin/reports?period=${data.period}&section=profit`} className="dash-btn">{tt('Reports', 'التقارير')} <ArrowRight size={14} /></Link></div></>} />
@@ -110,7 +117,7 @@ export function FinanceView({ data, rows, purchases, canManage }: { data: Report
         <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>{tt('Date', 'التاريخ')}</th><th>{tt('Description', 'الوصف')}</th><th>{tt('Category', 'النوع')}</th><th>{tt('Payment', 'الدفع')}</th><th className="num">{tt('Amount', 'المبلغ')}</th>{canManage && <th />}</tr></thead>
           <tbody>{rows.map(e => <tr key={e.id}><td>{new Date(e.expenseDate).toLocaleDateString('en-GB')}</td><td><b>{e.description}</b>{e.reference && <small>{e.reference}</small>}</td><td><span className="dash-chip">{EXPENSE[e.category]?.[lang === 'ar' ? 1 : 0] ?? e.category}</span></td><td>{PAYMENT[e.paymentMethod]?.[lang === 'ar' ? 1 : 0] ?? e.paymentMethod}</td><td className="num"><strong>{iqd(e.amountIqd)}</strong></td>{canManage && <td className="num"><button type="button" className="admin-btn admin-btn-danger-ghost admin-btn-sm" disabled={busy === e.id} onClick={() => void remove(e)} aria-label={tt('Delete', 'حذف')}>{busy === e.id ? <LoaderCircle size={13} className="spin" /> : <Trash2 size={13} />}</button></td>}</tr>)}{!rows.length && <tr><td colSpan={6} className="dash-muted">{tt('No expenses in this period.', 'لا توجد مصاريف بالفترة.')}</td></tr>}</tbody></table></div>
       </Card>
-      <Card icon={<Receipt size={17} />} title={tt('By category', 'حسب النوع')}><Bars emptyText={tt('No expenses.', 'لا توجد مصاريف.')} rows={data.expenses.byCategory.map(e => ({ key: e.key, label: EXPENSE[e.key]?.[lang === 'ar' ? 1 : 0] ?? e.key, value: e.value, sub: pct(data.expenses.current ? e.value / data.expenses.current : 0) }))} color="linear-gradient(90deg,#7a5195,#a685c4)" /><p className="dash-foot">{tt('Delivery fees collected from customers are not revenue or profit.', 'أجور التوصيل المحصلة من الزبائن ليست إيراداً ولا ربحاً.')}</p></Card>
+      <Card icon={<Receipt size={17} />} title={tt('By category', 'حسب النوع')}><Bars emptyText={tt('No expenses.', 'لا توجد مصاريف.')} rows={data.expenses.byCategory.map(e => ({ key: e.key, label: EXPENSE[e.key]?.[lang === 'ar' ? 1 : 0] ?? e.key, value: e.value, sub: pct(data.expenses.current ? e.value / data.expenses.current : 0) }))} color="linear-gradient(90deg,#8e8e93,#c7c7cc)" /><p className="dash-foot">{tt('Delivery fees collected from customers are not revenue or profit.', 'أجور التوصيل المحصلة من الزبائن ليست إيراداً ولا ربحاً.')}</p></Card>
     </div>
     {canManage && <Card id="add-expense" icon={<Plus size={17} />} title={tt('Add expense', 'إضافة مصروف')}>
       <form className="admin-form-grid" action="/api/admin/expenses" method="post">

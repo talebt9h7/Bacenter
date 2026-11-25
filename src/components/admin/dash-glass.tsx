@@ -29,7 +29,7 @@ export function useGlassMotion(root: RefObject<HTMLElement | null>, key: string)
   useIso(() => {
     if (!root.current || reduced()) return;
     const ctx = gsap.context(() => {
-      gsap.from('.gl-card, .dash-card, .nq-card', { y: 22, opacity: 0, scale: 0.985, duration: 0.75, ease: 'power3.out', stagger: 0.045, clearProps: 'transform,opacity' });
+      gsap.from('.gl-card, .dash-card, .nq-card, .dash-kpi, .dash-pnl, .acc-card, .acc-kpi', { y: 22, opacity: 0, scale: 0.985, duration: 0.75, ease: 'power3.out', stagger: 0.045, clearProps: 'transform,opacity' });
       root.current!.querySelectorAll<HTMLElement>('.gl-num[data-count]').forEach(el => {
         const target = Number(el.dataset.count) || 0, f = formatters[(el.dataset.format as NumFormat) || 'int'];
         const o = { v: 0 };

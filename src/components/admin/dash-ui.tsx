@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowDownRight, ArrowUpRight, Sparkles } from 'lucide-react';
 
 export type Lang = 'ar' | 'en';
-export const PALETTE = ['#cd4c20', '#2f6b4f', '#3d5a80', '#c08a2b', '#7a5195', '#5f8575', '#a1593f', '#8d99ae'];
+export const PALETTE = ['#ef7342', '#f39a6c', '#b9481f', '#f7c9ae', '#d65a2a', '#8e8e93', '#fad8c4', '#c7c7cc'];
 export const fmt = (n: number) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.round(n || 0));
 export const iqd = (n: number) => `${fmt(n)} IQD`;
 export const compact = (n: number) => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n || 0);

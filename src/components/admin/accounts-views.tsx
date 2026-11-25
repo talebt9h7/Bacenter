@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useGlassMotion } from './dash-glass';
 import { ArrowLeftRight, Banknote, CheckCheck, LoaderCircle, Pencil, Plus, Settings2, Trash2, Truck, Wallet } from 'lucide-react';
 import { api, Modal, useFlash } from './ui';
 import { groupInt } from '@/lib/number-format';
@@ -42,12 +43,14 @@ type Ref = { id: number; reference: string; name: string; total: number };
 export type Entry = { at: string; account: string; accountName?: string; amount: number; kind: string; label: string; orderId?: number; settlementId?: number; movementId?: number };
 
 export function AccountsOverview({ data, couriers, settings, canManage }: { data: Overview; couriers: CourierDTO[]; settings: { qasehFeePercent: number; defaultCourierId: number | null }; canManage: boolean }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, 'overview');
   const [moving, setMoving] = useState(false), [setup, setSetup] = useState(false);
   const atCouriers = data.couriers.reduce((s, c) => s + c.balance, 0);
   const reviewCount = data.review.legacyCod.length + data.review.noCourier.length + data.review.noFee.length;
   const courierNames = new Map(couriers.map(c => [c.id, c.name]));
   const accountLabel = (key: string) => key in accountNames ? accountNames[key as MoneyAccount] : courierNames.get(Number(key.split(':')[1])) ?? key;
-  return <main className="admin-page">
+  return <main ref={root} className="admin-page gl-page">
     <AccountsTabs />
     <div className="acc-head"><div><h1>الحسابات</h1><p>وين فلوسك هسه بالضبط: الصندوق، الماستر، القاصة، وشكد عند كل شركة توصيل.</p></div>
       {canManage && <div className="acc-actions"><button className="admin-btn admin-btn-primary" onClick={() => setMoving(true)}><ArrowLeftRight size={15} /> حركة يدوية</button><button className="admin-btn admin-btn-ghost" onClick={() => setSetup(true)}><Settings2 size={15} /> إعدادات</button></div>}
@@ -163,6 +166,8 @@ type Candidate = { id: number; reference: string; name: string; governorate: str
 type SettlementRow = { id: number; courierId: number; courierName: string; expectedIqd: number; receivedIqd: number; account: string; settledAt: string; note: string | null; orders: number };
 
 export function CouriersView({ couriers, selected, candidates, settlements, canManage }: { couriers: CourierDTO[]; selected: number | null; candidates: Candidate[]; settlements: SettlementRow[]; canManage: boolean }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, String(selected));
   const router = useRouter();
   const { flash, success, fail } = useFlash();
   const [editing, setEditing] = useState<CourierDTO | 'new' | null>(null);
@@ -187,7 +192,7 @@ export function CouriersView({ couriers, selected, candidates, settlements, canM
     try { await api(`/api/admin/accounts/settlements/${row.id}`, { method: 'DELETE' }); success('انحذف الكشف.'); router.refresh(); } catch (e) { fail(e); }
   }
   const go = (id: number) => router.push(`/admin/accounts/couriers?courier=${id}`, { scroll: false });
-  return <main className="admin-page">
+  return <main ref={root} className="admin-page gl-page">
     <AccountsTabs />
     <div className="acc-head"><div><h1>شركات التوصيل</h1><p>سجّل الفلوس اللي تستلمها من شركة التوصيل، وطابقها ويه كشفهم.</p></div>{canManage && <div className="acc-actions"><button className="admin-btn admin-btn-ghost" onClick={() => setEditing('new')}><Plus size={15} /> شركة جديدة</button></div>}</div>
     {flash}
@@ -255,8 +260,10 @@ function CourierModal({ courier, onClose, onSaved }: { courier: CourierDTO | nul
 }
 
 export function SettlementView({ data }: { data: { settlement: { id: number; expectedIqd: number; receivedIqd: number; account: string; settledAt: string; note: string | null }; courierName: string; orders: { id: number; reference: string; name: string; governorate: string; status: string; paymentMethod: string; collected: number; fee: number; net: number }[] } }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, String(data.settlement.id));
   const s = data.settlement;
-  return <main className="admin-page">
+  return <main ref={root} className="admin-page gl-page">
     <AccountsTabs />
     <div className="acc-head"><div><Link href="/admin/accounts/couriers" className="admin-link">← شركات التوصيل</Link><h1>كشف رقم {s.id} · {data.courierName}</h1><p>{d(s.settledAt)} · دخلت إلى {accountNames[s.account as MoneyAccount] ?? s.account}{s.note ? ` · ${s.note}` : ''}</p></div><div className="acc-actions"><button className="admin-btn admin-btn-ghost" onClick={() => window.print()}>طباعة</button></div></div>
     <div className="acc-sum"><div><span>طلبات</span><strong>{data.orders.length}</strong></div><div><span>المتوقع</span><strong>{n(s.expectedIqd)}</strong></div><div><span>المستلم</span><strong>{n(s.receivedIqd)}</strong></div><div><span>الفرق</span><strong className={s.receivedIqd - s.expectedIqd ? 'acc-out' : ''}>{n(s.receivedIqd - s.expectedIqd)}</strong></div></div>
@@ -268,6 +275,8 @@ export function SettlementView({ data }: { data: { settlement: { id: number; exp
 
 // ---------------- Ledger ----------------
 export function LedgerView({ entries, couriers, account, from, to, opening, canManage }: { entries: Entry[]; couriers: CourierDTO[]; account: string; from: string; to: string; opening: number | null; canManage: boolean }) {
+  const root = useRef<HTMLElement>(null);
+  useGlassMotion(root, `${account}-${from}-${to}`);
   const router = useRouter();
   const { flash, fail } = useFlash();
   const courierNames = useMemo(() => new Map(couriers.map(c => [c.id, c.name])), [couriers]);
@@ -275,7 +284,7 @@ export function LedgerView({ entries, couriers, account, from, to, opening, canM
   const go = (next: { account?: string; from?: string; to?: string }) => { const p = new URLSearchParams(); const a = next.account ?? account, f = next.from ?? from, t = next.to ?? to; if (a) p.set('account', a); if (f) p.set('from', f); if (t) p.set('to', t); router.push(`/admin/accounts/ledger${p.size ? `?${p}` : ''}`, { scroll: false }); };
   const totalIn = entries.filter(e => e.amount > 0).reduce((s, e) => s + e.amount, 0), totalOut = entries.filter(e => e.amount < 0).reduce((s, e) => s - e.amount, 0);
   async function removeMovement(id: number) { if (!window.confirm('حذف هذه الحركة اليدوية؟')) return; try { await api(`/api/admin/accounts/movements/${id}`, { method: 'DELETE' }); router.refresh(); } catch (e) { fail(e); } }
-  return <main className="admin-page">
+  return <main ref={root} className="admin-page gl-page">
     <AccountsTabs />
     <div className="acc-head"><div><h1>كل الحركات</h1><p>كل دينار دخل أو طلع من أي حساب، ومن وين جاء.</p></div></div>
     {flash}
