@@ -3,16 +3,17 @@
  * as the only colour (solid, light and hatched), pill controls. Motion is driven by GSAP
  * (dash-glass.tsx), so the older CSS entrance animations are switched off here.
  */
-.admin-shell:has(.gl-dash) .admin-main,html body .admin-shell:has(.gl-page) .admin-main,html body .admin-shell:has(.gl-reports) .admin-main{background:radial-gradient(1200px 600px at 85% -10%,#fbefe8 0%,transparent 60%),radial-gradient(900px 500px at 0% 30%,#f4f4f6 0%,transparent 60%),#ebebed!important}
-.gl-dash,.gl-reports,.gl-page{
+html body .admin-shell .admin-main{background:radial-gradient(1200px 600px at 85% -10%,#fbefe8 0%,transparent 60%),radial-gradient(900px 500px at 0% 30%,#f4f4f6 0%,transparent 60%),#ebebed!important}
+.gl-dash,.gl-reports,.gl-page,.admin-shell .admin-page{
   --gl-or:#ef7342;--gl-or-2:#f39a6c;--gl-or-soft:#f7c9ae;--gl-or-tint:rgba(239,115,66,.12);
   --gl-ink:#1d1d1f;--gl-muted:#86868b;--gl-faint:#aeaeb2;
   --gl-card:rgba(248,248,249,.74);--gl-well:rgba(255,255,255,.55);--gl-edge:rgba(255,255,255,.95);
   --gl-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(0,0,0,.04),0 14px 34px -16px rgba(0,0,0,.16);
   --gl-hatch:repeating-linear-gradient(-45deg,rgba(255,255,255,.2) 0 2px,transparent 2px 6px);
   --a-accent:var(--gl-or);--a-accent-soft:var(--gl-or-tint);--a-line:rgba(0,0,0,.06);
-  color:var(--gl-ink);display:flex;flex-direction:column;gap:18px;max-width:1500px;transition:opacity .25s
+  color:var(--gl-ink);transition:opacity .25s
 }
+.gl-dash,.gl-reports,.gl-page{display:flex;flex-direction:column;gap:18px;max-width:1500px}
 .gl-dash.is-pending,.gl-reports.is-pending,.gl-page.is-pending{opacity:.55;pointer-events:none}
 .gl-dash .dash-rise,.gl-dash .dash-line,.gl-dash .dash-area,.gl-dash .dash-heat-row i,.gl-dash .dash-bar-track i,.gl-dash .dash-table tbody tr{animation:none!important}
 
@@ -203,82 +204,82 @@ html[dir=ltr] .gl-pipe-track i{--gl-origin:left}
 
 /* ---------- Money pages (sales, profit, expenses, balances, ledger, couriers): same glass look ---------- */
 html body .gl-page{gap:18px;display:flex;flex-direction:column}
-html body .gl-page .dash-rise,html body .gl-page .dash-line,html body .gl-page .dash-area,html body .gl-page .dash-bar-track i{animation:none!important}
-html body .gl-page :is(.dash-card,.dash-kpi,.acc-card,.acc-kpi,.dash-pnl){background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:26px!important;box-shadow:var(--gl-shadow)!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);color:var(--gl-ink)}
-html body .gl-page :is(.dash-card,.acc-card){padding:22px 24px;margin-bottom:0}
-html body .gl-page :is(.dash-card-head h2,.acc-card h2){font-size:15px!important;font-weight:600!important;letter-spacing:-.2px}
-html body .gl-page :is(.dash-card-head h2 svg,.acc-card h2 svg){color:var(--gl-or)}
-html body .gl-page .dash-hero{margin-bottom:0;align-items:flex-end}
-html body .gl-page .dash-hero h1,html body .gl-page .acc-head h1{font-size:30px!important;font-weight:700;letter-spacing:-.6px}
-html body .gl-page .dash-hero p,html body .gl-page .acc-head p{color:var(--gl-muted)}
-html body .gl-page .dash-eyebrow{color:var(--gl-muted);background:none;border:0;padding:0}
-html body .gl-page .dash-eyebrow svg{color:var(--gl-or)}
-html body .gl-page .dash-periods,html body .gl-page .acc-seg,html body .gl-page .acc-tabs{background:rgba(0,0,0,.045)!important;border:1.5px solid rgba(255,255,255,.7)!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)!important;padding:4px}
-html body .gl-page .acc-tabs{width:max-content;max-width:100%;margin:0}
-html body .gl-page :is(.dash-periods a,.acc-seg button,.acc-tabs a){border-radius:999px!important;color:var(--gl-muted);font-weight:500}
-html body .gl-page :is(.dash-periods a.active,.acc-seg button.is-on,.acc-tabs a.is-on){background:#fff!important;color:var(--gl-ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)!important}
-html body .gl-page :is(.dash-btn,.admin-btn){border-radius:999px!important;border:1.5px solid var(--gl-edge)!important;background:rgba(255,255,255,.7)!important;color:var(--gl-ink)!important;box-shadow:var(--gl-shadow)}
-html body .gl-page :is(.dash-btn.primary,.admin-btn-primary){background:var(--gl-or)!important;border-color:rgba(255,255,255,.35)!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -8px rgba(239,115,66,.6)}
-html body .gl-page .dash-kpis,html body .gl-page .acc-kpis{gap:14px;margin-bottom:0}
-html body .gl-page .dash-kpi{padding:18px 18px 14px}
-html body .gl-page .dash-kpi-icon{background:rgba(255,255,255,.8)!important;border:1px solid var(--gl-edge);color:var(--gl-or)!important;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
-html body .gl-page .dash-kpi-label,html body .gl-page .acc-kpi span{color:var(--gl-muted);font-weight:500}
-html body .gl-page .dash-kpi-value,html body .gl-page .acc-kpi strong{font-weight:700;letter-spacing:-.6px;color:var(--gl-ink)}
-html body .gl-page .acc-kpi.is-total{background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(253,224,206,.85))!important}
-html body .gl-page .acc-kpi.is-total :is(span,small){color:var(--gl-muted)}
-html body .gl-page .acc-kpi.is-total strong{color:#c4501f}
-html body .gl-page .dash-spark .dash-spark-line{stroke:var(--gl-or)!important}
-html body .gl-page .dash-spark .dash-spark-area{fill:var(--gl-or)!important;opacity:.1}
-html body .gl-page .dash-delta{border-radius:999px;background:rgba(0,0,0,.05);color:var(--gl-muted)}
-html body .gl-page .dash-delta.up{background:var(--gl-or-tint);color:#d4561f}
-html body .gl-page .dash-delta.down{background:rgba(0,0,0,.06);color:#4a4a4f}
-html body .gl-page .dash-pnl{color:var(--gl-ink);padding:18px 20px;margin-bottom:0}
-html body .gl-page .dash-pnl span{color:var(--gl-muted)}
-html body .gl-page .dash-pnl em{color:var(--gl-or-2)}
-html body .gl-page .dash-pnl strong{color:var(--gl-ink)}
-html body .gl-page .dash-pnl .total{background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(253,224,206,.9));border-radius:18px;border:1px solid var(--gl-edge)}
-html body .gl-page .dash-pnl .total strong{color:#c4501f}
-html body .gl-page .dash-pnl .total.negative strong{color:#3a3a3c}
-html body .gl-page .dash-bar-track{background:rgba(0,0,0,.05);border-radius:999px}
-html body .gl-page .dash-bar-track i{background:var(--gl-hatch),var(--gl-or)!important;border-radius:999px}
-html body .gl-page .dash-donut-track{stroke:rgba(0,0,0,.05)}
-html body .gl-page .dash-legend-inline .sw.revenue{background:var(--gl-or)}
-html body .gl-page .dash-legend-inline .sw.profit{background:#b9481f}
-html body .gl-page :is(.dash-table,.acc-table) th{background:transparent;color:var(--gl-muted);border-color:rgba(0,0,0,.06)}
-html body .gl-page :is(.dash-table,.acc-table) td{border-color:rgba(0,0,0,.05)}
-html body .gl-page :is(.dash-table,.acc-table) tbody tr:hover td{background:rgba(255,255,255,.55)}
-html body .gl-page .acc-courier,html body .gl-page .acc-sum div,html body .gl-page .acc-review li,html body .gl-page .dash-inv-top>div{background:var(--gl-well);border:1px solid var(--gl-edge);border-radius:20px}
-html body .gl-page .acc-review li.is-danger{background:var(--gl-or-tint)}
-html body .gl-page .acc-pill.ok,html body .gl-page .acc-diff.ok{background:var(--gl-or-tint);color:#c4501f}
-html body .gl-page .acc-pill:is(.warn,.danger),html body .gl-page .acc-diff.warn{background:rgba(0,0,0,.06);color:#3a3a3c}
-html body .gl-page .acc-pill:is(.courier,.pickup,.muted){background:rgba(255,255,255,.8);color:var(--gl-ink);border:1px solid var(--gl-edge)}
-html body .gl-page .acc-in{color:#c4501f}
-html body .gl-page .acc-out,html body .gl-page .acc-neg{color:#3a3a3c!important}
-html body .gl-page :is(.acc-filters select,.acc-filters input,.admin-field input,.admin-field select,.admin-field textarea){border-radius:14px!important;border:1px solid rgba(0,0,0,.08)!important;background:rgba(255,255,255,.85)!important}
-html body .gl-page .acc-chips a{background:rgba(255,255,255,.8);border-color:var(--gl-edge)}
-@media (max-width:720px){html body .gl-page :is(.dash-card,.acc-card){padding:16px;border-radius:22px!important}html body .gl-page .dash-hero h1,html body .gl-page .acc-head h1{font-size:25px!important}}
-html body .gl-page .dash-kpi-value{font-size:clamp(16px,1.35vw,22px)!important;white-space:nowrap}
-html body .gl-page .dash-kpi-row{min-width:0;overflow:hidden}
-@media (max-width:720px){html body .gl-page .dash-kpi-value{font-size:17px!important}}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-rise,html body :is(.gl-page,.admin-shell .admin-page) .dash-line,html body :is(.gl-page,.admin-shell .admin-page) .dash-area,html body :is(.gl-page,.admin-shell .admin-page) .dash-bar-track i{animation:none!important}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-card,.dash-kpi,.acc-card,.acc-kpi,.dash-pnl){background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:26px!important;box-shadow:var(--gl-shadow)!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);color:var(--gl-ink)}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-card,.acc-card){padding:22px 24px;margin-bottom:0}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-card-head h2,.acc-card h2){font-size:15px!important;font-weight:600!important;letter-spacing:-.2px}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-card-head h2 svg,.acc-card h2 svg){color:var(--gl-or)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-hero{margin-bottom:0;align-items:flex-end}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-hero h1,html body :is(.gl-page,.admin-shell .admin-page) .acc-head h1{font-size:30px!important;font-weight:700;letter-spacing:-.6px}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-hero p,html body :is(.gl-page,.admin-shell .admin-page) .acc-head p{color:var(--gl-muted)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-eyebrow{color:var(--gl-muted);background:none;border:0;padding:0}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-eyebrow svg{color:var(--gl-or)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-periods,html body :is(.gl-page,.admin-shell .admin-page) .acc-seg,html body :is(.gl-page,.admin-shell .admin-page) .acc-tabs{background:rgba(0,0,0,.045)!important;border:1.5px solid rgba(255,255,255,.7)!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)!important;padding:4px}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-tabs{width:max-content;max-width:100%;margin:0}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-periods a,.acc-seg button,.acc-tabs a){border-radius:999px!important;color:var(--gl-muted);font-weight:500}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-periods a.active,.acc-seg button.is-on,.acc-tabs a.is-on){background:#fff!important;color:var(--gl-ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)!important}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-btn,.admin-btn){border-radius:999px!important;border:1.5px solid var(--gl-edge)!important;background:rgba(255,255,255,.7)!important;color:var(--gl-ink)!important;box-shadow:var(--gl-shadow)}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-btn.primary,.admin-btn-primary){background:var(--gl-or)!important;border-color:rgba(255,255,255,.35)!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -8px rgba(239,115,66,.6)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpis,html body :is(.gl-page,.admin-shell .admin-page) .acc-kpis{gap:14px;margin-bottom:0}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi{padding:18px 18px 14px}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi-icon{background:rgba(255,255,255,.8)!important;border:1px solid var(--gl-edge);color:var(--gl-or)!important;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi-label,html body :is(.gl-page,.admin-shell .admin-page) .acc-kpi span{color:var(--gl-muted);font-weight:500}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi-value,html body :is(.gl-page,.admin-shell .admin-page) .acc-kpi strong{font-weight:700;letter-spacing:-.6px;color:var(--gl-ink)}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-kpi.is-total{background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(253,224,206,.85))!important}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-kpi.is-total :is(span,small){color:var(--gl-muted)}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-kpi.is-total strong{color:#c4501f}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-spark .dash-spark-line{stroke:var(--gl-or)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-spark .dash-spark-area{fill:var(--gl-or)!important;opacity:.1}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-delta{border-radius:999px;background:rgba(0,0,0,.05);color:var(--gl-muted)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-delta.up{background:var(--gl-or-tint);color:#d4561f}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-delta.down{background:rgba(0,0,0,.06);color:#4a4a4f}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl{color:var(--gl-ink);padding:18px 20px;margin-bottom:0}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl span{color:var(--gl-muted)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl em{color:var(--gl-or-2)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl strong{color:var(--gl-ink)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl .total{background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(253,224,206,.9));border-radius:18px;border:1px solid var(--gl-edge)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl .total strong{color:#c4501f}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-pnl .total.negative strong{color:#3a3a3c}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-bar-track{background:rgba(0,0,0,.05);border-radius:999px}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-bar-track i{background:var(--gl-hatch),var(--gl-or)!important;border-radius:999px}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-donut-track{stroke:rgba(0,0,0,.05)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-legend-inline .sw.revenue{background:var(--gl-or)}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-legend-inline .sw.profit{background:#b9481f}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-table,.acc-table) th{background:transparent;color:var(--gl-muted);border-color:rgba(0,0,0,.06)}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-table,.acc-table) td{border-color:rgba(0,0,0,.05)}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-table,.acc-table) tbody tr:hover td{background:rgba(255,255,255,.55)}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-courier,html body :is(.gl-page,.admin-shell .admin-page) .acc-sum div,html body :is(.gl-page,.admin-shell .admin-page) .acc-review li,html body :is(.gl-page,.admin-shell .admin-page) .dash-inv-top>div{background:var(--gl-well);border:1px solid var(--gl-edge);border-radius:20px}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-review li.is-danger{background:var(--gl-or-tint)}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-pill.ok,html body :is(.gl-page,.admin-shell .admin-page) .acc-diff.ok{background:var(--gl-or-tint);color:#c4501f}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-pill:is(.warn,.danger),html body :is(.gl-page,.admin-shell .admin-page) .acc-diff.warn{background:rgba(0,0,0,.06);color:#3a3a3c}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-pill:is(.courier,.pickup,.muted){background:rgba(255,255,255,.8);color:var(--gl-ink);border:1px solid var(--gl-edge)}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-in{color:#c4501f}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-out,html body :is(.gl-page,.admin-shell .admin-page) .acc-neg{color:#3a3a3c!important}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.acc-filters select,.acc-filters input,.admin-field input,.admin-field select,.admin-field textarea){border-radius:14px!important;border:1px solid rgba(0,0,0,.08)!important;background:rgba(255,255,255,.85)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-chips a{background:rgba(255,255,255,.8);border-color:var(--gl-edge)}
+@media (max-width:720px){html body :is(.gl-page,.admin-shell .admin-page) :is(.dash-card,.acc-card){padding:16px;border-radius:22px!important}html body :is(.gl-page,.admin-shell .admin-page) .dash-hero h1,html body :is(.gl-page,.admin-shell .admin-page) .acc-head h1{font-size:25px!important}}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi-value{font-size:clamp(16px,1.35vw,22px)!important;white-space:nowrap}
+html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi-row{min-width:0;overflow:hidden}
+@media (max-width:720px){html body :is(.gl-page,.admin-shell .admin-page) .dash-kpi-value{font-size:17px!important}}
 
 /* ---------- Generic admin pieces inside glass pages (customers, order detail, …) ---------- */
-html body .gl-page .admin-page-heading{margin-bottom:0!important;align-items:flex-end}
-html body .gl-page .admin-page-heading h1{font-size:30px!important;font-weight:700!important;letter-spacing:-.6px}
-html body .gl-page .admin-page-heading p,html body .gl-page .admin-eyebrow{color:var(--gl-muted)!important}
-html body .gl-page :is(.admin-card,.admin-stat){background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:26px!important;box-shadow:var(--gl-shadow)!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);margin-bottom:0}
-html body .gl-page .admin-stats{gap:14px;margin-bottom:0}
-html body .gl-page .admin-stat{padding:18px!important}
-html body .gl-page .admin-stat strong,html body .gl-page .admin-stat b{letter-spacing:-.5px}
-html body .gl-page .admin-search{border-radius:999px!important;background:rgba(255,255,255,.75)!important;border:1.5px solid var(--gl-edge)!important;box-shadow:var(--gl-shadow)}
-html body .gl-page :is(.admin-filter-select,.admin-toolbar select){border-radius:999px!important;background:rgba(255,255,255,.75)!important;border:1.5px solid var(--gl-edge)!important}
-html body .gl-page .admin-table th{background:transparent!important;color:var(--gl-muted)!important;border-color:rgba(0,0,0,.06)!important}
-html body .gl-page .admin-table td{border-color:rgba(0,0,0,.05)!important}
-html body .gl-page .admin-table tbody tr:hover td{background:rgba(255,255,255,.55)!important}
-html body .gl-page .admin-tag{border-radius:999px;background:var(--gl-or-tint);color:#c4501f;border:0}
-html body .gl-page :is(.admin-link,.admin-strong-link){color:var(--gl-or)!important}
-html body .gl-page .admin-count{background:var(--gl-or-tint);color:#c4501f;border-radius:999px}
-html body .gl-page .admin-segment-hint{background:var(--gl-well);border:1px solid var(--gl-edge);border-radius:18px}
-html body .gl-page .admin-btn-ghost{background:rgba(255,255,255,.6)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-page-heading{margin-bottom:0!important;align-items:flex-end}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-page-heading h1{font-size:30px!important;font-weight:700!important;letter-spacing:-.6px}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-page-heading p,html body :is(.gl-page,.admin-shell .admin-page) .admin-eyebrow{color:var(--gl-muted)!important}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.admin-card,.admin-stat){background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:26px!important;box-shadow:var(--gl-shadow)!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);margin-bottom:0}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-stats{gap:14px;margin-bottom:0}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-stat{padding:18px!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-stat strong,html body :is(.gl-page,.admin-shell .admin-page) .admin-stat b{letter-spacing:-.5px}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-search{border-radius:999px!important;background:rgba(255,255,255,.75)!important;border:1.5px solid var(--gl-edge)!important;box-shadow:var(--gl-shadow)}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.admin-filter-select,.admin-toolbar select){border-radius:999px!important;background:rgba(255,255,255,.75)!important;border:1.5px solid var(--gl-edge)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-table th{background:transparent!important;color:var(--gl-muted)!important;border-color:rgba(0,0,0,.06)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-table td{border-color:rgba(0,0,0,.05)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-table tbody tr:hover td{background:rgba(255,255,255,.55)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-tag{border-radius:999px;background:var(--gl-or-tint);color:#c4501f;border:0}
+html body :is(.gl-page,.admin-shell .admin-page) :is(.admin-link,.admin-strong-link){color:var(--gl-or)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-count{background:var(--gl-or-tint);color:#c4501f;border-radius:999px}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-segment-hint{background:var(--gl-well);border:1px solid var(--gl-edge);border-radius:18px}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-btn-ghost{background:rgba(255,255,255,.6)!important}
 
 /* ---------- Orders board ---------- */
 html body .gl-orders .ob-grid{gap:16px}
@@ -298,7 +299,7 @@ html body .gl-orders .ob-bulk{background:rgba(250,250,251,.88);border:1.5px soli
 html body .gl-orders .ob-bulk-btn{border-radius:999px!important;border:1.5px solid var(--gl-edge)!important;background:rgba(255,255,255,.75)!important}
 html body .gl-orders .ob-bulk-btn.is-primary{background:var(--gl-or)!important;color:#fff!important}
 html body .gl-orders .ob-bulk-status select{border-radius:999px;border:1.5px solid var(--gl-edge)}
-html body .gl-page .acc-pill.ok{background:var(--gl-or-tint);color:#c4501f}
+html body :is(.gl-page,.admin-shell .admin-page) .acc-pill.ok{background:var(--gl-or-tint);color:#c4501f}
 
 /* ---------- Sidebar: frosted panel, active row as a raised white pill with the orange icon ---------- */
 html body .admin-shell .admin-sidebar{background:rgba(246,246,247,.72)!important;-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);border-inline-end:1.5px solid rgba(255,255,255,.9)!important;box-shadow:inset -1px 0 0 rgba(0,0,0,.04),8px 0 30px -24px rgba(0,0,0,.25)!important;padding:16px 12px 0}
@@ -324,13 +325,67 @@ html body .admin-shell .admin-sidebar .nav-glider{position:absolute;top:0;inset-
 html body .admin-shell .admin-sidebar nav.has-glider :is(a,.admin-nav-group-head){position:relative;z-index:1}
 html body .admin-shell .admin-sidebar nav.has-glider a.active{background:transparent!important;box-shadow:none!important}
 html body .admin-shell .admin-sidebar-bottom{background:rgba(246,246,247,.9)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);position:sticky;bottom:0;z-index:3}
-html body .gl-page .admin-segmented{background:rgba(0,0,0,.045)!important;border:1.5px solid rgba(255,255,255,.7)!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)!important;padding:4px!important}
-html body .gl-page .admin-segmented button{border-radius:999px!important;color:var(--gl-muted)!important;background:transparent!important}
-html body .gl-page .admin-segmented button.active{background:#fff!important;color:var(--gl-ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)!important}
-html body .gl-page .admin-steps li{border-radius:16px!important;background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;box-shadow:var(--gl-shadow)}
-html body .gl-page .admin-steps li.done{color:#c4501f!important}
-html body .gl-page .admin-steps li.done i{background:var(--gl-or)!important;color:#fff}
-html body .gl-page .admin-steps li.current{background:linear-gradient(160deg,#fff,rgba(253,224,206,.9))!important;color:var(--gl-ink)!important}
-html body .gl-page .admin-steps li.current i{background:var(--gl-or)!important}
-html body .gl-page .admin-pager a,html body .gl-page .admin-pager button{border-radius:999px!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-segmented{background:rgba(0,0,0,.045)!important;border:1.5px solid rgba(255,255,255,.7)!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)!important;padding:4px!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-segmented button{border-radius:999px!important;color:var(--gl-muted)!important;background:transparent!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-segmented button.active{background:#fff!important;color:var(--gl-ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-steps li{border-radius:16px!important;background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;box-shadow:var(--gl-shadow)}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-steps li.done{color:#c4501f!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-steps li.done i{background:var(--gl-or)!important;color:#fff}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-steps li.current{background:linear-gradient(160deg,#fff,rgba(253,224,206,.9))!important;color:var(--gl-ink)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-steps li.current i{background:var(--gl-or)!important}
+html body :is(.gl-page,.admin-shell .admin-page) .admin-pager a,html body :is(.gl-page,.admin-shell .admin-page) .admin-pager button{border-radius:999px!important}
 html body .admin-shell .admin-sidebar-bottom{margin:auto -12px 0}
+
+/* Pages that are not laid out as a glass column keep their normal spacing between blocks. */
+html body .admin-shell .admin-page:not(.gl-page):not(.gl-dash):not(.gl-reports) :is(.admin-card,.dash-card,.acc-card,.dash-pnl){margin-bottom:18px}
+html body .admin-shell .admin-page:not(.gl-page):not(.gl-dash):not(.gl-reports) :is(.admin-page-heading,.dash-hero){margin-bottom:22px!important}
+html body .admin-shell .admin-page:not(.gl-page):not(.gl-dash):not(.gl-reports) :is(.admin-stats,.dash-kpis,.acc-kpis){margin-bottom:18px}
+html body .admin-shell .admin-page:not(.gl-page):not(.gl-dash):not(.gl-reports) .acc-tabs{margin-bottom:18px}
+
+/* ---------- Remaining controls: one white pill for every "selected" state, orange switches ---------- */
+html body .admin-shell :is(.dash-periods button.active,.promo-durations button.active,.pr-tabs button.on,.admin-filter-bar .admin-btn.active,.admin-segmented button.active,.admin-report-periods a.active){background:#fff!important;color:var(--gl-ink,#1d1d1f)!important;border-color:rgba(255,255,255,.95)!important;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)!important}
+html body .admin-shell :is(.dash-periods,.pr-tabs,.promo-durations,.admin-filter-bar){border-radius:999px}
+html body .admin-shell :is(.dash-periods button,.pr-tabs button,.promo-durations button){border-radius:999px!important}
+html body .admin-shell :is(.admin-switch,.cat-switch,.int-switch) input:checked+span{background:#ef7342!important}
+html body .admin-shell .wr-switch input:checked+i{background:#ef7342!important}
+html body .admin-shell .admin-page input[type=checkbox],html body .admin-shell .admin-page input[type=radio]{accent-color:#ef7342}
+
+/* ---------- Wholesale: same glass and orange instead of its green ---------- */
+html body .admin-shell .ws-page{background:transparent!important;--wd-ink:#1d1d1f;--wd-muted:#86868b;--wd-line:rgba(0,0,0,.06);--wd-green:#ef7342;--wd-sand:rgba(255,255,255,.55)}
+html body .admin-shell .ws-page :is(.wd-breadcrumb,.wd-breadcrumb b,.wd-eyebrow,.wd-header h1>span,.wd-metric>span:not(.wd-metric-icon),.wd-metric>p){color:#86868b}
+html body .admin-shell .ws-page .wd-header h1{color:#1d1d1f;font-weight:700;letter-spacing:-.6px}
+html body .admin-shell .ws-page :is(.wd-metric,.wd-panel,.wd-receipt-promo){background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:26px!important;box-shadow:var(--gl-shadow)!important;-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%)}
+html body .admin-shell .ws-page .wd-metric-owed{background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(253,224,206,.8))!important}
+html body .admin-shell .ws-page :is(.wd-metric-owed>strong,.wd-metric-owed>p,.wd-outstanding,.wd-outstanding b,.wd-trader-balance>strong){color:#c4501f!important}
+html body .admin-shell .ws-page .wd-metric .wd-metric-icon,html body .admin-shell .ws-page .wd-metric-icon:is(.wd-green,.wd-blue),html body .admin-shell .ws-page .wd-receipt-promo>span{background:rgba(255,255,255,.8)!important;border:1px solid var(--gl-edge)!important;color:#ef7342!important;border-radius:12px}
+html body .admin-shell .ws-page .wd-metric>strong{color:#1d1d1f}
+html body .admin-shell .ws-page :is(.wd-primary,.admin-btn-primary){background:#ef7342!important;border-color:rgba(255,255,255,.35)!important;color:#fff!important;border-radius:999px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 24px -8px rgba(239,115,66,.6)!important}
+html body .admin-shell .ws-page :is(.wd-btn:not(.wd-primary),.admin-btn:not(.admin-btn-primary)){border-radius:999px!important;border:1.5px solid var(--gl-edge)!important;background:rgba(255,255,255,.7)!important;color:#1d1d1f!important}
+html body .admin-shell .ws-page .wd-tabs .is-active{color:#1d1d1f}
+html body .admin-shell .ws-page .wd-tabs .is-active:after{background:#ef7342}
+html body .admin-shell .ws-page .wd-tabs button>span{background:rgba(239,115,66,.12);color:#c4501f}
+html body .admin-shell .ws-page .wd-search{border-radius:999px;background:rgba(255,255,255,.75);border:1.5px solid var(--gl-edge)}
+html body .admin-shell .ws-page .wd-search:focus-within{border-color:#f7c9ae;box-shadow:0 0 0 3px rgba(239,115,66,.12)}
+html body .admin-shell .ws-page .wd-filter-btn{border-radius:999px}
+html body .admin-shell .ws-page .wd-filter-chips button{border-radius:999px}
+html body .admin-shell .ws-page .wd-filter-chips .is-active{background:#fff;border-color:rgba(255,255,255,.95);color:#1d1d1f;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px -6px rgba(0,0,0,.18)}
+html body .admin-shell .ws-page .wd-table th{background:transparent;color:#86868b}
+html body .admin-shell .ws-page .wd-table tbody tr:hover{background:rgba(255,255,255,.55)}
+html body .admin-shell .ws-page :is(.wd-reference,.wd-trader-cell b,.wd-table .wd-money b){color:#1d1d1f}
+html body .admin-shell .ws-page .wd-reference{color:#c4501f}
+html body .admin-shell .ws-page .wd-status{border-radius:999px;background:rgba(239,115,66,.12);color:#c4501f;border-color:transparent}
+html body .admin-shell .ws-page .wd-status:is(.unpaid,.partial){background:rgba(0,0,0,.06);color:#3a3a3c}
+html body .admin-shell .ws-page .wd-avatar{background:rgba(239,115,66,.12);border-color:transparent;color:#c4501f;border-radius:11px}
+html body .admin-shell .ws-page .wd-progress{background:rgba(0,0,0,.06)}
+html body .admin-shell .ws-page .wd-progress i{background:repeating-linear-gradient(-45deg,rgba(255,255,255,.2) 0 2px,transparent 2px 6px),#ef7342}
+html body .admin-shell .ws-page .wd-balance-card>strong{color:#1d1d1f}
+html body .admin-shell .ws-page .wd-balance-card dt i{background:#ef7342}
+html body .admin-shell .ws-page .wd-balance-card dl>div:last-child dt i{background:#f7c9ae}
+html body .admin-shell .ws-page :is(.wd-receipt-promo h3,.wd-receipt-promo p,.wd-receipt-promo button){color:#3a3a3c}
+html body .admin-shell .ws-page .wd-trader-grid article{border-radius:20px;background:rgba(255,255,255,.55);border:1px solid var(--gl-edge)}
+html body .admin-shell .ws-page .wd-trader-grid .wd-trader-actions>.wd-trader-new{color:#c4501f}
+html body .admin-shell .ws-page .wd-icon-btn{border-radius:999px}
+html body .admin-shell .ws-page .wd-empty>span{background:rgba(239,115,66,.12);color:#ef7342}
+html body .admin-shell :is(.ws-picked){background:linear-gradient(160deg,#fff,rgba(253,224,206,.7));border-color:rgba(255,255,255,.95)}
+html body .admin-shell .ws-pay-type button.on{background:rgba(239,115,66,.12)!important;border-color:#f7c9ae!important;color:#c4501f!important}
+html body .admin-shell .wholesale-legacy-editor .admin-btn-primary{background:#ef7342!important;border-color:#ef7342!important}

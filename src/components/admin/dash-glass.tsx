@@ -6,7 +6,7 @@
  * (entrances, line drawing, counters, the sliding period pill) and is skipped for reduced motion.
  */
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from 'react';
 import gsap from 'gsap';
 import { CalendarDays } from 'lucide-react';
@@ -222,4 +222,20 @@ export function GlassScope({ className, motionKey, children }: { className: stri
   const root = useRef<HTMLElement>(null);
   useGlassMotion(root, motionKey);
   return <main ref={root} className={className}>{children}</main>;
+}
+
+/** Brings the card entrance to every other admin page when it opens (pages with their own glass motion are skipped). */
+export function GlassRouteMotion() {
+  const pathname = usePathname();
+  useIso(() => {
+    if (reduced()) return;
+    const page = document.querySelector<HTMLElement>('.admin-main .admin-page');
+    if (!page || page.matches('.gl-page, .gl-dash, .gl-reports')) return;
+    const ctx = gsap.context(() => {
+      const items = page.querySelectorAll(':scope > *');
+      gsap.from(items, { y: 18, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: (i: number) => Math.min(i * 0.035, 0.5), clearProps: 'transform,opacity' });
+    }, page);
+    return () => ctx.revert();
+  }, [pathname]);
+  return null;
 }
