@@ -225,7 +225,9 @@ async function qsCheck(s: PaymentSettings, token: string, expectedIqd?: number) 
   // request worked), which once marked unpaid attempts as paid; it only counts when it says "succeeded".
   const own = pick(body, ['payment_status', 'paymentStatus', 'transaction_status']);
   const loose = str(pick(body, ['status'])).toLowerCase();
-  let status = own !== undefined ? qsStatus(own) : loose === 'succeeded' ? 'paid' : qsStatus(loose === 'success' ? 'pending' : loose);
+  // Without its own status field, "success" counts only when the card approval is there too (approval code / RRN / rc 00).
+  const approved = !!str(pick(body, ['approval', 'rrn'])) || str(pick(body, ['rc'])) === '00';
+  let status = own !== undefined ? qsStatus(own) : loose === 'succeeded' || (loose === 'success' && approved) ? 'paid' : qsStatus(loose === 'success' ? 'pending' : loose);
   if (status === 'paid' && expectedIqd !== undefined) {
     const amount = Number(pick(body, ['amount']));
     const currency = str(pick(body, ['currency'])).toUpperCase();
@@ -239,6 +241,31 @@ async function qsCheck(s: PaymentSettings, token: string, expectedIqd?: number) 
 async function qsRevoke(s: PaymentSettings, paymentId: string) {
   const a = alqasehAccess(s);
   await call(`${a.api}/egw/payments/revoke`, { method: 'POST', headers: { ...qsHeaders(s), 'Content-Type': 'application/json' }, body: JSON.stringify({ payment_id: paymentId, details: 'Cancelled by the store' }) });
+}
+
+/** Recent Al Qaseh transactions, straight from Al Qaseh (for checking what really went through). */
+export type QasehTxn = { date: string; amount: number; currency: string; status: string; orderId: string; paymentId: string; description: string; rrn: string; approval: string };
+export async function qsHistory(s: PaymentSettings, limit = 30): Promise<{ rows: QasehTxn[]; raw: unknown }> {
+  const a = alqasehAccess(s);
+  const body = await call(`${a.api}/egw/payments/history?limit=${Math.min(100, Math.max(1, limit))}`, { method: 'GET', headers: qsHeaders(s) });
+  const findList = (v: unknown, depth = 0): unknown[] => {
+    if (Array.isArray(v)) return v;
+    if (!v || typeof v !== 'object' || depth > 3) return [];
+    for (const k of ['data', 'items', 'payments', 'results', 'transactions', 'records', 'history']) { const got = findList((v as Record<string, unknown>)[k], depth + 1); if (got.length) return got; }
+    return [];
+  };
+  const rows = findList(body).map(item => ({
+    date: str(pick(item, ['created_at', 'createdAt', 'timestamp', 'date', 'updated_at'])),
+    amount: Number(pick(item, ['amount', 'total'])) || 0,
+    currency: str(pick(item, ['currency'])),
+    status: str(pick(item, ['payment_status', 'paymentStatus', 'status'])),
+    orderId: str(pick(item, ['order_id', 'orderId'])),
+    paymentId: str(pick(item, ['payment_id', 'paymentId', 'id'])),
+    description: str(pick(item, ['description', 'details'])),
+    rrn: str(pick(item, ['rrn'])),
+    approval: str(pick(item, ['approval', 'approval_code'])),
+  }));
+  return { rows, raw: body };
 }
 
 /* ---------------- Provider-neutral entry points ---------------- */

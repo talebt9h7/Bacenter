@@ -7,6 +7,7 @@ import type { PaymentSettings } from '@/lib/payments/config';
 import { api, useFlash } from './ui';
 import { Card, PageHero } from './dash-ui';
 
+type QasehRow = { date: string; amount: number; currency: string; status: string; orderId: string; paymentId: string; description: string; rrn: string; approval: string };
 export type PaymentListRow = { id: number; orderId: number; reference: string; provider: string; mode: string; status: string; amount: number; error: string | null; createdAt: string; paidAt: string | null };
 
 const STATUS: Record<string, { ar: string; en: string; tone: string }> = {
@@ -26,6 +27,7 @@ export function PaymentsManager({ initial, rows: initialRows, siteUrl, canManage
   const [s, setS] = useState<PaymentSettings>(initial);
   const [rows, setRows] = useState(initialRows);
   const [busy, setBusy] = useState<string | null>(null);
+  const [qaseh, setQaseh] = useState<{ rows: QasehRow[]; raw?: unknown } | null>(null);
   const disabled = !canManage;
   const setZ = (patch: Partial<PaymentSettings['zaincash']>) => setS(c => ({ ...c, zaincash: { ...c.zaincash, ...patch } }));
   const setF = (patch: Partial<PaymentSettings['fib']>) => setS(c => ({ ...c, fib: { ...c.fib, ...patch } }));
@@ -136,5 +138,19 @@ export function PaymentsManager({ initial, rows: initialRows, siteUrl, canManage
           </tr>)}
         </tbody></table></div>}
     </Card>
+
+    {s.provider === 'alqaseh' && <Card icon={<ShieldCheck size={17} />} title={tt('Check with Al Qaseh', 'التحقق من القاصة')} action={<button type="button" className="admin-btn admin-btn-ghost admin-btn-sm" disabled={busy !== null} onClick={() => run('qaseh', async () => { setQaseh(await api<{ rows: QasehRow[]; raw?: unknown }>('/api/admin/payments/alqaseh-history')); })}>{busy === 'qaseh' ? <LoaderCircle size={13} className="spin" /> : <RefreshCw size={13} />} {tt('Load from Al Qaseh', 'جلب من القاصة')}</button>}>
+      <p className="admin-hint">{tt('The latest transactions exactly as Al Qaseh records them. The description holds the order number (UR-…). Only "succeeded" means the money was taken.', 'آخر الحركات مثل ما مسجّلة عند القاصة نفسها. الوصف بيه رقم الطلب (UR-…). بس الحالة "succeeded" تعني المبلغ انخصم فعلاً.')}</p>
+      {qaseh && (qaseh.rows.length === 0 ? <><p className="admin-hint">{tt('Al Qaseh returned no transactions in a recognised list. Its raw reply:', 'القاصة ما رجّعت حركات بشكل قائمة. ردّها كما هو:')}</p><pre className="int-raw" dir="ltr">{JSON.stringify(qaseh.raw, null, 2).slice(0, 4000)}</pre></> :
+        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>{tt('Date', 'التاريخ')}</th><th>{tt('Description', 'الوصف')}</th><th>{tt('Amount', 'المبلغ')}</th><th>{tt('Status', 'الحالة')}</th><th>RRN / {tt('Approval', 'الموافقة')}</th></tr></thead><tbody>
+          {qaseh.rows.map((r, i) => <tr key={`${r.paymentId}-${i}`}>
+            <td><small dir="ltr">{r.date}</small></td>
+            <td><small>{r.description || r.orderId}</small></td>
+            <td className="num">{fmt(r.amount)} {r.currency}</td>
+            <td><span className={`dash-chip ${/succe/i.test(r.status) ? 'success' : /fail|declin|expir|revok/i.test(r.status) ? 'danger' : ''}`}>{r.status || '—'}</span></td>
+            <td><small dir="ltr">{[r.rrn, r.approval].filter(Boolean).join(' · ') || '—'}</small></td>
+          </tr>)}
+        </tbody></table></div>)}
+    </Card>}
   </main>;
 }
