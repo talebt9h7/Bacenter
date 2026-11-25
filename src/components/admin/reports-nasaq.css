@@ -204,3 +204,52 @@ html body .admin-shell .nq-reports .nq-date-pick:focus-within{border-color:var(-
   html body .admin-shell .nq-reports .nq-date-pick input{flex:1;min-width:0}
   html body .admin-shell .nq-reports .nq-range{width:100%;flex-wrap:nowrap}
 }
+
+/* ---------- Soft-glass pass (same look as the dashboard: frosted light cards, UR orange only) ---------- */
+html body .admin-shell .nq-reports.gl-reports{--b:#ef7342;--b-d:#d65a2a;--b-ink:#c4501f;--ink:#1d1d1f;--ink-2:#3a3a3c;--mut:#86868b;--line:rgba(255,255,255,.95);--line-2:rgba(0,0,0,.07);--fill:rgba(255,255,255,.55);gap:18px}
+html body .admin-shell .nq-reports.gl-reports .nq-card{background:var(--gl-card)!important;border:1.5px solid var(--gl-edge)!important;border-radius:28px;box-shadow:var(--gl-shadow);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);padding:22px 24px;animation:none}
+html body .admin-shell .nq-reports.gl-reports .nq-card:hover{border-color:var(--gl-edge);box-shadow:var(--gl-shadow),0 18px 40px -22px rgba(0,0,0,.2)}
+html body .admin-shell .nq-reports.gl-reports .nq-card.tint-brown,html body .admin-shell .nq-reports.gl-reports .nq-card.tint-green,html body .admin-shell .nq-reports.gl-reports .nq-card.tint-soft{background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(253,236,226,.7))!important}
+html body .admin-shell .nq-reports.gl-reports .nq-stats{gap:14px}
+html body .admin-shell .nq-reports.gl-reports .nq-stats .nq-card{padding:18px 18px 16px;border-radius:24px}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-label span{font-weight:500;font-size:12.5px!important}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-label svg{width:30px;height:30px;padding:7px;border-radius:10px;background:rgba(255,255,255,.8);border:1px solid var(--gl-edge);box-shadow:0 2px 6px rgba(0,0,0,.05);color:var(--gl-or)!important}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-value{font-size:22px!important;letter-spacing:-.5px;color:var(--ink)!important;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-value .gl-num{direction:ltr;unicode-bidi:isolate}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-value small{font-size:12px;color:var(--mut);font-weight:500}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-value.big{font-size:28px!important}
+html body .admin-shell .nq-reports.gl-reports .nq-stat-value.c-red{color:#c2401a!important}
+html body .admin-shell .nq-reports.gl-reports :is(.c-brown,.c-green,.c-blue,.c-amber){color:var(--gl-or)}
+html body .admin-shell .nq-reports.gl-reports .c-red{color:#c2401a}
+html body .admin-shell .nq-reports.gl-reports .nq-head h3,html body .admin-shell .nq-reports.gl-reports .nq-h3{font-size:16px!important;font-weight:600;letter-spacing:-.2px}
+html body .admin-shell .nq-reports.gl-reports .nq-tile{padding:8px;border-radius:12px;background:rgba(255,255,255,.8)!important;border:1px solid var(--gl-edge);box-shadow:0 2px 6px rgba(0,0,0,.05);color:var(--gl-or)!important}
+html body .admin-shell .nq-reports.gl-reports .nq-badge,html body .admin-shell .nq-reports.gl-reports .nq-best,html body .admin-shell .nq-reports.gl-reports .nq-live{background:var(--gl-or-tint);color:#c4501f}
+html body .admin-shell .nq-reports.gl-reports .nq-badge:is(.success,.info){background:var(--gl-or-tint);color:#c4501f}
+html body .admin-shell .nq-reports.gl-reports .nq-badge:is(.warning,.danger,.neutral){background:rgba(0,0,0,.06);color:#3a3a3c}
+html body .admin-shell .nq-reports.gl-reports .nq-box{border-radius:20px;background:var(--gl-well);border:1px solid var(--gl-edge)}
+html body .admin-shell .nq-reports.gl-reports .nq-box:is(.green,.brown){background:linear-gradient(160deg,rgba(255,255,255,.8),rgba(253,236,226,.75));border-color:var(--gl-edge)}
+html body .admin-shell .nq-reports.gl-reports .nq-box:is(.green,.brown) b{color:#c4501f}
+html body .admin-shell .nq-reports.gl-reports .nq-box.red{background:var(--gl-well);border-color:var(--gl-edge)}
+html body .admin-shell .nq-reports.gl-reports .nq-box.red b{color:#3a3a3c}
+html body .admin-shell .nq-reports.gl-reports .nq-meter,html body .admin-shell .nq-reports.gl-reports .nq-bar{background:rgba(0,0,0,.06);height:10px}
+html body .admin-shell .nq-reports.gl-reports .nq-meter i,html body .admin-shell .nq-reports.gl-reports .nq-bar i{background:var(--gl-hatch),var(--gl-or)!important;animation:none}
+html body .admin-shell .nq-reports.gl-reports .nq-rank:not(.best) .nq-bar i{background:var(--gl-or-soft)!important}
+html body .admin-shell .nq-reports.gl-reports .nq-rank{border-radius:18px;background:var(--gl-well);border:1px solid var(--gl-edge)}
+html body .admin-shell .nq-reports.gl-reports .nq-rank.best{background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(253,236,226,.8));border-color:var(--gl-edge)}
+html body .admin-shell .nq-reports.gl-reports .nq-rank-no{border-radius:9px;background:rgba(0,0,0,.05)}
+html body .admin-shell .nq-reports.gl-reports .nq-rank.best .nq-rank-no{background:var(--gl-or);color:#fff}
+html body .admin-shell .nq-reports.gl-reports .nq-late{border-radius:16px;background:var(--gl-well);border:1px solid var(--gl-edge)}
+html body .admin-shell .nq-reports.gl-reports .nq-late-icon{background:var(--gl-or-tint);color:var(--gl-or)}
+html body .admin-shell .nq-reports.gl-reports .nq-link{border-radius:999px;border:1.5px solid var(--gl-edge);background:rgba(255,255,255,.6);color:var(--gl-or)}
+html body .admin-shell .nq-reports.gl-reports .nq-keys i{border-radius:4px}
+html body .admin-shell .nq-reports.gl-reports .recharts-cartesian-axis-tick text{fill:#8e8e93}
+html body .admin-shell .nq-reports.gl-reports .recharts-default-tooltip{border-radius:14px!important}
+html body .admin-shell .nq-reports.gl-reports .acc-tabs{background:rgba(0,0,0,.045);border:1.5px solid rgba(255,255,255,.7);border-radius:999px;box-shadow:inset 0 1px 2px rgba(0,0,0,.06);width:max-content;max-width:100%;overflow-x:auto}
+html body .admin-shell .nq-reports.gl-reports .acc-tabs a{border-radius:999px;font-weight:500;color:var(--mut)}
+html body .admin-shell .nq-reports.gl-reports .acc-tabs a.is-on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+html body .admin-shell .nq-reports.gl-reports .nq-top h1{font-size:30px!important;font-weight:700;letter-spacing:-.6px}
+html body .admin-shell .nq-reports.gl-reports .gl-top-actions button,html body .admin-shell .nq-reports.gl-reports .gl-top-actions a{font-size:13px!important}
+html body .admin-shell .nq-reports.gl-reports .gl-seg button{font-size:13px!important;font-weight:400;min-height:0}
+html body .admin-shell .nq-reports.gl-reports .gl-seg button.on{font-weight:600}
+@media (max-width:640px){html body .admin-shell .nq-reports.gl-reports .nq-card{padding:16px;border-radius:22px}}
+@media print{.gl-top-actions{display:none!important}}

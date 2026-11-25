@@ -29,7 +29,7 @@ export function useGlassMotion(root: RefObject<HTMLElement | null>, key: string)
   useIso(() => {
     if (!root.current || reduced()) return;
     const ctx = gsap.context(() => {
-      gsap.from('.gl-card, .dash-card', { y: 22, opacity: 0, scale: 0.985, duration: 0.75, ease: 'power3.out', stagger: 0.045, clearProps: 'transform,opacity' });
+      gsap.from('.gl-card, .dash-card, .nq-card', { y: 22, opacity: 0, scale: 0.985, duration: 0.75, ease: 'power3.out', stagger: 0.045, clearProps: 'transform,opacity' });
       root.current!.querySelectorAll<HTMLElement>('.gl-num[data-count]').forEach(el => {
         const target = Number(el.dataset.count) || 0, f = formatters[(el.dataset.format as NumFormat) || 'int'];
         const o = { v: 0 };
@@ -61,7 +61,7 @@ export function GlassCard({ children, className = '', title, aside, id }: { chil
 }
 
 /** Period switch: one row of pills with a sliding highlight, plus a small calendar for any day or span. */
-export function PeriodSwitch({ items, active, today, fromDay, toDay, custom, lang, onPending }: { items: { key: string; label: string; href: string }[]; active: string; today: string; fromDay: string; toDay: string; custom: boolean; lang: Lang; onPending: (pending: boolean) => void }) {
+export function PeriodSwitch({ items, active, today, fromDay, toDay, custom, lang, onPending, base = '/admin', children }: { items: { key: string; label: string; href: string }[]; active: string; today: string; fromDay: string; toDay: string; custom: boolean; lang: Lang; onPending: (pending: boolean) => void; base?: string; children?: ReactNode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -90,9 +90,10 @@ export function PeriodSwitch({ items, active, today, fromDay, toDay, custom, lan
     {open && <div className="gl-pop-dates" role="dialog" aria-label={tt('Pick dates', 'اختيار تاريخ')}>
       <label><span>{tt('From', 'من')}</span><input type="date" max={today} value={from} onChange={e => { setFrom(e.target.value); if (e.target.value > to) setTo(e.target.value); }} /></label>
       <label><span>{tt('To', 'إلى')}</span><input type="date" max={today} min={from} value={to} onChange={e => setTo(e.target.value)} /></label>
+      {children}
       <div className="gl-pop-actions">
         <button type="button" className="gl-chip" onClick={() => setTo(from)}>{tt('Single day', 'يوم واحد')}</button>
-        <button type="button" className="gl-btn primary" disabled={!from} onClick={() => { setOpen(false); go(`/admin?from=${from}&to=${to || from}`); }}>{tt('Show', 'عرض')}</button>
+        <button type="button" className="gl-btn primary" disabled={!from} onClick={() => { setOpen(false); go(`${base}?from=${from}&to=${to || from}`); }}>{tt('Show', 'عرض')}</button>
       </div>
     </div>}
   </div>;

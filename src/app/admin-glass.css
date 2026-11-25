@@ -3,8 +3,8 @@
  * as the only colour (solid, light and hatched), pill controls. Motion is driven by GSAP
  * (dash-glass.tsx), so the older CSS entrance animations are switched off here.
  */
-.admin-shell:has(.gl-dash) .admin-main{background:radial-gradient(1200px 600px at 85% -10%,#fbefe8 0%,transparent 60%),radial-gradient(900px 500px at 0% 30%,#f4f4f6 0%,transparent 60%),#ebebed!important}
-.gl-dash{
+.admin-shell:has(.gl-dash) .admin-main,html body .admin-shell:has(.gl-reports) .admin-main{background:radial-gradient(1200px 600px at 85% -10%,#fbefe8 0%,transparent 60%),radial-gradient(900px 500px at 0% 30%,#f4f4f6 0%,transparent 60%),#ebebed!important}
+.gl-dash,.gl-reports{
   --gl-or:#ef7342;--gl-or-2:#f39a6c;--gl-or-soft:#f7c9ae;--gl-or-tint:rgba(239,115,66,.12);
   --gl-ink:#1d1d1f;--gl-muted:#86868b;--gl-faint:#aeaeb2;
   --gl-card:rgba(248,248,249,.74);--gl-well:rgba(255,255,255,.55);--gl-edge:rgba(255,255,255,.95);
@@ -13,7 +13,7 @@
   --a-accent:var(--gl-or);--a-accent-soft:var(--gl-or-tint);--a-line:rgba(0,0,0,.06);
   color:var(--gl-ink);display:flex;flex-direction:column;gap:18px;max-width:1500px;transition:opacity .25s
 }
-.gl-dash.is-pending{opacity:.55;pointer-events:none}
+.gl-dash.is-pending,.gl-reports.is-pending{opacity:.55;pointer-events:none}
 .gl-dash .dash-rise,.gl-dash .dash-line,.gl-dash .dash-area,.gl-dash .dash-heat-row i,.gl-dash .dash-bar-track i,.gl-dash .dash-table tbody tr{animation:none!important}
 
 /* Cards: frosted glass with a bright edge */
@@ -196,3 +196,7 @@ html[dir=ltr] .gl-pipe-track i{--gl-origin:left}
   .gl-x span:nth-child(even):not(:last-child){display:none}
   .gl-pop-dates{inset-inline-end:auto;inset-inline-start:0;width:min(300px,calc(100vw - 32px))}
 }
+
+.gl-years{display:flex;flex-wrap:wrap;gap:6px}
+.gl-years .gl-chip{height:32px;padding:0 12px}
+.gl-chip.on{background:var(--gl-or);color:#fff;border-color:transparent}

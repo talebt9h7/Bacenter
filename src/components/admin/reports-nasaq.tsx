@@ -12,18 +12,15 @@ import { AlertTriangle, BadgeDollarSign, BarChart3, Boxes, Calendar, Clock, MapP
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ReportsData } from '@/lib/reports-data';
 import { AccountsTabs } from './accounts-views';
-import '@fontsource/cairo/400.css';
-import '@fontsource/cairo/500.css';
-import '@fontsource/cairo/600.css';
-import '@fontsource/cairo/700.css';
-import '@fontsource/cairo/800.css';
-import '@fontsource/cairo/900.css';
+import { useRef, useState } from 'react';
+import { Num, PeriodSwitch, useGlassMotion } from './dash-glass';
 import './reports-nasaq.css';
 
-const BROWN = '#8b5a2b', BROWN_L = '#c8a27a', GREEN = '#10B981', RED = '#EF4444', AMBER = '#F59E0B', BLUE = '#3B82F6', VIOLET = '#8B5CF6', PINK = '#EC4899', SLATE = '#CBD5E1';
-const PALETTE = [BROWN, GREEN, BLUE, AMBER, PINK, VIOLET, BROWN_L, SLATE];
-const GRID = '#E2E8F0', AXIS = '#64748B';
-const TIP = { background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontFamily: 'var(--ap-font)', fontSize: 12 };
+// One colour family, as on the dashboard: UR orange in shades, with greys for comparisons and costs.
+const BROWN = '#ef7342', BROWN_L = '#f7c9ae', GREEN = '#b9481f', RED = '#8e8e93', AMBER = '#f39a6c', BLUE = '#d65a2a', VIOLET = '#f6b08a', PINK = '#c7c7cc', SLATE = '#d1d1d6';
+const PALETTE = ['#ef7342', '#f39a6c', '#f7c9ae', '#b9481f', '#d65a2a', '#fad8c4', '#aeaeb2', '#d1d1d6'];
+const GRID = 'rgba(0,0,0,.06)', AXIS = '#8e8e93';
+const TIP = { background: 'rgba(255,255,255,.88)', border: '1.5px solid rgba(255,255,255,.95)', borderRadius: 14, boxShadow: '0 10px 24px -10px rgba(0,0,0,.25)', backdropFilter: 'blur(16px)', fontFamily: 'var(--ap-font)', fontSize: 12 };
 
 const SOURCE_AR: Record<string, string> = { website: 'الموقع', instagram: 'إنستغرام', whatsapp: 'واتساب', facebook: 'فيسبوك', phone: 'هاتف', store: 'المتجر', other: 'أخرى', tiktok: 'تيك توك', manual: 'يدوي', wholesale: 'جملة' };
 const CATEGORY_AR: Record<string, string> = { handbag: 'حقائب يد', handbags: 'حقائب يد', 'phone-cases': 'كفرات موبايل', 'card-holders': 'حاملات بطاقات', belts: 'أحزمة', wallets: 'محافظ', backpacks: 'حقائب ظهر', bags: 'حقائب', accessories: 'أكسسوار' };
@@ -58,6 +55,9 @@ function vs(current: number, previous: number) {
 
 export function ReportsNasaq({ data, finance, today }: { data: ReportsData; finance: boolean; today: string }) {
   const router = useRouter();
+  const root = useRef<HTMLElement>(null);
+  const [pending, setPending] = useState(false);
+  useGlassMotion(root, `${data.fromDay}-${data.toDay}`);
   const m = data.money, p = data.moneyPrevious;
   const net = m.profit - data.expenses.current;
   const year = Number(today.slice(0, 4)), month = Number(today.slice(5, 7));
@@ -84,10 +84,6 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
   const go = (q: string) => router.push(`/admin/reports?${q}`, { scroll: false });
   const qs = `from=${data.fromDay}&to=${data.toDay}`;
   const singleDay = data.fromDay === data.toDay;
-  // Any day or span: picking a "from" after "to" (or the other way round) moves the other end with it.
-  const pickDay = (d: string) => { if (d) go(`from=${d}&to=${d}`); };
-  const pickFrom = (d: string) => { if (d) go(`from=${d}&to=${d > data.toDay ? d : data.toDay}`); };
-  const pickTo = (d: string) => { if (d) go(`from=${d < data.fromDay ? d : data.fromDay}&to=${d}`); };
   const rangeLabel = active === 'today' ? 'اليوم' : active === 'yesterday' ? 'أمس' : singleDay ? `يوم ${data.fromDay}` : active === 'month' ? 'الشهر' : active === 'prevMonth' ? 'الشهر السابق' : active === 'year' ? 'العام' : active === 'all' ? 'كل الأوقات' : 'الفترة';
   const monthly = data.byMonth;
   const label = (key: string) => key.length === 7 ? MONTHS_AR[Number(key.slice(5)) - 1] : `${Number(key.slice(8))}/${Number(key.slice(5, 7))}`;
@@ -121,40 +117,24 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
   const late = data.ordersList.filter(o => ['pending', 'confirmed', 'processing'].includes(o.status)).map(o => ({ ...o, days: Math.floor((now - new Date(o.createdAt).getTime()) / 86_400_000) })).filter(o => o.days >= 2).sort((a, b) => b.days - a.days);
   const govs = [...data.governorates].sort((a, b) => b.orders - a.orders).slice(0, 8).map(g => ({ name: g.nameAr, orders: g.orders, delivered: g.delivered }));
 
-  return <main className="admin-page nq-reports" dir="rtl">
+  return <main ref={root} className={`admin-page nq-reports gl-reports ${pending ? 'is-pending' : ''}`} dir="rtl">
     <AccountsTabs />
-    {/* Header */}
-    <div className="nq-top">
-      <div><h1>التقارير</h1><p>أداء المتجر، المبيعات، الأرباح والمخزون</p></div>
-      <div className="nq-date"><p>تاريخ التقرير</p><b>{new Date(`${today}T12:00:00`).toLocaleDateString('ar-IQ-u-nu-latn')}</b></div>
-    </div>
-
-    {/* Toolbar with time filter */}
-    <div className="nq-toolbar">
-      {active === 'custom' ? <div className="nq-alert"><Calendar size={16} /><p>{singleDay ? <>تقرير يوم <b dir="ltr">{data.fromDay}</b></> : <>تقرير الفترة من <b dir="ltr">{data.fromDay}</b> إلى <b dir="ltr">{data.toDay}</b></>}</p><button type="button" onClick={() => go(ranges.month)}>رجوع للشهر الحالي</button></div>
-        : <div className="nq-title"><div className="nq-tile brown"><Calendar size={20} /></div><h2>تحليلات الأداء</h2></div>}
-      <div className="nq-tools">
-        <div className="nq-seg">
-          <button type="button" className={active === 'today' ? 'on' : ''} onClick={() => go(ranges.today)}>اليوم</button>
-          <button type="button" className={active === 'yesterday' ? 'on' : ''} onClick={() => go(ranges.yesterday)}>أمس</button>
-        </div>
-        <label className="nq-date-pick"><span>يوم محدد</span><input id="rp-day" type="date" max={today} value={singleDay ? data.fromDay : ''} onChange={e => pickDay(e.target.value)} /></label>
-        <div className="nq-range" role="group" aria-label="فترة مخصصة">
-          <label className="nq-date-pick"><span>من</span><input id="rp-from" type="date" max={today} value={data.fromDay} onChange={e => pickFrom(e.target.value)} /></label>
-          <label className="nq-date-pick"><span>إلى</span><input id="rp-to" type="date" max={today} value={data.toDay} onChange={e => pickTo(e.target.value)} /></label>
-        </div>
-        <label className="nq-select"><Calendar size={14} /><select value={shownYear} aria-label="السنة" onChange={e => { const y = Number(e.target.value); go(`from=${y}-01-01&to=${y === year ? today : `${y}-12-31`}`); }}>
-          {Array.from({ length: 5 }, (_, i) => year - 4 + i).map(y => <option key={y} value={y}>{y}</option>)}
-        </select></label>
-        {finance && <a className="nq-btn green" href={`/api/admin/reports/export?${qs}`}><BadgeDollarSign size={16} />Excel موحد</a>}
-        <div className="nq-seg">
-          <button type="button" className={active === 'month' ? 'on' : ''} onClick={() => go(ranges.month)}>الشهر الحالي</button>
-          <button type="button" className={active === 'prevMonth' ? 'on' : ''} onClick={() => go(ranges.prevMonth)}>الشهر السابق</button>
-        </div>
-        <button type="button" className="nq-btn" onClick={() => window.print()}><Printer size={16} />تصدير PDF</button>
-        <div className="nq-seg">
-          {([['month', 'هذا الشهر'], ['year', 'هذا العام'], ['all', 'كل الأوقات']] as const).map(([key, l]) => <button key={key} type="button" className={active === key ? 'on' : ''} onClick={() => go(ranges[key])}>{l}</button>)}
-        </div>
+    {/* Header: title, one compact period switch, export */}
+    <div className="nq-top gl-top">
+      <div className="gl-hello"><span className="gl-date"><i className="gl-live" /><bdi dir="ltr">{singleDay ? data.fromDay : `${data.fromDay} – ${data.toDay}`}</bdi></span><h1>التقارير</h1></div>
+      <div className="gl-top-actions">
+        <PeriodSwitch lang="ar" base="/admin/reports" onPending={setPending} today={today} fromDay={data.fromDay} toDay={data.toDay} active={active} custom={active === 'custom'} items={[
+          { key: 'today', label: 'اليوم', href: `/admin/reports?${ranges.today}` },
+          { key: 'yesterday', label: 'أمس', href: `/admin/reports?${ranges.yesterday}` },
+          { key: 'month', label: 'الشهر', href: `/admin/reports?${ranges.month}` },
+          { key: 'prevMonth', label: 'الشهر السابق', href: `/admin/reports?${ranges.prevMonth}` },
+          { key: 'year', label: 'السنة', href: `/admin/reports?${ranges.year}` },
+          { key: 'all', label: 'الكل', href: `/admin/reports?${ranges.all}` },
+        ]}>
+          <div className="gl-years">{Array.from({ length: 5 }, (_, i) => year - 4 + i).map(y => <button key={y} type="button" className={`gl-chip ${shownYear === y && active === 'custom' ? 'on' : ''}`} onClick={() => go(`from=${y}-01-01&to=${y === year ? today : `${y}-12-31`}`)}>{y}</button>)}</div>
+        </PeriodSwitch>
+        {finance && <a className="gl-btn" href={`/api/admin/reports/export?${qs}`}><BadgeDollarSign size={16} />Excel</a>}
+        <button type="button" className="gl-btn icon" title="تصدير PDF" aria-label="تصدير PDF" onClick={() => window.print()}><Printer size={16} /></button>
       </div>
     </div>
 
@@ -162,26 +142,26 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
     <div className="nq-stats">
       <Card delay={0.05}>
         <div className="nq-stat-label"><BadgeDollarSign size={18} className="c-green" /><span>إيراد المنتجات</span></div>
-        <div className="nq-stat-value c-green">{iqd(m.revenue)}</div>
+        <div className="nq-stat-value c-green"><Num value={m.revenue} format="iqd" /> <small>د.ع</small></div>
         <div className="nq-stat-note">{vs(m.revenue, p.revenue)}</div>
       </Card>
       {finance ? <Card delay={0.1} className="tint-brown">
         <div className="nq-stat-label"><Wallet size={18} className="c-brown" /><span>صافي الربح</span></div>
-        <div className={cx('nq-stat-value', net >= 0 ? 'c-brown' : 'c-red')}>{iqd(net)}</div>
+        <div className={cx('nq-stat-value', net >= 0 ? 'c-brown' : 'c-red')}><Num value={net} format="iqd" /> <small>د.ع</small></div>
         <div className="nq-stat-note">بعد تكلفة البضاعة والمصاريف · هامش {pct(m.revenue ? net / m.revenue : 0)}</div>
       </Card> : <Card delay={0.1}>
         <div className="nq-stat-label"><Receipt size={18} className="c-brown" /><span>متوسط الطلب</span></div>
-        <div className="nq-stat-value">{iqd(m.averageOrder)}</div>
+        <div className="nq-stat-value"><Num value={m.averageOrder} format="iqd" /> <small>د.ع</small></div>
         <div className="nq-stat-note">{vs(m.averageOrder, p.averageOrder)}</div>
       </Card>}
       <Card delay={0.12} className="tint-green">
         <div className="nq-stat-label"><BadgeDollarSign size={18} className="c-green" /><span>المبالغ المحصلة</span></div>
-        <div className="nq-stat-value c-green">{iqd(collected)}</div>
+        <div className="nq-stat-value c-green"><Num value={collected} format="iqd" /> <small>د.ع</small></div>
         <div className="nq-stat-note">تحصيل {collectRatio}% من قيمة الطلبات</div>
       </Card>
       <Card delay={0.14}>
         <div className="nq-stat-label"><ShoppingBag size={18} className="c-brown" /><span>طلبات مُسلّمة</span></div>
-        <div className="nq-stat-value big">{num(m.orders)}</div>
+        <div className="nq-stat-value big"><Num value={m.orders} /></div>
         <div className="nq-stat-note">{num(m.units)} قطعة · {vs(m.orders, p.orders)}</div>
       </Card>
       <Card delay={0.15}>
@@ -202,14 +182,18 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
         <div className="nq-head"><h3 className="nq-h3">تحليل المبيعات ({monthly ? 'شهرياً' : 'يومياً'})</h3>
           <div className="nq-keys"><span><i style={{ background: BROWN }} />الإيراد</span>{finance && <span><i style={{ background: GREEN }} />الربح</span>}<span><i style={{ background: SLATE }} />الفترة السابقة</span></div></div>
         <div className="nq-chart h300 grow"><ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={trend}>
+          <AreaChart data={trend}><defs>
+              <linearGradient id="rpg-rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ef7342" stopOpacity={0.3} /><stop offset="1" stopColor="#ef7342" stopOpacity={0} /></linearGradient>
+              <linearGradient id="rpg-pro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#b9481f" stopOpacity={0.16} /><stop offset="1" stopColor="#b9481f" stopOpacity={0} /></linearGradient>
+              <pattern id="rp-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#ef7342" /><rect width="2" height="6" fill="rgba(255,255,255,.22)" /></pattern>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis reversed dataKey="name" stroke={AXIS} fontSize={10} tickLine={false} axisLine={false} />
             <YAxis orientation="right" stroke={AXIS} fontSize={12} tickLine={false} axisLine={false} tickFormatter={k} width={44} />
             <Tooltip contentStyle={TIP} formatter={(v: number) => [iqd(v)]} />
-            <Area name="الفترة السابقة" type="monotone" dataKey="previous" stroke={SLATE} fill={SLATE} fillOpacity={0.08} />
-            {finance && <Area name="الربح" type="monotone" dataKey="profit" stroke={GREEN} fill={GREEN} fillOpacity={0.1} />}
-            <Area name="الإيراد" type="monotone" dataKey="revenue" stroke={BROWN} fill={BROWN} fillOpacity={0.1} />
+            <Area name="الفترة السابقة" type="monotone" dataKey="previous" stroke="#aeaeb2" strokeDasharray="4 5" fill="none" />
+            {finance && <Area name="الربح" type="monotone" dataKey="profit" stroke={GREEN} strokeWidth={2} fill="url(#rpg-pro)" />}
+            <Area name="الإيراد" type="monotone" dataKey="revenue" stroke={BROWN} strokeWidth={2.6} fill="url(#rpg-rev)" activeDot={{ r: 6, stroke: "#fff", strokeWidth: 3 }} />
           </AreaChart>
         </ResponsiveContainer></div>
       </Card>
@@ -249,8 +233,8 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
             <YAxis orientation="right" stroke={AXIS} fontSize={12} tickFormatter={k} width={44} />
             <Tooltip contentStyle={TIP} formatter={(v: number) => [iqd(v)]} />
             <Legend wrapperStyle={{ paddingTop: 10, fontSize: 12 }} />
-            <Line type="monotone" dataKey="revenue" name="الإيراد المُسلّم" stroke={GREEN} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="expenses" name="المصاريف" stroke={RED} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="revenue" name="الإيراد المُسلّم" stroke={GREEN} strokeWidth={2} dot={false} activeDot={{ r: 6, stroke: "#fff", strokeWidth: 3 }} />
+            <Line type="monotone" dataKey="expenses" name="المصاريف" stroke={RED} strokeWidth={2} dot={false} activeDot={{ r: 6, stroke: "#fff", strokeWidth: 3 }} />
           </LineChart>
         </ResponsiveContainer></div>
       </div>
@@ -296,8 +280,8 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
           <YAxis orientation="right" stroke={AXIS} fontSize={12} tickFormatter={k} width={44} />
           <Tooltip contentStyle={TIP} formatter={(v: number) => [iqd(v)]} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Line type="monotone" dataKey="revenue" name="الإيراد" stroke={BROWN} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 7 }} />
-          {finance && <Line type="monotone" dataKey="profit" name="الربح" stroke={GREEN} strokeWidth={2} dot={{ r: 3 }} />}
+          <Line type="monotone" dataKey="revenue" name="الإيراد" stroke={BROWN} strokeWidth={2.6} dot={false} activeDot={{ r: 6, stroke: "#fff", strokeWidth: 3 }} />
+          {finance && <Line type="monotone" dataKey="profit" name="الربح" stroke={GREEN} strokeWidth={2} dot={false} />}
         </LineChart>
       </ResponsiveContainer></div>
     </Card>}
@@ -307,14 +291,14 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
       <Card className="span-2" delay={0.35}>
         <h3 className="nq-h3 mb">تحليل المنتجات: المباع vs المرتجع</h3>
         <div className="nq-chart h300">{productBars.length ? <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={productBars} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}>
+          <BarChart data={productBars} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}><defs><pattern id="rp-hatch-b" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#ef7342" /><rect width="2" height="6" fill="rgba(255,255,255,.22)" /></pattern></defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis reversed dataKey="name" stroke={AXIS} fontSize={11} interval={0} />
             <YAxis orientation="right" stroke={AXIS} fontSize={12} width={36} allowDecimals={false} />
-            <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={TIP} />
+            <Tooltip cursor={{ fill: 'rgba(239,115,66,.06)' }} contentStyle={TIP} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar name="القطع المباعة" dataKey="sold" fill={BROWN} radius={[4, 4, 0, 0]} />
-            <Bar name="القطع المرتجعة" dataKey="returned" fill={SLATE} radius={[4, 4, 0, 0]} />
+            <Bar name="القطع المباعة" dataKey="sold" fill="url(#rp-hatch-b)" radius={[8, 8, 3, 3]} />
+            <Bar name="القطع المرتجعة" dataKey="returned" fill={BROWN_L} radius={[8, 8, 3, 3]} />
           </BarChart>
         </ResponsiveContainer> : <div className="nq-empty">لا توجد مبيعات بالفترة</div>}</div>
       </Card>
@@ -336,12 +320,12 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
     {categoryBars.length > 0 && <Card delay={0.35} className="border-brown">
       <Head icon={<Package size={20} />} title="مقارنة الإيراد حسب الصنف" sub={`الإيراد والقطع المباعة لكل صنف خلال ${rangeLabel}`} />
       <div className="nq-chart h300"><ResponsiveContainer width="100%" height="100%">
-        <BarChart data={categoryBars} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+        <BarChart data={categoryBars} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}><defs><pattern id="rp-hatch-b" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#ef7342" /><rect width="2" height="6" fill="rgba(255,255,255,.22)" /></pattern></defs>
           <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
           <XAxis reversed dataKey="name" stroke={AXIS} fontSize={12} />
           <YAxis orientation="right" stroke={AXIS} fontSize={12} tickFormatter={k} width={44} />
-          <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={TIP} formatter={(v: number, n: string) => [n === 'الإيراد' ? iqd(v) : num(v), n]} />
-          <Bar name="الإيراد" dataKey="revenue" fill={BROWN} radius={[6, 6, 0, 0]} maxBarSize={64} />
+          <Tooltip cursor={{ fill: 'rgba(239,115,66,.06)' }} contentStyle={TIP} formatter={(v: number, n: string) => [n === 'الإيراد' ? iqd(v) : num(v), n]} />
+          <Bar name="الإيراد" dataKey="revenue" fill="url(#rp-hatch-b)" radius={[10, 10, 4, 4]} maxBarSize={64} />
         </BarChart>
       </ResponsiveContainer></div>
     </Card>}
@@ -394,14 +378,14 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
       <Card delay={0.44} className="span-2">
         <Head icon={<MapPin size={18} />} title="الطلبات حسب المحافظة" sub="عدد الطلبات والمُسلّم منها" />
         <div className="nq-chart h280">{govs.length ? <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={govs} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+          <BarChart data={govs} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}><defs><pattern id="rp-hatch-b" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#ef7342" /><rect width="2" height="6" fill="rgba(255,255,255,.22)" /></pattern></defs>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis reversed dataKey="name" stroke={AXIS} fontSize={11} interval={0} />
             <YAxis orientation="right" stroke={AXIS} fontSize={12} width={32} allowDecimals={false} />
-            <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={TIP} />
+            <Tooltip cursor={{ fill: 'rgba(239,115,66,.06)' }} contentStyle={TIP} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar name="الطلبات" dataKey="orders" fill={SLATE} radius={[4, 4, 0, 0]} />
-            <Bar name="المُسلّم" dataKey="delivered" fill={BROWN} radius={[4, 4, 0, 0]} />
+            <Bar name="الطلبات" dataKey="orders" fill={BROWN_L} radius={[8, 8, 3, 3]} />
+            <Bar name="المُسلّم" dataKey="delivered" fill="url(#rp-hatch-b)" radius={[8, 8, 3, 3]} />
           </BarChart>
         </ResponsiveContainer> : <div className="nq-empty">لا توجد طلبات</div>}</div>
       </Card>
@@ -409,10 +393,10 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
 
     {/* Inventory summary */}
     <div className="nq-stats four">
-      <Card delay={0.45}><div className="nq-stat-label"><Boxes size={18} className="c-brown" /><span>متاح للبيع</span></div><div className="nq-stat-value big">{num(data.inventory.available)}</div><div className="nq-stat-note">{num(data.inventory.onHand)} موجود · {num(data.inventory.reserved)} محجوز</div></Card>
+      <Card delay={0.45}><div className="nq-stat-label"><Boxes size={18} className="c-brown" /><span>متاح للبيع</span></div><div className="nq-stat-value big"><Num value={data.inventory.available} /></div><div className="nq-stat-note">{num(data.inventory.onHand)} موجود · {num(data.inventory.reserved)} محجوز</div></Card>
       <Card delay={0.46}><div className="nq-stat-label"><AlertTriangle size={18} className="c-amber" /><span>ألوان منخفضة</span></div><div className="nq-stat-value big">{data.inventory.lowCount}</div><div className="nq-stat-note">أقل من {data.inventory.lowThreshold} قطع</div></Card>
       <Card delay={0.47}><div className="nq-stat-label"><ShoppingCart size={18} className="c-red" /><span>ألوان نافدة</span></div><div className="nq-stat-value big c-red">{data.inventory.soldOutCount}</div><div className="nq-stat-note">تحتاج إعادة طلب</div></Card>
-      <Card delay={0.48}><div className="nq-stat-label"><Truck size={18} className="c-blue" /><span>أجور التوصيل المحصلة</span></div><div className="nq-stat-value">{iqd(m.shipping)}</div><div className="nq-stat-note">منفصلة عن الإيراد</div></Card>
+      <Card delay={0.48}><div className="nq-stat-label"><Truck size={18} className="c-blue" /><span>أجور التوصيل المحصلة</span></div><div className="nq-stat-value"><Num value={m.shipping} format="iqd" /> <small>د.ع</small></div><div className="nq-stat-note">منفصلة عن الإيراد</div></Card>
     </div>
     <p className="nq-foot"><BarChart3 size={14} /> الأرقام المالية محسوبة على الطلبات المُسلّمة بتاريخ التسليم · <PieIcon size={14} /> مقارنة مع {data.previousFrom.slice(0, 10)} – {data.previousTo.slice(0, 10)}</p>
   </main>;
