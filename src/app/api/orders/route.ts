@@ -26,28 +26,59 @@ async function emptyBag(executor: Executor, sessionId: string) {
   await executor.delete(cartBundles).where(eq(cartBundles.sessionId, sessionId));
 }
 
+
+/** Checkout errors in the shopper's language (the storefront is Arabic by default). */
+const ARABIC_ERRORS: [RegExp, (m: RegExpMatchArray) => string][] = [
+  [/^Please enter a valid Iraqi mobile number/, () => 'اكتب رقم موبايل عراقي صحيح، مثل 0770 123 4567.'],
+  [/^The alternative phone number/, () => 'الرقم البديل لازم يكون رقم موبايل عراقي صحيح.'],
+  [/^Please enter a valid email/, () => 'اكتب بريد إلكتروني صحيح أو اتركه فارغ.'],
+  [/^This order can no longer take new items/, () => 'هذا الطلب ما يكدر يستقبل منتجات بعد (يمكن انشحن). سوّي طلب جديد.'],
+  [/^Please enter the recipient/, () => 'اكتب اسم المستلم الكامل.'],
+  [/^Please add the city or district/, () => 'اكتب المنطقة أو الحي.'],
+  [/^Cash on delivery is temporarily unavailable/, () => 'الدفع عند الاستلام متوقف مؤقتاً. حاول بعد شوية.'],
+  [/^Please choose a governorate/, () => 'اختر محافظة نوصل لها حالياً.'],
+  [/^Some items just sold out/, () => 'بعض المنتجات خلصت هسه. راجع سلتك.'],
+  [/^We couldn’t complete your order/, () => 'ما كدرنا نكمل طلبك. حاول مرة ثانية.'],
+  [/^Your bag is empty/, () => 'سلتك فارغة. ضيف منتج أولاً.'],
+  [/^(.+) in (.+) doesn’t have (\d+) available any more/, m => `${m[1]} (${m[2]}) ما بقى منه ${m[3]} قطعة. عدّل الكمية بالسلة.`],
+  [/^(.+) is no longer available\. Please remove it/, m => `${m[1] === 'A bundle in your bag' ? 'بكج بسلتك' : m[1]} ما متوفر بعد. شيله من السلة.`],
+  [/^(.+): (.+) in (.+) doesn’t have enough stock/, m => `${m[1]}: ${m[2]} (${m[3]}) ما بقى منه كفاية. عدّل السلة.`],
+  [/^Enter a coupon code/, () => 'اكتب كود الخصم.'],
+  [/^That coupon isn’t valid/, () => 'كود الخصم غير صحيح.'],
+  [/^That coupon has expired/, () => 'كود الخصم منتهي.'],
+  [/^That coupon has been fully redeemed/, () => 'كود الخصم انتهى استخدامه.'],
+  [/^This coupon needs a minimum order of ([\d,]+) IQD/, m => `هذا الكود يحتاج طلب بقيمة ${m[1]} د.ع على الأقل.`],
+];
+function localizeError(message: string, lang: 'ar' | 'en') {
+  if (lang === 'en') return message;
+  for (const [pattern, ar] of ARABIC_ERRORS) { const m = message.match(pattern); if (m) return ar(m); }
+  return message;
+}
+
 export async function POST(request: NextRequest) {
+  const errLang: 'ar' | 'en' = request.cookies.get('bellroy_lang')?.value === 'en' ? 'en' : 'ar';
+  const tr = (message: string) => localizeError(message, errLang);
   try {
     const body = await request.json();
     const text = (key: string, max = 200) => typeof body[key] === 'string' ? body[key].trim().slice(0, max) : '';
     const name = text('name', 100); const phone = normalizeIraqPhone(text('phone', 30)); const altPhone = normalizeIraqPhone(text('altPhone', 30));
     const governorate = text('governorate', 40); const city = text('city', 120); const address = text('address', 300); const payment = text('payment', 20) === 'electronic' ? 'electronic' : 'cod'; const landmark = text('landmark', 200); const email = text('email', 254).toLowerCase(); const note = text('note', 500); const couponCode = text('coupon', 40).toUpperCase();
-    if (!iraqPhonePattern.test(phone)) return NextResponse.json({ error: 'Please enter a valid Iraqi mobile number (e.g. 0770 123 4567).' }, { status: 400 });
-    if (altPhone && !iraqPhonePattern.test(altPhone)) return NextResponse.json({ error: 'The alternative phone number must be a valid Iraqi mobile number.' }, { status: 400 });
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Please enter a valid email address or leave it empty.' }, { status: 400 });
+    if (!iraqPhonePattern.test(phone)) return NextResponse.json({ error: tr('Please enter a valid Iraqi mobile number (e.g. 0770 123 4567).') }, { status: 400 });
+    if (altPhone && !iraqPhonePattern.test(altPhone)) return NextResponse.json({ error: tr('The alternative phone number must be a valid Iraqi mobile number.') }, { status: 400 });
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: tr('Please enter a valid email address or leave it empty.') }, { status: 400 });
     // "Add to my order": the bag joins an order of the same phone that has not shipped, with no second delivery fee.
     // The address is the earlier order's, so the delivery step is not required.
     const appendTo = text('appendTo', 30).toUpperCase();
     const [appendTarget] = appendTo ? await db.select({ governorate: orders.governorate, name: orders.name }).from(orders).where(and(eq(orders.reference, appendTo), eq(orders.phone, phone), inArray(orders.status, [...APPENDABLE_STATUSES]))) : [];
-    if (appendTo && !appendTarget) return NextResponse.json({ error: 'This order can no longer take new items (it may have shipped). Please place a new order.' }, { status: 409 });
-    if (!appendTarget && name.length < 2) return NextResponse.json({ error: 'Please enter the recipient’s full name.' }, { status: 400 });
-    if (!appendTarget && (!city || city.length < 2)) return NextResponse.json({ error: 'Please add the city or district.' }, { status: 400 });
+    if (appendTo && !appendTarget) return NextResponse.json({ error: tr('This order can no longer take new items (it may have shipped). Please place a new order.') }, { status: 409 });
+    if (!appendTarget && name.length < 2) return NextResponse.json({ error: tr('Please enter the recipient’s full name.') }, { status: 400 });
+    if (!appendTarget && (!city || city.length < 2)) return NextResponse.json({ error: tr('Please add the city or district.') }, { status: 400 });
     const settings = await getSettings();
     const paySettings = payment === 'electronic' ? await getPaymentSettings() : null;
     const online = !!paySettings && gatewayReady(paySettings);
-    if (!appendTarget && !settings.codEnabled && !online) return NextResponse.json({ error: 'Cash on delivery is temporarily unavailable. Please try again later.' }, { status: 409 });
+    if (!appendTarget && !settings.codEnabled && !online) return NextResponse.json({ error: tr('Cash on delivery is temporarily unavailable. Please try again later.') }, { status: 409 });
     const [zone] = await db.select().from(shippingZones).where(eq(shippingZones.code, appendTarget?.governorate || governorate));
-    if (!zone || (!appendTarget && !zone.enabled)) return NextResponse.json({ error: 'Please choose a governorate we currently deliver to.' }, { status: 400 });
+    if (!zone || (!appendTarget && !zone.enabled)) return NextResponse.json({ error: tr('Please choose a governorate we currently deliver to.') }, { status: 400 });
     const sessionId = await getSession();
     // An earlier card checkout from this bag that was never paid (the shopper left the payment page
     // and came back) is replaced by this one, so its units are not held twice.
@@ -166,7 +197,7 @@ export async function POST(request: NextRequest) {
     const { orderId: _orderId, ...response } = result; void _orderId;
     return NextResponse.json({ ...response, payment: pay, paymentError: payError }, { status: 201 });
   } catch (error) {
-    if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: 409 });
-    if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Some items just sold out. Please review your bag.' }, { status: 409 });
-    console.error('Checkout failed', error); return NextResponse.json({ error: 'We couldn’t complete your order. Please try again.' }, { status: 500 }); }
+    if (error instanceof CheckoutError) return NextResponse.json({ error: tr(error.message) }, { status: 409 });
+    if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: tr('Some items just sold out. Please review your bag.') }, { status: 409 });
+    console.error('Checkout failed', error); return NextResponse.json({ error: tr('We couldn’t complete your order. Please try again.') }, { status: 500 }); }
 }

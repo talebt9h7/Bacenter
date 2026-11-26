@@ -48,7 +48,7 @@ function Head({ icon, tone = 'brown', title, sub, children }: { icon: React.Reac
 }
 /** Change against the same-length period before, as Nasaq's small card notes. */
 function vs(current: number, previous: number) {
-  if (!previous) return current ? 'جديد بالفترة' : 'بدون تغيير';
+  if (!previous) return '—';
   const d = (current - previous) / Math.abs(previous);
   return `${d >= 0 ? '+' : ''}${Math.round(d * 100)}% عن الفترة السابقة`;
 }

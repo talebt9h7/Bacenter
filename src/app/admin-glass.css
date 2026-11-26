@@ -389,3 +389,8 @@ html body .admin-shell .ws-page .wd-empty>span{background:rgba(239,115,66,.12);c
 html body .admin-shell :is(.ws-picked){background:linear-gradient(160deg,#fff,rgba(253,224,206,.7));border-color:rgba(255,255,255,.95)}
 html body .admin-shell .ws-pay-type button.on{background:rgba(239,115,66,.12)!important;border-color:#f7c9ae!important;color:#c4501f!important}
 html body .admin-shell .wholesale-legacy-editor .admin-btn-primary{background:#ef7342!important;border-color:#ef7342!important}
+/* Order detail on phones: columns may shrink and wide tables scroll inside their card instead of widening the page. */
+html body .admin-shell .admin-grid-order>*{min-width:0}
+html body .admin-shell .admin-grid-order .admin-card{overflow-x:auto}
+html body .admin-shell .admin-timeline{min-width:0}
+html body .admin-shell .admin-timeline li{min-width:0;overflow-wrap:anywhere}
