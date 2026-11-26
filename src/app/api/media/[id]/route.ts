@@ -34,13 +34,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     try {
       // Loaded lazily: if the image library can't load on the server, originals are still served.
       const sharp = (await import('sharp')).default;
-      const resized = await sharp(row.data, { failOn: 'none' })
-        .rotate()
-        .resize({ width, withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
+      // ?f=jpg gives a JPEG (for the Meta catalog feed); the site itself gets WebP.
+      const jpeg = request.nextUrl.searchParams.get('f') === 'jpg';
+      const pipeline = sharp(row.data, { failOn: 'none' }).rotate().resize({ width, withoutEnlargement: true });
+      const resized = await (jpeg ? pipeline.flatten({ background: '#ffffff' }).jpeg({ quality: 86 }) : pipeline.webp({ quality: 80 })).toBuffer();
       return new NextResponse(new Uint8Array(resized), {
-        headers: { ...CACHE_HEADERS, 'Content-Type': 'image/webp', 'Content-Length': String(resized.length) },
+        headers: { ...CACHE_HEADERS, 'Content-Type': jpeg ? 'image/jpeg' : 'image/webp', 'Content-Length': String(resized.length) },
       });
     } catch (error) {
       console.error(`Resizing media ${numericId} failed; serving the original`, error);
