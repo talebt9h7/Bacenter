@@ -498,3 +498,61 @@ export async function appendItemsToOrder(tx: Tx, orderId: number, added: OrderIt
   await tx.insert(orderEvents).values({ orderId, type: 'note', message: `Customer added ${added.map(i => `${i.quantity} × ${i.name} (${i.color})`).join(', ')} · +${addedValue.toLocaleString('en-US')} IQD · no extra delivery` });
   return { order, items: lines, subtotal, total, addedValue, paymentStatus, paidCents };
 }
+
+export type ReturnedItem = { variantId: number; productId?: string; name: string; color: string; quantity: number; unitPrice: number; image?: string | null; at: string };
+
+/**
+ * Partial delivery: the customer kept some units and handed the rest back to the courier.
+ * The returned units go back into stock (latest batches first), the order keeps only what was
+ * received, its total is recalculated (delivery fee and cash-on-delivery fee unchanged, since the
+ * delivery company charges nothing extra for these returns), and the order is then marked delivered.
+ * `received` holds the kept quantity for each line, by line index.
+ */
+export async function partialDeliver(orderId: number, received: number[], note?: string) {
+  clearMemo('stats:');
+  await db.transaction(async tx => {
+    const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
+    if (!order) throw new Error('NOT_FOUND');
+    if (!['confirmed', 'processing', 'shipped'].includes(order.status)) throw new Error('NOT_PARTIAL_RETURNABLE');
+    const items = order.items as OrderItem[];
+    if (received.length !== items.length || received.some((q, i) => !Number.isInteger(q) || q < 0 || q > items[i].quantity)) throw new Error('INVALID_QUANTITIES');
+    const keptUnits = received.reduce((s, q) => s + q, 0), allUnits = items.reduce((s, i) => s + i.quantity, 0);
+    if (keptUnits === 0) throw new Error('NOTHING_KEPT');
+    if (keptUnits === allUnits) throw new Error('NOTHING_RETURNED');
+    const at = new Date().toISOString();
+    const nextItems: OrderItem[] = [], returned: ReturnedItem[] = [];
+    for (const [index, item] of items.entries()) {
+      const keep = received[index], back = item.quantity - keep;
+      if (back > 0) {
+        // Hand back the most recently allocated units; the kept ones keep the oldest cost.
+        const allocations = [...(item.batchAllocations ?? [])];
+        const backAlloc: { batchId: number; quantity: number }[] = [];
+        let left = back;
+        while (left > 0 && allocations.length) {
+          const last = allocations[allocations.length - 1];
+          const take = Math.min(left, last.quantity);
+          backAlloc.push({ batchId: last.batchId, quantity: take });
+          if (take === last.quantity) allocations.pop(); else allocations[allocations.length - 1] = { ...last, quantity: last.quantity - take };
+          left -= take;
+        }
+        await restoreInventoryBatches(tx, { ...item, quantity: back, batchAllocations: left === 0 ? backAlloc : [] }, 'Partial return at delivery', order.reference);
+        returned.push({ variantId: item.variantId, productId: item.productId, name: item.name, color: item.color, quantity: back, unitPrice: Number(item.unitPrice || 0), image: item.image ?? null, at });
+        if (keep > 0) nextItems.push({ ...item, quantity: keep, batchAllocations: allocations });
+      } else nextItems.push(item);
+    }
+    const subtotal = nextItems.reduce((s, i) => s + Number(i.unitPrice || 0) * i.quantity, 0);
+    const discount = Math.min(Number(order.discountCents || 0), subtotal);
+    const total = Math.max(0, subtotal - discount) + Number(order.shippingCents || 0) + Number(order.codFeeCents || 0);
+    if (order.customerId) {
+      const drop = customerOrderValue(order.subtotalCents, order.discountCents) - customerOrderValue(subtotal, discount);
+      if (drop > 0) await tx.update(customers).set({ totalSpent: sql`GREATEST(${customers.totalSpent} - ${drop}, 0)`, updatedAt: new Date() }).where(eq(customers.id, order.customerId));
+    }
+    const previousReturns = (order.returnedItems as ReturnedItem[] | null) ?? [];
+    await tx.update(orders).set({ items: nextItems, returnedItems: [...previousReturns, ...returned], subtotalCents: subtotal, discountCents: discount, totalCents: total, updatedAt: new Date() }).where(eq(orders.id, orderId));
+    const summary = returned.map(r => `${r.name} (${r.color}) ×${r.quantity}`).join('، ');
+    await tx.insert(orderEvents).values({ orderId, type: 'note', message: `Partial return at delivery: ${summary}${note ? ` · ${note}` : ''}` });
+  });
+  await transitionOrder(orderId, 'delivered');
+  invalidateCatalog();
+  return orderId;
+}

@@ -165,6 +165,8 @@ export const orders = pgTable('orders', {
   governorate: text('governorate').notNull().default(''),
   address: jsonb('address').notNull(),
   items: jsonb('items').notNull(),
+  // Units the customer handed back at delivery (partial return); the delivered quantities stay in items.
+  returnedItems: jsonb('returned_items').notNull().default([]),
   currency: text('currency').notNull().default('USD'),
   exchangeRate: integer('exchange_rate').notNull().default(1),
   subtotalCents: integer('subtotal_cents').notNull(),
