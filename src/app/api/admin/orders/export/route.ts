@@ -1,5 +1,6 @@
+import { placedRange } from '@/lib/report-period';
 import { NextRequest, NextResponse } from 'next/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { orders } from '@/db/schema';
 import { requireAdminSection } from '@/lib/admin-auth';
@@ -17,7 +18,8 @@ export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams;
   const status = p.get('status') && (orderStatuses as readonly string[]).includes(p.get('status')!) ? p.get('status')! : undefined;
   const ids = (p.get('ids') ?? '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0);
-  const where = ids.length ? undefined : and(searchFilter(p.get('q') ?? ''), status ? eq(orders.status, status) : undefined);
+  const range = placedRange(p.get('from'), p.get('to'));
+  const where = ids.length ? undefined : and(searchFilter(p.get('q') ?? ''), status ? eq(orders.status, status) : undefined, range ? sql`${orders.createdAt} >= ${range.from.toISOString()}::timestamptz and ${orders.createdAt} <= ${range.to.toISOString()}::timestamptz` : undefined);
   let rows = await db.select().from(orders).where(where).orderBy(desc(orders.createdAt)).limit(10000);
   if (ids.length) { const set = new Set(ids); rows = rows.filter(r => set.has(r.id)); }
   const header = ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الهاتف', 'هاتف بديل', 'المحافظة', 'المدينة', 'العنوان', 'أقرب نقطة دالة', 'المنتجات', 'عدد القطع', 'المجموع الفرعي', 'التوصيل', 'الخصم', 'الإجمالي', 'طريقة الدفع', 'حالة الدفع', 'الكوبون', 'شركة التوصيل', 'رقم التتبع', 'المصدر', 'ملاحظة الزبون', 'ملاحظة داخلية'];

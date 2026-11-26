@@ -8,7 +8,7 @@ import { db } from '@/db';
 import { orders, productVariants, products, shippingZones } from '@/db/schema';
 import { GlassScope } from '@/components/admin/dash-glass';
 import { OrdersHeader, OrdersTable, type OrderRow } from '@/components/admin/orders-client';
-import { startOfBaghdadToday } from '@/lib/report-period';
+import { baghdadDayKey, placedRange, startOfBaghdadToday } from '@/lib/report-period';
 import { getSettings } from '@/lib/settings';
 import { orderStatuses, roundIqd } from '@/lib/iraq';
 import { searchFilter } from '@/lib/order-search';
@@ -18,7 +18,7 @@ export const metadata = { title: 'Orders' };
 export const dynamic = 'force-dynamic';
 const PAGE_SIZE = 40;
 
-export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; page?: string }> }) {
+export default async function AdminOrdersPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string; page?: string; from?: string; to?: string }> }) {
   const params = await searchParams;
   const initialStatus = params.status && (orderStatuses as readonly string[]).includes(params.status) ? params.status : undefined;
   const query = (params.q ?? '').trim().slice(0, 80);
@@ -26,7 +26,12 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const actor = await requireAdminSection('sales', 'view');
   if (!actor) redirect('/admin');
   const today = startOfBaghdadToday();
-  const search = searchFilter(query);
+  // Optional date filter on the day the order was placed (Baghdad days).
+  const day = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '');
+  const fromDay = day(params.from), toDay = day(params.to);
+  const range = placedRange(fromDay, toDay);
+  const todayKey = baghdadDayKey(startOfBaghdadToday());
+  const search = and(searchFilter(query), range ? sql`${orders.createdAt} >= ${range.from.toISOString()}::timestamptz and ${orders.createdAt} <= ${range.to.toISOString()}::timestamptz` : undefined);
   const where = and(search, initialStatus ? eq(orders.status, initialStatus) : undefined);
   const [statusRows, todayRows, staleRows, matchRows] = await Promise.all([
     db.select({ status: orders.status, count: sql<number>`count(*)::int`, total: sql<number>`coalesce(sum(${orders.totalCents}),0)::bigint` }).from(orders).groupBy(orders.status),
@@ -50,5 +55,5 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   // Products offered for manual orders show what can still be sold (on hand − pending reservations).
   const catalog = catalogRows.map(row => ({ ...row, stock: Math.max(0, row.stock - (reserved.get(row.variantId) ?? 0)), salePriceIqd: row.salePriceIqd || roundIqd(row.priceCents / 100 * settings.exchangeRate), image: row.image?.[row.primaryIndex] ?? row.image?.[0] ?? null }));
   const serialised = rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(), paidAt: row.paidAt?.toISOString() ?? null, deliveredAt: row.deliveredAt?.toISOString() ?? null })) as unknown as OrderRow[];
-  return <GlassScope className="admin-page dash gl-page gl-orders" motionKey={`${initialStatus ?? "all"}-${query}-${page}`}><OrdersHeader stats={stats} /><OrdersTable rows={serialised} catalog={catalog} costLayers={showProfit ? costLayers : undefined} status={initialStatus ?? 'all'} query={query} page={page} pages={pages} total={totalMatches} counts={matchCounts} pageSize={PAGE_SIZE} couriers={couriers} defaultCourierId={accounts.defaultCourierId} zoneRates={zoneRates} /></GlassScope>;
+  return <GlassScope className="admin-page dash gl-page gl-orders" motionKey={`${initialStatus ?? "all"}-${query}-${page}-${fromDay}-${toDay}`}><OrdersHeader stats={stats} /><OrdersTable fromDay={fromDay} toDay={toDay} today={todayKey} rows={serialised} catalog={catalog} costLayers={showProfit ? costLayers : undefined} status={initialStatus ?? 'all'} query={query} page={page} pages={pages} total={totalMatches} counts={matchCounts} pageSize={PAGE_SIZE} couriers={couriers} defaultCourierId={accounts.defaultCourierId} zoneRates={zoneRates} /></GlassScope>;
 }

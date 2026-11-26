@@ -78,3 +78,13 @@ export function isPlacedIn(order: { createdAt: Date | string }, from: Date, to: 
   const at = new Date(order.createdAt).getTime();
   return at >= from.getTime() && at <= to.getTime();
 }
+
+/**
+ * Orders list date filter: "YYYY-MM-DD" from/to (Baghdad days, inclusive) on the day an order was placed.
+ * Returns null when no valid day is given.
+ */
+export function placedRange(fromDay?: string | null, toDay?: string | null) {
+  const from = fromDay ? parseDay(fromDay) : null, toStart = toDay ? parseDay(toDay) : null;
+  if (!from && !toStart) return null;
+  return { from: from ?? new Date(0), to: toStart ? new Date(toStart.getTime() + DAY_MS - 1) : new Date(8.64e15) };
+}
