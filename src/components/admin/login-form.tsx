@@ -9,7 +9,7 @@ const AR_ERRORS: Record<string, string> = {
 };
 
 /** Admin sign-in, Apple ID style: one calm card, grouped fields, arrow button inside the field. */
-export function LoginForm() {
+export function LoginForm({ logoUrl, logoAlt = 'UR' }: { logoUrl?: string; logoAlt?: string }) {
   const [mode, setMode] = useState<'owner' | 'team'>('owner');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -55,7 +55,7 @@ export function LoginForm() {
   return <main className="al-page" dir="rtl">
     <div className="al-glow" aria-hidden="true" />
     <form className={`al-card${done ? ' is-done' : ''}`} onSubmit={submit} noValidate>
-      <div className="al-icon"><img src="/images/UR-logo.svg" alt="" width="46" height="28" /></div>
+      {logoUrl ? <div className="al-logo"><img src={logoUrl.startsWith('/api/media/') ? `${logoUrl}?w=480` : logoUrl} alt={logoAlt} /></div> : <div className="al-icon"><img src="/images/UR-logo.svg" alt="" width="46" height="28" /></div>}
       <h1>تسجيل الدخول</h1>
       <p className="al-sub">لوحة إدارة متجر أور للجلود</p>
 
