@@ -1,7 +1,7 @@
 'use client';
 
 /** Reports → orders report: how many orders came in over the chosen dates, from where, and what each one earns. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardList, Megaphone } from 'lucide-react';
 import type { ReportsData } from '@/lib/reports-data';
@@ -16,7 +16,6 @@ export function OrdersReport({ report, finance, rangeLabel, singleDay }: { repor
   const [source, setSource] = useState<string | null>(null);
   const rows = source ? report.rows.filter(r => r.source === source) : report.rows;
   const shown = source ? report.bySource.find(s => s.key === source) : null;
-  const adNet = report.profit - report.adSpend;
   const total = { orders: shown?.orders ?? report.count, revenue: shown?.revenue ?? report.revenue, profit: shown?.profit ?? report.profit };
   return <div className="nq-card or-card">
     <div className="nq-head"><div className="nq-head-title"><div className="nq-tile brown"><ClipboardList size={20} /></div><div><h3>تقرير الطلبات</h3><p>{`كل الطلبات المسجّلة خلال ${rangeLabel}، مصدرها وربح كل طلب`}</p></div></div></div>
@@ -28,15 +27,7 @@ export function OrdersReport({ report, finance, rangeLabel, singleDay }: { repor
       <div className="or-kpi"><span>متوسط الطلب</span><b><Num value={report.active ? report.revenue / report.active : 0} format="iqd" /> <small>د.ع</small></b><small>{finance && report.active ? `ربح ${num(report.profit / report.active)} د.ع للطلب` : ' '}</small></div>
     </div>
 
-    {finance && <div className={`or-ads ${report.adSpend ? '' : 'empty'}`}>
-      <div className="or-ads-head"><Megaphone size={16} /><b>الإعلانات</b>{!report.adSpend && <span>سجّل صرف الإعلانات من <Link href="/admin/finance">المصاريف</Link> بنوع «إعلانات» ويطلع هنا حسب التاريخ</span>}</div>
-      {report.adSpend > 0 && <div className="or-ads-grid">
-        <div><span>صرف الإعلانات</span><b>{num(report.adSpend)} <small>د.ع</small></b></div>
-        <div className={adNet >= 0 ? 'good' : 'bad'}><span>الربح بعد الإعلانات</span><b>{num(adNet)} <small>د.ع</small></b></div>
-        <div><span>كلفة الطلب</span><b>{report.active ? num(report.adSpend / report.active) : '—'} <small>د.ع</small></b></div>
-        <div><span>العائد على الإعلان</span><b>{(report.revenue / report.adSpend).toFixed(1)}x</b></div>
-      </div>}
-    </div>}
+    {finance && <AdCalculator report={report} />}
 
     <div className="or-sources" role="tablist" aria-label="مصدر الطلب">
       <button type="button" role="tab" aria-selected={!source} className={!source ? 'on' : ''} onClick={() => setSource(null)}><b>الكل</b><span>{report.count} طلب</span></button>
@@ -61,5 +52,37 @@ export function OrdersReport({ report, finance, rangeLabel, singleDay }: { repor
       <tfoot><tr><td colSpan={5}>المجموع{source ? ` · ${SOURCE_AR[source] ?? source}` : ''} ({total.orders} طلب)</td><td>{rows.reduce((t, r) => t + (r.status === 'cancelled' || r.status === 'returned' ? 0 : r.units), 0)}</td><td>{num(total.revenue)}</td>{finance && <td className="or-profit">{num(total.profit)}</td>}</tr></tfoot>
     </table></div>}
     {(report.rows.length < report.count || (finance && report.unknownCost > 0)) && <p className="or-note">{report.rows.length < report.count ? `يعرض أحدث ${report.rows.length} طلب من ${report.count}. ` : ''}{finance && report.unknownCost > 0 ? `* ${report.unknownCost} طلب بيه قطع بدون كلفة شراء، فربحها محسوب بس على القطع اللي إلها كلفة.` : ''}</p>}
+  </div>;
+}
+
+/**
+ * Quick ad-spend calculator: type what the ads cost for these dates and see the profit after ads.
+ * Nothing is saved as an expense; only the currency and exchange rate are remembered in this browser.
+ */
+function AdCalculator({ report }: { report: ReportsData['ordersReport'] }) {
+  const [amount, setAmount] = useState('');
+  const [usd, setUsd] = useState(true);
+  const [rate, setRate] = useState('1500');
+  useEffect(() => { try { const saved = JSON.parse(localStorage.getItem('ur-ad-calc') || '{}'); requestAnimationFrame(() => { if (typeof saved.usd === 'boolean') setUsd(saved.usd); if (saved.rate) setRate(String(saved.rate)); }); } catch { /* storage unavailable */ } }, []);
+  const remember = (next: { usd: boolean; rate: string }) => { try { localStorage.setItem('ur-ad-calc', JSON.stringify(next)); } catch { /* storage unavailable */ } };
+  const value = Number(amount.replace(/[^\d.]/g, '')) || 0;
+  const spend = usd ? value * (Number(rate) || 0) : value;
+  const net = report.profit - spend;
+  const margin = report.revenue ? net / report.revenue : 0;
+  return <div className={`or-ads ${spend ? '' : 'empty'}`}>
+    <div className="or-ads-head"><Megaphone size={16} /><b>حاسبة الإعلانات</b><span>رقم تقريبي للحساب بس، ما ينسجل كمصروف</span></div>
+    <div className="or-ads-form">
+      <label className="or-ads-amount"><span>صرف الإعلانات لهاي الفترة</span><span className="or-ads-input"><input inputMode="decimal" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} aria-label="صرف الإعلانات" /><button type="button" onClick={() => { setUsd(!usd); remember({ usd: !usd, rate }); }} aria-label="تبديل العملة">{usd ? '$' : 'د.ع'}</button></span></label>
+      {usd && <label className="or-ads-rate"><span>سعر الدولار</span><input inputMode="numeric" value={rate} onChange={e => { const r = e.target.value.replace(/[^\d]/g, ''); setRate(r); remember({ usd, rate: r }); }} aria-label="سعر صرف الدولار" /></label>}
+      {amount && <button type="button" className="or-ads-clear" onClick={() => setAmount('')}>مسح</button>}
+    </div>
+    {spend > 0 && <div className="or-ads-grid">
+      <div><span>الصرف بالدينار</span><b>{num(spend)} <small>د.ع</small></b></div>
+      <div className={net >= 0 ? 'good' : 'bad'}><span>الربح بعد الإعلانات</span><b>{num(net)} <small>د.ع</small></b></div>
+      <div className={net >= 0 ? 'good' : 'bad'}><span>نسبة الربح من المبيعات</span><b>{Math.round(margin * 100)}%</b></div>
+      <div><span>كلفة الطلب</span><b>{report.active ? num(spend / report.active) : '—'} <small>د.ع</small></b></div>
+      <div><span>العائد على الإعلان</span><b>{(report.revenue / spend).toFixed(1)}x</b></div>
+      <div><span>الإعلان من الربح</span><b>{report.profit > 0 ? `${Math.round((spend / report.profit) * 100)}%` : '—'}</b></div>
+    </div>}
   </div>;
 }
