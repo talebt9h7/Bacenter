@@ -239,10 +239,13 @@ export function OrdersTable({ fromDay = '', toDay = '', today = '', rows, catalo
   }
   const exportHref = (() => { const params = new URLSearchParams(); if (query) params.set('q', query); if (status && status !== 'all') params.set('status', status); if (fromDay) params.set('from', fromDay); if (toDay) params.set('to', toDay); return `/api/admin/orders/export${params.size ? `?${params}` : ''}`; })();
   // Search, status and page live in the URL and run on the server across every order.
-  const [draft, setDraft] = useState(query), [draftSource, setDraftSource] = useState(query);
-  if (draftSource !== query) { setDraftSource(query); setDraft(query); }
+  // `sent` is the last search this box pushed; when the server catches up with it the box keeps what the
+  // user has typed since (letters, trailing spaces). Only an outside change (back button, clear) resets it.
+  const [draft, setDraft] = useState(query), [draftSource, setDraftSource] = useState(query), [sent, setSent] = useState(query);
+  if (draftSource !== query) { setDraftSource(query); if (query !== sent) { setSent(query); setDraft(query); } }
   const go = (next: { q?: string; status?: string; page?: number; from?: string; to?: string }) => {
     const params = new URLSearchParams();
+    if (next.q !== undefined) setSent(next.q);
     const q = next.q ?? query, st = next.status ?? status, pg = next.page ?? 1, fd = next.from ?? fromDay, td = next.to ?? toDay;
     if (q) params.set('q', q); if (st && st !== 'all') params.set('status', st); if (fd) params.set('from', fd); if (td) params.set('to', td); if (pg > 1) params.set('page', String(pg));
     startNavigation(() => router.push(`/admin/orders${params.size ? `?${params}` : ''}`, { scroll: false }));
