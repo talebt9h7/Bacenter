@@ -288,3 +288,16 @@ html body .admin-shell .nq-reports .or-profit{font-weight:700;color:#c4501f}
 html body .admin-shell .nq-reports .or-profit em{font-style:normal;color:#8e8e93;margin-inline-start:2px}
 html body .admin-shell .nq-reports .or-profit small{margin-inline-start:6px;font-size:10.5px!important;font-weight:500;color:#8e8e93}
 html body .admin-shell .nq-reports .or-note{font-size:12px!important;color:#8e8e93;margin:0}
+html body .admin-shell .nq-reports .or-ads{padding:14px 16px;border-radius:16px;background:rgba(239,115,66,.06);border:1px dashed rgba(239,115,66,.3);display:flex;flex-direction:column;gap:12px}
+html body .admin-shell .nq-reports .or-ads.empty{background:rgba(0,0,0,.025);border-color:rgba(0,0,0,.1)}
+html body .admin-shell .nq-reports .or-ads-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#c4501f}
+html body .admin-shell .nq-reports .or-ads-head b{font-size:14px!important;color:#1d1d1f}
+html body .admin-shell .nq-reports .or-ads-head span{font-size:12px!important;color:#8e8e93}
+html body .admin-shell .nq-reports .or-ads-head a{color:#c4501f;font-weight:600}
+html body .admin-shell .nq-reports .or-ads-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+html body .admin-shell .nq-reports .or-ads-grid>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+html body .admin-shell .nq-reports .or-ads-grid span{font-size:12px!important;color:#8e8e93}
+html body .admin-shell .nq-reports .or-ads-grid b{font-size:18px!important;font-weight:700;color:#1d1d1f;font-variant-numeric:tabular-nums}
+html body .admin-shell .nq-reports .or-ads-grid b small{font-size:11px!important;color:#8e8e93;font-weight:500}
+html body .admin-shell .nq-reports .or-ads-grid .good b{color:#1f8a3e}
+html body .admin-shell .nq-reports .or-ads-grid .bad b{color:#d92d20}

@@ -3,7 +3,7 @@
 /** Reports → orders report: how many orders came in over the chosen dates, from where, and what each one earns. */
 import { useState } from 'react';
 import Link from 'next/link';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Megaphone } from 'lucide-react';
 import type { ReportsData } from '@/lib/reports-data';
 import { Num } from './dash-glass';
 
@@ -16,6 +16,7 @@ export function OrdersReport({ report, finance, rangeLabel, singleDay }: { repor
   const [source, setSource] = useState<string | null>(null);
   const rows = source ? report.rows.filter(r => r.source === source) : report.rows;
   const shown = source ? report.bySource.find(s => s.key === source) : null;
+  const adNet = report.profit - report.adSpend;
   const total = { orders: shown?.orders ?? report.count, revenue: shown?.revenue ?? report.revenue, profit: shown?.profit ?? report.profit };
   return <div className="nq-card or-card">
     <div className="nq-head"><div className="nq-head-title"><div className="nq-tile brown"><ClipboardList size={20} /></div><div><h3>تقرير الطلبات</h3><p>{`كل الطلبات المسجّلة خلال ${rangeLabel}، مصدرها وربح كل طلب`}</p></div></div></div>
@@ -26,6 +27,16 @@ export function OrdersReport({ report, finance, rangeLabel, singleDay }: { repor
       {finance && <div className="or-kpi hi"><span>مجموع أرباح الطلبات</span><b><Num value={report.profit} format="iqd" /> <small>د.ع</small></b><small>{num(report.realisedProfit)} د.ع منها من طلبات مُسلّمة</small></div>}
       <div className="or-kpi"><span>متوسط الطلب</span><b><Num value={report.active ? report.revenue / report.active : 0} format="iqd" /> <small>د.ع</small></b><small>{finance && report.active ? `ربح ${num(report.profit / report.active)} د.ع للطلب` : ' '}</small></div>
     </div>
+
+    {finance && <div className={`or-ads ${report.adSpend ? '' : 'empty'}`}>
+      <div className="or-ads-head"><Megaphone size={16} /><b>الإعلانات</b>{!report.adSpend && <span>سجّل صرف الإعلانات من <Link href="/admin/finance">المصاريف</Link> بنوع «إعلانات» ويطلع هنا حسب التاريخ</span>}</div>
+      {report.adSpend > 0 && <div className="or-ads-grid">
+        <div><span>صرف الإعلانات</span><b>{num(report.adSpend)} <small>د.ع</small></b></div>
+        <div className={adNet >= 0 ? 'good' : 'bad'}><span>الربح بعد الإعلانات</span><b>{num(adNet)} <small>د.ع</small></b></div>
+        <div><span>كلفة الطلب</span><b>{report.active ? num(report.adSpend / report.active) : '—'} <small>د.ع</small></b></div>
+        <div><span>العائد على الإعلان</span><b>{(report.revenue / report.adSpend).toFixed(1)}x</b></div>
+      </div>}
+    </div>}
 
     <div className="or-sources" role="tablist" aria-label="مصدر الطلب">
       <button type="button" role="tab" aria-selected={!source} className={!source ? 'on' : ''} onClick={() => setSource(null)}><b>الكل</b><span>{report.count} طلب</span></button>

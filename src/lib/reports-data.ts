@@ -170,6 +170,8 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
     profit: reportRows.reduce((t, r) => t + r.profit, 0),
     realisedProfit: reportRows.filter(r => r.realised).reduce((t, r) => t + r.profit, 0),
     unknownCost: reportRows.filter(r => r.unknownCost).length,
+    // Ad spend entered by hand under Expenses → "إعلانات" (advertising) for the same dates.
+    adSpend: expenseNow.filter(e => e.category === 'advertising').reduce((t, e) => t + e.amountIqd, 0),
     bySource: [...srcAgg.entries()].map(([key, a]) => ({ key, ...a })).sort((a, b) => b.orders - a.orders),
     rows: reportRows.slice(0, 500),
   };
