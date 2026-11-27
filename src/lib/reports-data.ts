@@ -155,6 +155,25 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
   const deliveredList = delivered.slice(0, 300).map(o => { const m = orderMoney(o); return { id: o.id, reference: o.reference, name: o.name, phone: o.phone, source: o.source, governorate: o.governorate, revenue: round(m.revenue), discount: round(m.discounts), cogs: round(m.cogs), profit: round(m.profit), unknownCost: m.unknownCostUnits > 0, shipping: o.shippingCents, total: o.totalCents, units: m.units, deliveredAt: recognizedAt(o).toISOString(), createdAt: o.createdAt.toISOString() }; });
   const ordersList = placed.slice(0, 250).map(o => { const m = orderMoney(o); return { id: o.id, reference: o.reference, name: o.name, phone: o.phone, source: o.source, status: o.status, governorate: o.governorate, revenue: round(m.revenue), profit: o.status === 'delivered' ? round(m.profit) : null, shipping: o.shippingCents, total: o.totalCents, units: m.units, createdAt: o.createdAt.toISOString() }; });
 
+  // ---- orders report: every order placed in the range, its source and its profit ----
+  // Profit = items after discount minus purchase cost (delivery fee excluded). Delivered orders are
+  // realised; open orders show the profit they will make; cancelled/returned orders count for nothing.
+  const dead = (o: OrderRow) => o.status === 'cancelled' || o.status === 'returned';
+  const reportRows = placed.map(o => { const m = orderMoney(o); return { id: o.id, reference: o.reference, name: o.name, source: o.source || 'website', status: o.status, createdAt: o.createdAt.toISOString(), units: m.units, revenue: dead(o) ? 0 : round(m.revenue), profit: dead(o) ? 0 : round(m.profit), unknownCost: !dead(o) && m.unknownCostUnits > 0, realised: o.status === 'delivered' }; });
+  const srcAgg = new Map<string, { orders: number; active: number; revenue: number; profit: number }>();
+  for (const r of reportRows) { const a = srcAgg.get(r.source) ?? { orders: 0, active: 0, revenue: 0, profit: 0 }; a.orders++; if (r.status !== 'cancelled' && r.status !== 'returned') a.active++; a.revenue += r.revenue; a.profit += r.profit; srcAgg.set(r.source, a); }
+  const ordersReport = {
+    count: reportRows.length,
+    active: reportRows.filter(r => r.status !== 'cancelled' && r.status !== 'returned').length,
+    lost: reportRows.filter(r => r.status === 'cancelled' || r.status === 'returned').length,
+    revenue: reportRows.reduce((t, r) => t + r.revenue, 0),
+    profit: reportRows.reduce((t, r) => t + r.profit, 0),
+    realisedProfit: reportRows.filter(r => r.realised).reduce((t, r) => t + r.profit, 0),
+    unknownCost: reportRows.filter(r => r.unknownCost).length,
+    bySource: [...srcAgg.entries()].map(([key, a]) => ({ key, ...a })).sort((a, b) => b.orders - a.orders),
+    rows: reportRows.slice(0, 500),
+  };
+
   // ---- delivery by governorate (placed orders, outcome) ----
   const govAgg = new Map<string, { orders: number; delivered: number; cancelled: number; returned: number; revenue: number; shipping: number; hours: number[] }>();
   for (const o of placed) { const r = govAgg.get(o.governorate || 'unknown') ?? { orders: 0, delivered: 0, cancelled: 0, returned: 0, revenue: 0, shipping: 0, hours: [] }; r.orders++; if (o.status === 'delivered') { r.delivered++; r.revenue += orderMoney(o).revenue; r.shipping += o.shippingCents; if (o.deliveredAt) r.hours.push((o.deliveredAt.getTime() - o.createdAt.getTime()) / 3600_000); } if (o.status === 'cancelled') r.cancelled++; if (o.status === 'returned') r.returned++; govAgg.set(o.governorate || 'unknown', r); }
@@ -187,7 +206,7 @@ async function computeReports(input: { period?: string; from?: string; to?: stri
     productTable, variantTable, categoryTable,
     inventory: { ...valuation, lowThreshold, ...stockAdvice(inventoryTable, lowThreshold), table: inventoryTable, batches, movements: [...movementSummary.entries()].map(([reason, r]) => ({ reason, ...r })).sort((a, b) => (b.in + b.out) - (a.in + a.out)), lowCount: inventoryTable.filter(v => v.published && v.available > 0 && v.available <= lowThreshold).length, soldOutCount: inventoryTable.filter(v => v.published && v.available === 0).length },
     customers: customerStats, topBuyers,
-    paymentTotals, paymentMethods, statusCounts, funnel, avgDeliveryDays, ordersList, deliveredList,
+    paymentTotals, paymentMethods, statusCounts, funnel, avgDeliveryDays, ordersList, deliveredList, ordersReport,
     governorates,
     coupons, discountedOrders, offers,
   };

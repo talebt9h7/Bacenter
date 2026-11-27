@@ -14,6 +14,7 @@ import type { ReportsData } from '@/lib/reports-data';
 import { AccountsTabs } from './accounts-views';
 import { useRef, useState } from 'react';
 import { Num, PeriodSwitch, useGlassMotion } from './dash-glass';
+import { OrdersReport } from './orders-report';
 import './reports-nasaq.css';
 
 // One colour family, as on the dashboard: UR orange in shades, with greys for comparisons and costs.
@@ -175,6 +176,8 @@ export function ReportsNasaq({ data, finance, today }: { data: ReportsData; fina
         <div className="nq-stat-note">يوم</div>
       </Card>
     </div>
+
+    <OrdersReport report={data.ordersReport} finance={finance} rangeLabel={rangeLabel} singleDay={singleDay} />
 
     {/* Charts row */}
     <div className="nq-row cols-3">

@@ -253,3 +253,38 @@ html body .admin-shell .nq-reports.gl-reports .gl-seg button{font-size:13px!impo
 html body .admin-shell .nq-reports.gl-reports .gl-seg button.on{font-weight:600}
 @media (max-width:640px){html body .admin-shell .nq-reports.gl-reports .nq-card{padding:16px;border-radius:22px}}
 @media print{.gl-top-actions{display:none!important}}
+
+/* Orders report */
+html body .admin-shell .nq-reports .or-card{display:flex;flex-direction:column;gap:18px;min-width:0}
+html body .admin-shell .nq-reports .or-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+html body .admin-shell .nq-reports .or-kpi{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.95);box-shadow:0 6px 18px -14px rgba(0,0,0,.3);min-width:0}
+html body .admin-shell .nq-reports .or-kpi>span{font-size:12px!important;color:#8e8e93}
+html body .admin-shell .nq-reports .or-kpi b{font-size:22px!important;font-weight:700;color:#1d1d1f;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+html body .admin-shell .nq-reports .or-kpi b small{font-size:12px!important;color:#8e8e93;font-weight:500}
+html body .admin-shell .nq-reports .or-kpi>small{font-size:11.5px!important;color:#8e8e93}
+html body .admin-shell .nq-reports .or-kpi.hi{background:linear-gradient(160deg,rgba(239,115,66,.14),rgba(239,115,66,.04));border-color:rgba(239,115,66,.25)}
+html body .admin-shell .nq-reports .or-kpi.hi b{color:#c4501f}
+html body .admin-shell .nq-reports .or-sources{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+html body .admin-shell .nq-reports .or-sources::-webkit-scrollbar{display:none}
+html body .admin-shell .nq-reports .or-sources button{position:relative;overflow:hidden;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px 12px;border-radius:14px;border:1px solid rgba(0,0,0,.06);background:rgba(255,255,255,.75);cursor:pointer;font:inherit;text-align:start;min-width:110px}
+html body .admin-shell .nq-reports .or-sources button b{font-size:13px!important;color:#1d1d1f}
+html body .admin-shell .nq-reports .or-sources button span{font-size:11.5px!important;color:#8e8e93;white-space:nowrap}
+html body .admin-shell .nq-reports .or-sources button i{position:absolute;inset-inline-start:0;bottom:0;height:3px;background:#ef7342;border-radius:3px;opacity:.55}
+html body .admin-shell .nq-reports .or-sources button.on{background:#ef7342;border-color:#ef7342}
+html body .admin-shell .nq-reports .or-sources button.on b,html body .admin-shell .nq-reports .or-sources button.on span{color:#fff}
+html body .admin-shell .nq-reports .or-sources button.on i{background:#fff}
+html body .admin-shell .nq-reports .or-table-wrap{overflow:auto;max-height:520px;border-radius:14px;border:1px solid rgba(0,0,0,.06);background:rgba(255,255,255,.6)}
+html body .admin-shell .nq-reports .or-table{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+html body .admin-shell .nq-reports .or-table th{position:sticky;top:0;z-index:1;background:#f7f7f8;text-align:start;font-weight:600;font-size:12px!important;color:#6e6e73;padding:10px 12px;white-space:nowrap}
+html body .admin-shell .nq-reports .or-table td{padding:10px 12px;border-top:1px solid rgba(0,0,0,.05);white-space:nowrap;font-variant-numeric:tabular-nums;color:#1d1d1f}
+html body .admin-shell .nq-reports .or-table td a{color:#c4501f;font-weight:600;text-decoration:none}
+html body .admin-shell .nq-reports .or-table tr.dead td{color:#aeaeb2}
+html body .admin-shell .nq-reports .or-table tfoot td{position:sticky;bottom:0;background:#fff4ee;font-weight:700;border-top:1px solid rgba(239,115,66,.25)}
+html body .admin-shell .nq-reports .or-src{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.05);font-size:12px}
+html body .admin-shell .nq-reports .or-st{padding:3px 9px;border-radius:999px;font-size:12px;background:rgba(239,115,66,.1);color:#c4501f}
+html body .admin-shell .nq-reports .or-st.st-delivered{background:rgba(52,199,89,.12);color:#1f8a3e}
+html body .admin-shell .nq-reports .or-st.st-cancelled,html body .admin-shell .nq-reports .or-st.st-returned{background:rgba(0,0,0,.05);color:#8e8e93}
+html body .admin-shell .nq-reports .or-profit{font-weight:700;color:#c4501f}
+html body .admin-shell .nq-reports .or-profit em{font-style:normal;color:#8e8e93;margin-inline-start:2px}
+html body .admin-shell .nq-reports .or-profit small{margin-inline-start:6px;font-size:10.5px!important;font-weight:500;color:#8e8e93}
+html body .admin-shell .nq-reports .or-note{font-size:12px!important;color:#8e8e93;margin:0}
